@@ -1,3 +1,7 @@
+// ~~~~~~~~~~~~~ SCRIPT 1: Interactor.cs ~~~~~~~~~~~~~
+// Attach this script to your Player GameObject. No changes needed here.
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 using UnityEngine;
 using UnityEngine.UI;
 

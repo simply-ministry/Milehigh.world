@@ -1,3 +1,7 @@
+// ~~~~~~~~~~~~~ NEW SCRIPT 5: InteractableLaunchpad.cs ~~~~~~~~~~~~~
+// Attach this to your launchpad GameObject.
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 using UnityEngine;
 
 public class InteractableLaunchpad : Interactable

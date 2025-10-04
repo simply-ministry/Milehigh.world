@@ -1,3 +1,7 @@
+// ~~~~~~~~~~~~~ NEW SCRIPT 4: InteractableNPC.cs ~~~~~~~~~~~~~
+// Attach this to your NPC models. You can set their name and dialogue in the Inspector.
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 using UnityEngine;
 
 public class InteractableNPC : Interactable

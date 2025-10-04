@@ -1,3 +1,7 @@
+// ~~~~~~~~~~~~~ SCRIPT 2: Interactable.cs ~~~~~~~~~~~~~
+// The abstract base class. No changes needed here.
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 using UnityEngine;
 
 public abstract class Interactable : MonoBehaviour

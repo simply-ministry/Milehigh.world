@@ -1,3 +1,7 @@
+// ~~~~~~~~~~~~~ NEW SCRIPT 3: InteractableTeleporter.cs ~~~~~~~~~~~~~
+// Attach this to your teleporter pad GameObject. It will call your manager.
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 using UnityEngine;
 
 public class InteractableTeleporter : Interactable
