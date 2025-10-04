@@ -100,23 +100,36 @@ public class IngrisZayaEncounter : MonoBehaviour
     {
         while (fightActive && timer > 0)
         {
-            // Randomly decide who attacks
-            if (Random.value < 0.5f)
+            // Check which characters are ready to attack
+            bool ingrisReady = timeSinceIngrisAttack >= ingrisAttackCooldown;
+            bool zayaReady = timeSinceZayaAttack >= zayaAttackCooldown;
+
+            // Attack logic: If both are ready, one is chosen at random.
+            // If only one is ready, they will attack.
+            if (ingrisReady && zayaReady)
             {
-                if (timeSinceIngrisAttack >= ingrisAttackCooldown)
+                if (Random.value < 0.5f)
                 {
                     IngrisAttack();
                     timeSinceIngrisAttack = 0f;
                 }
-            }
-            else
-            {
-                if (timeSinceZayaAttack >= zayaAttackCooldown)
+                else
                 {
                     ZayaAttack();
                     timeSinceZayaAttack = 0f;
                 }
             }
+            else if (ingrisReady)
+            {
+                IngrisAttack();
+                timeSinceIngrisAttack = 0f;
+            }
+            else if (zayaReady)
+            {
+                ZayaAttack();
+                timeSinceZayaAttack = 0f;
+            }
+            // If neither is ready, the system waits for the next attack interval.
 
             yield return new WaitForSeconds(attackInterval);
             timer -= attackInterval;
