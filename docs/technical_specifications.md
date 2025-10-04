@@ -142,3 +142,18 @@ def Mesh "characterFace"
     }
 }
 ```
+
+### D. Mascot Mesh Definition
+
+This defines the Mascot's main body geometry.
+
+```usd
+def Mesh "mascotBody"
+{
+    int[] faceVertexCounts = [...]
+    int[] faceVertexIndices = [...]
+    point3f[] points = [...]
+    normal3f[] normals = [...]
+    texCoord2f[] uv = [...]
+}
+```
