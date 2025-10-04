@@ -64,6 +64,7 @@
     *   [E. Expanded Formal Milehigh World Narrative](#e-expanded-formal-milehigh-world-narrative)
     *   [F. Game Mechanics Examples](#f-game-mechanics-examples)
     *   [G. Other Relevant Documents](#g-other-relevant-documents)
+    *   [H. Narrative Mind Map](#h-narrative-mind-map)
 
 ---
 
@@ -391,7 +392,7 @@ Mîlēhîgh.wørld, or The Verse, is a realm where advanced technology and ancie
 ### 4.4. Characters
 
 #### 4.4.1. Player Character(s) / Archetypes (The Ɲōvəmîŋāđ)
-The ten preordained heroes, each a unique class archetype (see 3.4.1).
+The ten preordained heroes, each a unique class archetype (see 3.4.1). The Ɲōvəmîŋāđ are a diverse group, comprised of both Humans and Mythical Creatures, each with their own unique lineage and connection to the Verse. The human contingent includes technologically-enhanced individuals like Micah and Sky.ix, while the mythical faction features powerful beings such as the phoenix Ingris and the dragon Cirrus.
 
 #### 4.4.2. Major NPCs
 *   **Antagonists:** Lucent the Lightweaver, Era (The Void), Delilah the Desolate (formerly Ingris), King Cyrus the Dragon King, Nyxar.
@@ -401,7 +402,7 @@ The ten preordained heroes, each a unique class archetype (see 3.4.1).
 Faction members, vendors, lorekeepers, distressed citizens, and other figures who enrich the world. Includes Omega.one, the AI companion.
 
 ### 4.5. Themes & Tone
-*   **Themes:** Redemption & Transformation, Unity vs. Fragmentation, The Nature of Corruption, Destiny vs. Free Will, The Blending of Science & Mysticism.
+*   **Themes:** Redemption & Transformation, Unity vs. Fragmentation, The Nature of Corruption, Destiny vs. Free Will, Technology vs. Magic, Love and Sacrifice, Balance and Harmony.
 *   **Tone:** Epic & Grand, Mysterious & Enigmatic, Desperate Hope, Visceral & Immersive, Personal & Emotional, Awe-Inspiring.
 
 ### 4.6. Narrative Delivery
@@ -626,3 +627,27 @@ The `SpriteManipulator.cs` script provides a clear, in-engine example of how to 
 
 ### G. Other Relevant Documents
 (This section will serve as a directory to any external documents, concept art repositories, technical design documents, etc.)
+
+### H. Narrative Mind Map
+This mind map provides a high-level visual overview of the core narrative elements of MILEHIGH.WORLD, including its setting, main characters, and central themes.
+
+```mermaid
+mindmap
+    root((MILEHIGH.WORLD: INTO THE VOID))
+        Topic 1((Setting))
+            Topic 1.1((Milehigh.world))
+            Topic 1.2((The Void))
+        Topic 2((Characters))
+            Topic 2.1((Human))
+                Topic 2.1.1((Micah))
+                Topic 2.1.2((Sky.ix))
+            Topic 2.2((Mythical Creature))
+                Topic 2.2.1((Phoenix))
+                    Topic 2.2.1.1((Ingris))
+                Topic 2.2.2((Dragon))
+                    Topic 2.2.2.1((Cirrus))
+        Topic 3((Themes))
+            Topic 3.1((Technology vs. Magic))
+            Topic 3.2((Love and Sacrifice))
+            Topic 3.3((Balance and Harmony))
+```
