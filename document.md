@@ -17,11 +17,48 @@ def Skeleton "characterSkeleton"
 {
     def Joint "root"
     {
-        matrix4d xformOp:transform = [...]
+        matrix4d xformOp:transform = ((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1))
     }
 
     def Joint "arm"
     {
-        matrix4d xformOp:transform = [...]
+        matrix4d xformOp:transform = ((1,0,0,0),(0,1,0,0),(0,0,1,0),(0,0,0,1))
     }
 }
+```
+
+### B. Body Mesh Definition
+
+This defines the character's body mesh.
+
+```usd
+def Mesh "bodyMesh"
+{
+    int[] faceVertexCounts = [4]
+    int[] faceVertexIndices = [0, 1, 2, 3]
+    point3f[] points = [(-1, -1, 0), (1, -1, 0), (1, 1, 0), (-1, 1, 0)]
+}
+```
+
+### C. Face Mesh Definition with BlendShapes
+
+This defines the character's face mesh, including BlendShapes for expressions.
+
+```usd
+def Mesh "faceMesh"
+{
+    int[] faceVertexCounts = [4]
+    int[] faceVertexIndices = [0, 1, 2, 3]
+    point3f[] points = [(-0.5, -0.5, 0), (0.5, -0.5, 0), (0.5, 0.5, 0), (-0.5, 0.5, 0)]
+
+    def BlendShape "smile"
+    {
+        point3f[] points = [(-0.5, -0.5, 0), (0.5, -0.5, 0), (0.5, 0.6, 0), (-0.5, 0.6, 0)]
+    }
+
+    def BlendShape "frown"
+    {
+        point3f[] points = [(-0.5, -0.5, 0), (0.5, -0.5, 0), (0.5, 0.4, 0), (-0.5, 0.4, 0)]
+    }
+}
+```
