@@ -6,11 +6,9 @@ class GameObject:
     """
     Base class for all game objects.  Provides fundamental attributes and methods.
     """
-    def __init__(self, name="GameObject", x=0, y=0, z=0, health=100, speed=1, visible=True, solid=True):
     def __init__(self, name="GameObject", x=0, y=0, z=0, health=100, speed=1, visible=True, solid=True, defense=0):
         """
         Constructor for GameObject.
-
         Args:
             name (str): The name of the object.
             x (float): The x-coordinate of the object's position.
@@ -30,10 +28,6 @@ class GameObject:
         self.speed = speed
         self.visible = visible
         self.solid = solid
-        self.strength = 10
-        self.dexterity = 10
-        self.intelligence = 10
-        self.defense = 5
         self.defense = defense
         self.attributes = {}  # Dictionary for storing additional attributes.
 
@@ -46,10 +40,8 @@ class GameObject:
     def distance_to(self, other):
         """
         Calculates the distance to another GameObject.
-
         Args:
             other (GameObject): The other GameObject.
-
         Returns:
             float: The distance to the other GameObject.
         """
@@ -61,7 +53,6 @@ class GameObject:
     def move(self, dx, dy, dz=0):
         """
         Moves the object by the specified amount.
-
         Args:
             dx (float): The change in x-coordinate.
             dy (float): The change in y-coordinate.
@@ -73,16 +64,7 @@ class GameObject:
 
     def take_damage(self, damage):
         """
-        Reduces the object's health.
-
-        Args:
-            damage (int): The amount of damage to take.
-        """
-        actual_damage = max(0, damage - self.defense)
-        print(f"{self.name} takes {actual_damage} damage.")
-        self.health -= actual_damage
         Reduces the object's health after factoring in defense.
-
         Args:
             damage (int): The amount of incoming damage.
         """
@@ -99,7 +81,6 @@ class GameObject:
     def heal(self, amount):
         """
         Increases the object's health.
-
         Args:
             amount (int): The amount to heal.
         """
@@ -145,45 +126,6 @@ class Player(GameObject):
         self.max_health = 100
         self.mana = 100
         self.max_mana = 100
-        self.mana_regeneration_rate = 1 # Mana per second
-
-    def update(self, delta_time):
-        """
-        Updates the player's state.
-        """
-        super().update(delta_time)
-        self.mana += self.mana_regeneration_rate * delta_time
-        if self.mana > self.max_mana:
-            self.mana = self.max_mana
-
-    def attack(self, target):
-        """
-        Attacks another GameObject, with a chance for a critical hit or a miss.
-        Args:
-            target (GameObject): The target to attack.
-        """
-        # Dexterity influences critical hit chance and reduces miss chance.
-        # Base miss chance: 10%. Base crit chance: 5%.
-        miss_chance = max(0.01, 0.1 - (self.dexterity - 10) * 0.01)
-        crit_chance = max(0.01, 0.05 + (self.dexterity - 10) * 0.01)
-
-        roll = random.random()
-
-        if roll < miss_chance:
-            print(f"{self.name}'s attack missed {target.name}!")
-            return
-
-        base_damage = self.weapon.damage if self.weapon else 10
-        # Strength adds a damage bonus.
-        damage = base_damage + (self.strength // 5)
-
-        if roll > (1.0 - crit_chance):
-            damage *= 2  # Double damage on a critical hit!
-            print(f"Critical hit! {self.name} attacks {target.name} for {damage} damage.")
-        else:
-            print(f"{self.name} attacks {target.name} for {damage} damage.")
-
-        target.take_damage(damage)
         self.mana_regeneration_rate = 1.5  # Mana per second
         self.strength = 10
         self.dexterity = 10
@@ -192,7 +134,6 @@ class Player(GameObject):
     def attack(self, target):
         """
         Attacks another GameObject, with damage influenced by strength and dexterity.
-
         Args:
             target (GameObject): The target to attack.
         """
@@ -228,7 +169,6 @@ class Player(GameObject):
     def equip_weapon(self, weapon):
         """
         Equips a weapon.
-
         Args:
             weapon (Weapon): The weapon to equip.
         """
@@ -238,13 +178,6 @@ class Player(GameObject):
         else:
             print(f"{self.name} cannot equip {weapon.name}.  It is not a weapon.")
 
-    def pickup_item(self, item):
-        """
-        Picks up an item and adds it to the inventory.
-
-        Args:
-            item (GameObject): The item to pick up.
-        """
     def update(self, delta_time):
         """
         Updates the player's state, including mana regeneration.
@@ -277,22 +210,6 @@ class Player(GameObject):
 
     def use_item(self, item_name):
         """
-        Uses an item from the inventory.
-
-        Args:
-            item_name (str): The name of the item to use.
-        """
-        # Find the first item with the given name
-        for i, item in enumerate(self.inventory):
-            if item.name == item_name:
-                if isinstance(item, Consumable):
-                    item.use(self)
-                    self.inventory.pop(i) # Use pop(index) to remove the specific item
-                    return True # Indicate item was successfully used
-                else:
-                    print(f"{self.name} cannot use {item.name}.")
-                    return False
-        print(f"{self.name} does not have {item_name} in their inventory.")
         Uses an item from the inventory. If the item is a consumable,
         it decreases its quantity and removes it if the quantity is zero.
         """
@@ -315,7 +232,6 @@ class Player(GameObject):
     def gain_experience(self, amount):
         """
         Gains experience points.
-
         Args:
             amount (int): The amount of experience to gain.
         """
@@ -337,19 +253,6 @@ class Player(GameObject):
             print(f"{self.name} leveled up to level {self.level}!")
 
     def cast_spell(self, spell_name, target):
-        """Casts a spell.  Example of using the mana attribute."""
-        if spell_name == "fireball":
-            if self.mana >= 20:  # Fireball costs 20 mana
-                self.mana -= 20
-                print(f"{self.name} casts Fireball on {target.name} for 30 damage!")
-                target.take_damage(30)
-            else:
-                print(f"{self.name} does not have enough mana to cast Fireball!")
-        elif spell_name == "heal":
-            if self.mana >= 10:
-                self.mana -= 10
-                self.heal(20)
-                print(f"{self.name} casts Heal and heals for 20 HP.")
         """Casts a spell, with power influenced by intelligence."""
         if spell_name == "fireball":
             mana_cost = 20
@@ -384,40 +287,16 @@ class Enemy(GameObject):
 
     def attack(self, target):
         """
-        Attacks another GameObject, with a chance for a critical hit or a miss.
         Attacks another GameObject.
-
         Args:
             target (GameObject): The target to attack.
         """
-        # Dexterity influences critical hit chance and reduces miss chance.
-        # Base miss chance: 10%. Base crit chance: 5%.
-        miss_chance = max(0.01, 0.1 - (self.dexterity - 10) * 0.01)
-        crit_chance = max(0.01, 0.05 + (self.dexterity - 10) * 0.01)
-
-        roll = random.random()
-
-        if roll < miss_chance:
-            print(f"{self.name}'s attack missed {target.name}!")
-            return
-
-        # Strength adds a damage bonus.
-        damage = self.attack_damage + (self.strength // 5)
-
-        if roll > (1.0 - crit_chance):
-            damage *= 2  # Double damage on a critical hit!
-            print(f"Critical hit! {self.name} attacks {target.name} for {damage} damage.")
-        else:
-            print(f"{self.name} attacks {target.name} for {damage} damage.")
-
-        target.take_damage(damage)
         print(f"{self.name} attacks {target.name} for {self.attack_damage} damage.")
         target.take_damage(self.attack_damage)
 
     def update(self, delta_time, player):
         """
         Updates the enemy's state.  This is called every frame.
-
         Args:
             delta_time (float): Time since last frame.
             player (Player): The player object.
@@ -427,7 +306,7 @@ class Enemy(GameObject):
             # Move towards the player
             dx = player.x - self.x
             dy = player.y - self.y
-            dz = player.z - self.z
+            dz = self.z - self.z
             distance = self.distance_to(player)
             if distance > 0:
               self.move(dx / distance * self.speed * delta_time, dy / distance * self.speed * delta_time, dz/distance * self.speed * delta_time)
@@ -456,7 +335,6 @@ class Consumable(GameObject):
     def use(self, target):
         """
         Applies the consumable's effect to the target.  Must be overridden.
-
         Args:
             target (GameObject): The target of the consumable's effect.
         """
@@ -505,7 +383,6 @@ class Game:
     def add_object(self, obj):
         """
         Adds a GameObject to the game.
-
         Args:
             obj (GameObject): The GameObject to add.
         """
@@ -516,7 +393,6 @@ class Game:
     def remove_object(self, obj):
         """
         Removes a GameObject from the game.
-
         Args:
             obj (GameObject): The GameObject to remove.
         """
@@ -546,7 +422,6 @@ class Game:
         """
         Handles user input.  This is a placeholder and should be implemented
         using a specific input library (e.g., pygame, keyboard).
-
         Args:
             delta_time (float): Time since last frame.
         """
@@ -563,16 +438,6 @@ class Game:
 
     def update(self, delta_time):
         """
-        Updates the game state.  This is called every frame.
-
-        Args:
-            delta_time (float): Time since the last frame.
-        """
-        for obj in self.objects:
-            if isinstance(obj, Enemy):
-                obj.update(delta_time, self.player) # Enemy update requires the player
-            else:
-                obj.update(delta_time) # Standard update for other objects
         Updates the game state. This is called every frame.
         """
         # Update each object based on its type
@@ -593,7 +458,6 @@ class Game:
     def handle_collision(self, obj1, obj2):
         """
         Handles collisions between two GameObjects.  This is a placeholder.
-
         Args:
             obj1 (GameObject): The first GameObject.
             obj2 (GameObject): The second GameObject.
@@ -613,7 +477,6 @@ class Game:
 
     def game_loop(self):
         """
-        The main game loop.  This is called every frame.
         The main game loop. Checks for end-game conditions each frame.
         """
         current_time = time.time()
@@ -621,82 +484,11 @@ class Game:
         self.last_time = current_time
         self.game_time += delta_time
 
-        # Cap delta_time to prevent issues with very large time steps (e.g., if the game freezes)
         delta_time = min(delta_time, 0.1)
 
         self.handle_input(delta_time)
         self.update(delta_time)
         self.draw()
-        #  Add a small delay.  Important for CPU usage.
-        time.sleep(0.01) # 10 milliseconds
-
-def run_game():
-    """
-    Main function to run the game.  Sets up the game and starts it.
-    """
-    game = Game()
-
-    # Create game objects
-    player = Player(name="Hero", x=0, y=0, z=0)
-    player.strength = 15
-    player.dexterity = 12
-    player.defense = 8
-    game.add_object(player)
-
-    enemy1 = Enemy(name="Goblin", x=5, y=5, z=0, type="Goblin")
-    enemy1.strength = 8
-    enemy1.dexterity = 14 # Goblins are nimble
-    enemy1.defense = 4
-    game.add_object(enemy1)
-
-    enemy2 = Enemy(name="Orc", x=-5, y=-5, z=0, type="Orc")
-    enemy2.strength = 18 # Orcs are strong
-    enemy2.dexterity = 6
-    enemy2.defense = 10
-    game.add_object(enemy2)
-
-    sword = Weapon(name="Great Sword", x=1, y=0, z=0, damage=25, weapon_type="Melee")
-    game.add_object(sword)
-
-    potion = HealthPotion(name="Health Potion", x=-1, y=0, z=0, amount=30)
-    game.add_object(potion)
-
-    mana_potion = ManaPotion(name="Mana Potion", x=-2, y=0, z=0, amount=40)
-    game.add_object(mana_potion)
-
-    player.pickup_item(sword)
-    player.equip_weapon(sword)
-    player.pickup_item(potion)
-    player.pickup_item(mana_potion)
-    player.mana = 50 # Start with less mana to see regeneration
-
-    # --- Showcase new features ---
-    print("\n--- Game Start ---")
-    print(f"Player Stats: HP:{player.health}, Mana:{player.mana}, Str:{player.strength}, Dex:{player.dexterity}, Def:{player.defense}")
-    print(f"Goblin Stats: HP:{enemy1.health}, Str:{enemy1.strength}, Dex:{enemy1.dexterity}, Def:{enemy1.defense}")
-    print(f"Orc Stats: HP:{enemy2.health}, Str:{enemy2.strength}, Dex:{enemy2.dexterity}, Def:{enemy2.defense}\n")
-
-    # Simulate a few turns before starting the main loop to show features
-    print("--- Turn 1 ---")
-    player.attack(enemy1)
-    enemy1.attack(player)
-    print(f"Player HP: {player.health}, Goblin HP: {enemy1.health}\n")
-
-    print("--- Turn 2 ---")
-    player.attack(enemy2)
-    enemy2.attack(player)
-    print(f"Player HP: {player.health}, Orc HP: {enemy2.health}\n")
-
-    print(f"Player mana before regeneration: {player.mana:.2f}")
-    # Simulate time passing for mana regeneration
-    player.update(5) # Simulate 5 seconds of time passing
-    print(f"Player mana after 5 seconds of regeneration: {player.mana:.2f}\n")
-
-    player.use_item("Health Potion")
-    print(f"Player HP after using potion: {player.health}\n")
-
-    print("--- Starting Game Loop (Enemies will now move and attack automatically) ---")
-    game.start() #start the game loop.
 
         # --- Check for Game-End Conditions ---
         if self.player.health <= 0:
