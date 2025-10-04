@@ -26,3 +26,28 @@ def Skeleton "characterSkeleton"
     }
 }
 ```
+
+### B. Face Mesh Definition
+
+This defines the face mesh with blend shapes for expressions.
+
+```usd
+def Mesh "faceMesh"
+{
+    int[] blendShapeIndices = [0, 1]
+    float[] blendShapeWeights = [0.0, 0.0]
+    point3f[] points = [(0, 0, 0), (1, 1, 1), (1, 0, 0), (0, 1, 0)]
+
+    def BlendShape "smile"
+    {
+        point3f[] points = [(0, 0, 0), (1, 1, 1.1), (1, 0, 0), (0, 1, 0)]
+        float weight = 0.0
+    }
+
+    def BlendShape "frown"
+    {
+        point3f[] points = [(0, 0, 0), (1, 1, 0.9), (1, 0, 0), (0, 1, 0)]
+        float weight = 0.0
+    }
+}
+```
