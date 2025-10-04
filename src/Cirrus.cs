@@ -13,6 +13,19 @@ public class Cirrus : Character
     private float rageGainOnDamage = 10f;
     private float rageDecayRate = 2f; // Rage lost per second
     private float rageAccumulator = 0f;
+/// <summary>
+/// Cirrus the Dragon King (The Primal Scion)
+/// </summary>
+public class Cirrus : Novamina
+{
+    void Awake()
+    {
+        CharacterName = "Cirrus the Dragon King";
+        Archetype = "Elemental Bruiser / Area Control";
+        Initialize();
+    }
+
+    // --- Key Abilities from GDD ---
 
     protected override void Awake()
     {
@@ -102,6 +115,7 @@ public class Cirrus : Character
     }
 
     public override void TakeDamage(int damage)
+    void Update()
     {
         base.TakeDamage(damage);
         if (damage > 0)

@@ -12,6 +12,19 @@ public class Ingris : Character
     private float comboDecayRate = 1f; // Combo lost per second
     private float lastComboUpdateTime;
     private bool isAlive = true;
+/// <summary>
+/// Ingris the Phoenix Warrior (The Spirit of Rebirth)
+/// </summary>
+public class Ingris : Novamina
+{
+    void Awake()
+    {
+        CharacterName = "Ingris the Phoenix Warrior";
+        Archetype = "Melee / AoE DPS / Self-Sustaining Bruiser";
+        Initialize();
+    }
+
+    // --- Key Abilities from GDD ---
 
     public bool IsAlive { get => isAlive; private set => isAlive = value; }
 
@@ -110,6 +123,7 @@ public class Ingris : Character
     }
 
     protected override void Die()
+    void Update()
     {
         Debug.Log($"{characterName} has fallen!");
         IsAlive = false;

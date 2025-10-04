@@ -2,10 +2,16 @@ using UnityEngine;
 
 /// <summary>
 /// Otis the Skywanderer (X)
-/// Archetype: Agile DPS / Scout / Manipulator
 /// </summary>
-public class Otis : MonoBehaviour
+public class Otis : Novamina
 {
+    void Awake()
+    {
+        CharacterName = "Otis the Skywanderer";
+        Archetype = "Agile DPS / Scout / Manipulator";
+        Initialize();
+    }
+
     // --- Key Abilities from GDD ---
 
     // Agile DPS / Scout:
@@ -14,12 +20,6 @@ public class Otis : MonoBehaviour
     // Manipulator:
     // - "Disruptive Tech": Deploys deceptive technology.
     // - Obscured memories allow for unpredictable tactics.
-
-    void Start()
-    {
-        // Initialization logic for Otis
-        Debug.Log("Otis the Skywanderer has been initialized.");
-    }
 
     void Update()
     {

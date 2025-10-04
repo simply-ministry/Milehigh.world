@@ -11,6 +11,19 @@ public class Anastasia : Character
     private float lastAstralProjectionTime;
     private float manaRegenRate = 5f; // Mana per second
     private float manaAccumulator = 0f;
+/// <summary>
+/// Anastasia the Dreamer (The Ethereal Guardian)
+/// </summary>
+public class Anastasia : Novamina
+{
+    void Awake()
+    {
+        CharacterName = "Anastasia the Dreamer";
+        Archetype = "Support / Crowd Control (CC) Mage";
+        Initialize();
+    }
+
+    // --- Key Abilities from GDD ---
 
     protected override void Awake()
     {
@@ -69,6 +82,7 @@ public class Anastasia : Character
     }
 
     public void AstralProjection(Character target)
+    void Update()
     {
         if (Time.time >= lastAstralProjectionTime + astralProjectionCooldown)
         {

@@ -2,10 +2,16 @@ using UnityEngine;
 
 /// <summary>
 /// Aeron the Brave (The Skyborn Sentinel)
-/// Archetype: Tank / Melee DPS
 /// </summary>
-public class Aeron : MonoBehaviour
+public class Aeron : Novamina
 {
+    void Awake()
+    {
+        CharacterName = "Aeron the Brave";
+        Archetype = "Tank / Melee DPS";
+        Initialize();
+    }
+
     // --- Key Abilities from GDD ---
 
     // Tanking:
@@ -15,12 +21,6 @@ public class Aeron : MonoBehaviour
     // Melee DPS:
     // - "Sunder Strikes": Powerful winged assaults.
     // - Inspiring roars.
-
-    void Start()
-    {
-        // Initialization logic for Aeron
-        Debug.Log("Aeron the Brave has been initialized.");
-    }
 
     void Update()
     {

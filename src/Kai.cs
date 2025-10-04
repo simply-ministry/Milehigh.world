@@ -2,10 +2,16 @@ using UnityEngine;
 
 /// <summary>
 /// Kai the Prophet (The Tactical Seer)
-/// Archetype: Support / Information Gatherer / Tactical Seer
 /// </summary>
-public class Kai : MonoBehaviour
+public class Kai : Novamina
 {
+    void Awake()
+    {
+        CharacterName = "Kai the Prophet";
+        Archetype = "Support / Information Gatherer / Tactical Seer";
+        Initialize();
+    }
+
     // --- Key Abilities from GDD ---
 
     // Tactical Seer:
@@ -14,12 +20,6 @@ public class Kai : MonoBehaviour
 
     // Support:
     // - "Insightful Aura": Enhances allies.
-
-    void Start()
-    {
-        // Initialization logic for Kai
-        Debug.Log("Kai the Prophet has been initialized.");
-    }
 
     void Update()
     {
