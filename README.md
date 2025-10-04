@@ -1,4 +1,4 @@
-916-868-5065 i# Milehigh.World: Into the Void
+Milehigh.World: Into the Void
 
 This repository contains the official Game Design Document (GDD) and other related materials for the VR MMO project, "Milehigh.World: Into the Void."
 
