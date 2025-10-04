@@ -2,10 +2,16 @@ using UnityEngine;
 
 /// <summary>
 /// Sky.ix the Bionic Goddess (The Ascendant Weaver)
-/// Archetype: Ranged DPS / Support Caster
 /// </summary>
-public class Skyix : MonoBehaviour
+public class Skyix : Novamina
 {
+    void Awake()
+    {
+        CharacterName = "Sky.ix the Bionic Goddess";
+        Archetype = "Ranged DPS / Support Caster";
+        Initialize();
+    }
+
     // --- Key Abilities from GDD ---
 
     // Offensive:
@@ -17,12 +23,6 @@ public class Skyix : MonoBehaviour
 
     // Passive:
     // - "Unified Destiny": Ability to neutralize corrupted energy.
-
-    void Start()
-    {
-        // Initialization logic for Sky.ix
-        Debug.Log("Sky.ix the Bionic Goddess has been initialized.");
-    }
 
     void Update()
     {

@@ -2,10 +2,16 @@ using UnityEngine;
 
 /// <summary>
 /// Anastasia the Dreamer (The Ethereal Guardian)
-/// Archetype: Support / Crowd Control (CC) Mage
 /// </summary>
-public class Anastasia : MonoBehaviour
+public class Anastasia : Novamina
 {
+    void Awake()
+    {
+        CharacterName = "Anastasia the Dreamer";
+        Archetype = "Support / Crowd Control (CC) Mage";
+        Initialize();
+    }
+
     // --- Key Abilities from GDD ---
 
     // Supportive:
@@ -18,12 +24,6 @@ public class Anastasia : MonoBehaviour
     // Passive:
     // - "Memory Echoes": Offers tactical insights.
     // - "Reality Anchor": Provides brief moments of stability.
-
-    void Start()
-    {
-        // Initialization logic for Anastasia
-        Debug.Log("Anastasia the Dreamer has been initialized.");
-    }
 
     void Update()
     {

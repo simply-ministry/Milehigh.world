@@ -2,10 +2,16 @@ using UnityEngine;
 
 /// <summary>
 /// Micah the Unbreakable (The Earthshaper Bulwark)
-/// Archetype: Tank / Defensive Specialist
 /// </summary>
-public class Micah : MonoBehaviour
+public class Micah : Novamina
 {
+    void Awake()
+    {
+        CharacterName = "Micah the Unbreakable";
+        Archetype = "Tank / Defensive Specialist";
+        Initialize();
+    }
+
     // --- Key Abilities from GDD ---
 
     // Defensive:
@@ -18,12 +24,6 @@ public class Micah : MonoBehaviour
     // Passive:
     // - "Immovable Object": Highly resistant to crowd control effects.
     // - "Grounding Aura": Lessens the impact of chaotic energies.
-
-    void Start()
-    {
-        // Initialization logic for Micah
-        Debug.Log("Micah the Unbreakable has been initialized.");
-    }
 
     void Update()
     {
