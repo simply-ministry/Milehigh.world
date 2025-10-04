@@ -613,5 +613,16 @@ Faction members, vendors, lorekeepers, distressed citizens, and other figures wh
 ### F. Game Mechanics Examples
 (This appendix will house detailed technical explanations and conceptual examples for complex game mechanics.)
 
+#### F.1. Programmatic Sprite Manipulation (`SpriteManipulator.cs`)
+The `SpriteManipulator.cs` script provides a clear, in-engine example of how to programmatically control the position, rotation, and scale of a GameObject. This script is intended as a technical demonstration for developers and is not tied to any specific gameplay feature.
+
+*   **Functionality:**
+    *   **Movement:** Demonstrates both absolute positioning (`SetPosition`) and relative translation (`MoveSprite`). The `Update` loop includes an example of moving an object in a circular path.
+    *   **Rotation:** Shows how to set an absolute rotation (`SetRotation`) and how to apply a continuous rotation (`RotateSprite`).
+    *   **Scaling:** Provides a method to set the absolute scale (`SetScale`) and includes a "pulse" effect using a sine wave in the `Update` loop.
+*   **Usage:**
+    *   Attach this script to any GameObject in a Unity scene.
+    *   The public variables `moveSpeed`, `rotationSpeed`, and `scaleSpeed` can be adjusted in the Inspector to modify the behavior of the demonstration.
+
 ### G. Other Relevant Documents
 (This section will serve as a directory to any external documents, concept art repositories, technical design documents, etc.)
