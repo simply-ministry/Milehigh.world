@@ -2,10 +2,16 @@ using UnityEngine;
 
 /// <summary>
 /// Reverie (The Arcane Weaver)
-/// Archetype: Controller / Elemental Mage
 /// </summary>
-public class Reverie : MonoBehaviour
+public class Reverie : Novamina
 {
+    void Awake()
+    {
+        CharacterName = "Reverie";
+        Archetype = "Controller / Elemental Mage";
+        Initialize();
+    }
+
     // --- Key Abilities from GDD ---
 
     // Controller:
@@ -17,12 +23,6 @@ public class Reverie : MonoBehaviour
 
     // Utility:
     // - "Arcane Symphony": Solves ancient puzzles or resonates with dormant powers.
-
-    void Start()
-    {
-        // Initialization logic for Reverie
-        Debug.Log("Reverie the Arcane Weaver has been initialized.");
-    }
 
     void Update()
     {

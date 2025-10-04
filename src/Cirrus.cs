@@ -2,10 +2,16 @@ using UnityEngine;
 
 /// <summary>
 /// Cirrus the Dragon King (The Primal Scion)
-/// Archetype: Elemental Bruiser / Area Control
 /// </summary>
-public class Cirrus : MonoBehaviour
+public class Cirrus : Novamina
 {
+    void Awake()
+    {
+        CharacterName = "Cirrus the Dragon King";
+        Archetype = "Elemental Bruiser / Area Control";
+        Initialize();
+    }
+
     // --- Key Abilities from GDD ---
 
     // Elemental Bruiser:
@@ -18,12 +24,6 @@ public class Cirrus : MonoBehaviour
 
     // Passive:
     // - "Scaled Hide": Inherent resistance to physical and elemental damage.
-
-    void Start()
-    {
-        // Initialization logic for Cirrus
-        Debug.Log("Cirrus the Dragon King has been initialized.");
-    }
 
     void Update()
     {

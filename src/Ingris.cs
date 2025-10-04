@@ -2,10 +2,16 @@ using UnityEngine;
 
 /// <summary>
 /// Ingris the Phoenix Warrior (The Spirit of Rebirth)
-/// Archetype: Melee / AoE DPS / Self-Sustaining Bruiser
 /// </summary>
-public class Ingris : MonoBehaviour
+public class Ingris : Novamina
 {
+    void Awake()
+    {
+        CharacterName = "Ingris the Phoenix Warrior";
+        Archetype = "Melee / AoE DPS / Self-Sustaining Bruiser";
+        Initialize();
+    }
+
     // --- Key Abilities from GDD ---
 
     // Melee / AoE DPS:
@@ -13,12 +19,6 @@ public class Ingris : MonoBehaviour
 
     // Self-Sustaining:
     // - "Rebirth Protocol" (Passive): Temporarily returns from fatal damage with a portion of health and increased power.
-
-    void Start()
-    {
-        // Initialization logic for Ingris
-        Debug.Log("Ingris the Phoenix Warrior has been initialized.");
-    }
 
     void Update()
     {

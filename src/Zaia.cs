@@ -2,10 +2,16 @@ using UnityEngine;
 
 /// <summary>
 /// Zaia the Just (The Swift Executioner)
-/// Archetype: Melee DPS / Assassin
 /// </summary>
-public class Zaia : MonoBehaviour
+public class Zaia : Novamina
 {
+    void Awake()
+    {
+        CharacterName = "Zaia the Just";
+        Archetype = "Melee DPS / Assassin";
+        Initialize();
+    }
+
     // --- Key Abilities from GDD ---
 
     // Melee DPS:
@@ -14,12 +20,6 @@ public class Zaia : MonoBehaviour
 
     // Assassin:
     // - "Shadow Step": Allows for rapid repositioning.
-
-    void Start()
-    {
-        // Initialization logic for Zaia
-        Debug.Log("Zaia the Just has been initialized.");
-    }
 
     void Update()
     {
