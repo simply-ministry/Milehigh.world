@@ -5,11 +5,11 @@ using UnityEngine;
 /// </summary>
 public class Otis : Novamina
 {
-    void Awake()
+    protected override void Awake()
     {
-        CharacterName = "Otis the Skywanderer";
+        base.Awake();
+        characterName = "Otis the Skywanderer";
         Archetype = "Agile DPS / Scout / Manipulator";
-        Initialize();
     }
 
     // --- Key Abilities from GDD ---

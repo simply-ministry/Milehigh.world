@@ -5,11 +5,11 @@ using UnityEngine;
 /// </summary>
 public class Zaia : Novamina
 {
-    void Awake()
+    protected override void Awake()
     {
-        CharacterName = "Zaia the Just";
+        base.Awake();
+        characterName = "Zaia the Just";
         Archetype = "Melee DPS / Assassin";
-        Initialize();
     }
 
     // --- Key Abilities from GDD ---

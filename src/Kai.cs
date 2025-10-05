@@ -5,11 +5,11 @@ using UnityEngine;
 /// </summary>
 public class Kai : Novamina
 {
-    void Awake()
+    protected override void Awake()
     {
-        CharacterName = "Kai the Prophet";
+        base.Awake();
+        characterName = "Kai the Prophet";
         Archetype = "Support / Information Gatherer / Tactical Seer";
-        Initialize();
     }
 
     // --- Key Abilities from GDD ---

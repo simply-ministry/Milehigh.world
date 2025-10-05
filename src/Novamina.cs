@@ -5,20 +5,21 @@ using UnityEngine;
 /// This abstract class provides the foundational properties and methods
 /// that all playable characters in Milehigh.World will share.
 /// </summary>
-public abstract class Novamina : MonoBehaviour
+public abstract class Novamina : Character
 {
-    [Header("Character Details")]
-    public string CharacterName;
+    [Header("Novamina Details")]
     public string Archetype;
 
     /// <summary>
     /// Initialization method for the character.
+    /// Calls the base class's Awake method and initializes Novamina-specific details.
     /// </summary>
-    public virtual void Initialize()
+    protected override void Awake()
     {
-        Debug.Log($"Character Initialized: {CharacterName} ({Archetype})");
+        base.Awake(); // Call the base Character class's Awake method
+        Debug.Log($"Novamina Initialized: {characterName} ({Archetype})");
     }
 
     // Common methods and properties for all Novamina can be added here in the future.
-    // For example: Health, Stats, Abilities, etc.
+    // For example: Special abilities, resource pools, etc.
 }

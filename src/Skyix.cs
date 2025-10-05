@@ -5,11 +5,11 @@ using UnityEngine;
 /// </summary>
 public class Skyix : Novamina
 {
-    void Awake()
+    protected override void Awake()
     {
-        CharacterName = "Sky.ix the Bionic Goddess";
+        base.Awake();
+        characterName = "Sky.ix the Bionic Goddess";
         Archetype = "Ranged DPS / Support Caster";
-        Initialize();
     }
 
     // --- Key Abilities from GDD ---

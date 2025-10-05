@@ -5,11 +5,11 @@ using UnityEngine;
 /// </summary>
 public class Micah : Novamina
 {
-    void Awake()
+    protected override void Awake()
     {
-        CharacterName = "Micah the Unbreakable";
+        base.Awake();
+        characterName = "Micah the Unbreakable";
         Archetype = "Tank / Defensive Specialist";
-        Initialize();
     }
 
     // --- Key Abilities from GDD ---
