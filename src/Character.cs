@@ -1,5 +1,7 @@
 using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(AdvancedPhysics))]
 public class Character : MonoBehaviour
 {
     public string characterName;
