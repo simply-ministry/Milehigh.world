@@ -5,11 +5,11 @@ using UnityEngine;
 /// </summary>
 public class Aeron : Novamina
 {
-    void Awake()
+    protected override void Awake()
     {
-        CharacterName = "Aeron the Brave";
+        base.Awake(); // It's crucial to call the base class's Awake method
+        characterName = "Aeron the Brave";
         Archetype = "Tank / Melee DPS";
-        Initialize();
     }
 
     // --- Key Abilities from GDD ---

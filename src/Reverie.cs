@@ -5,11 +5,11 @@ using UnityEngine;
 /// </summary>
 public class Reverie : Novamina
 {
-    void Awake()
+    protected override void Awake()
     {
-        CharacterName = "Reverie";
+        base.Awake();
+        characterName = "Reverie";
         Archetype = "Controller / Elemental Mage";
-        Initialize();
     }
 
     // --- Key Abilities from GDD ---
