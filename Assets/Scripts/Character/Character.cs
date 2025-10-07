@@ -40,4 +40,14 @@ public class Character : MonoBehaviour
         // In a real game, you might disable the GameObject, play a death animation, etc.
         gameObject.SetActive(false);
     }
+
+    /// <summary>
+    /// Makes the character "say" a line of dialogue.
+    /// In a real game, this would integrate with a UI system.
+    /// </summary>
+    /// <param name="message">The dialogue to display.</param>
+    public void Say(string message)
+    {
+        Debug.Log($"{characterName}: {message}");
+    }
 }
