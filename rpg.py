@@ -30,6 +30,7 @@ class GameObject:
         self.solid = solid
         self.defense = defense
         self.attributes = {}  # Dictionary for storing additional attributes.
+        self.status_effects = {}  # e.g., {'sleep': 6, 'slow': 8}
 
     def __repr__(self):
         """
@@ -68,7 +69,12 @@ class GameObject:
         Args:
             damage (int): The amount of incoming damage.
         """
-        actual_damage = max(0, damage - self.defense)
+        current_defense = self.defense
+        if 'armor_break' in self.status_effects:
+            print(f"{self.name} is armor broken! Defense is negated.")
+            current_defense = 0
+
+        actual_damage = max(0, damage - current_defense)
         self.health -= actual_damage
         if actual_damage > 0:
             print(f"{self.name} takes {actual_damage} damage.")
@@ -105,6 +111,25 @@ class GameObject:
         """
         pass
 
+    def update_status_effects(self, delta_time):
+        """Updates status effects, applying their effects and decrementing timers."""
+        # Using list() to create a copy, allowing modification during iteration
+        for effect, duration in list(self.status_effects.items()):
+            # Decrement timer
+            new_duration = duration - delta_time
+            if new_duration > 0:
+                self.status_effects[effect] = new_duration
+            else:
+                del self.status_effects[effect]
+                print(f"{self.name}'s {effect} has worn off.")
+                continue # Skip to next effect once it's removed
+
+            # Apply passive effects
+            if effect == 'psychic_damage':
+                dot_damage = 5 * delta_time # 5 damage per second
+                print(f"{self.name} is taking psychic damage.")
+                self.take_damage(dot_damage)
+
     def draw(self):
         """
         Draws the object.  This method is called every frame.
@@ -137,6 +162,12 @@ class Player(GameObject):
         Args:
             target (GameObject): The target to attack.
         """
+        # --- Evasion Check ---
+        if 'evasion' in target.status_effects:
+            if random.uniform(0, 100) < 50: # 50% chance to miss against evasion
+                print(f"{self.name}'s attack was evaded by {target.name}!")
+                return
+
         # --- Critical Hit/Miss Logic (based on dexterity) ---
         miss_chance = max(0, 5 - self.dexterity / 4)
         if random.uniform(0, 100) < miss_chance:
@@ -183,6 +214,7 @@ class Player(GameObject):
         Updates the player's state, including mana regeneration.
         """
         super().update(delta_time)
+        self.update_status_effects(delta_time)
         self.mana += self.mana_regeneration_rate * delta_time
         if self.mana > self.max_mana:
             self.mana = self.max_mana
@@ -275,6 +307,152 @@ class Player(GameObject):
         else:
             print(f"{self.name} does not know the spell {spell_name}.")
 
+# --- Anastasia's Class Implementation ---
+
+class Anastasia(Player):
+    """
+    Implementation of Anastasia the Dreamer.
+    Playstyle: Battlefield controller and disruptor.
+    """
+    def __init__(self, name="Anastasia", x=0, y=0, z=0):
+        super().__init__(name=name, x=x, y=y, z=z)
+        self.mana = 150
+        self.max_mana = 150
+        self.health = 100
+        self.max_health = 100
+
+        # Unique Mechanic: The Dream Weave
+        self.max_dream_weave = 100
+        self.dream_weave = 0
+
+        # Lucid Dream State
+        self.is_lucid_dream_active = False
+        self.lucid_dream_duration = 15 # in game ticks/seconds
+        self.lucid_dream_timer = 0
+
+    def update(self, delta_time):
+        """Called every game tick to update Anastasia's state."""
+        # First, call the Player's update for mana regen and status effects
+        super().update(delta_time)
+
+        # Passively build a small amount of Dream Weave
+        self.build_dream_weave(0.5 * delta_time)
+
+        if self.is_lucid_dream_active:
+            self.lucid_dream_timer -= delta_time
+            if self.lucid_dream_timer <= 0:
+                self.is_lucid_dream_active = False
+                self.lucid_dream_timer = 0
+                print("\n-- Anastasia's Lucid Dream fades. The world returns to normal. --\n")
+
+    def build_dream_weave(self, amount):
+        """Increases the Dream Weave meter."""
+        if not self.is_lucid_dream_active:
+            self.dream_weave += amount
+            if self.dream_weave > self.max_dream_weave:
+                self.dream_weave = self.max_dream_weave
+
+    def activate_lucid_dream(self):
+        """Activates the Lucid Dream state if the meter is full."""
+        if self.dream_weave >= self.max_dream_weave:
+            print("\n** Anastasia activates LUCID DREAM! The battlefield warps! **\n")
+            self.is_lucid_dream_active = True
+            self.lucid_dream_timer = self.lucid_dream_duration
+            self.dream_weave = 0
+            return True
+        else:
+            print("Dream Weave is not full yet!")
+            return False
+
+    # --- ABILITIES ---
+
+    def lulling_whisper(self, targets):
+        """Puts target(s) to sleep."""
+        cost = 20
+        if self.mana < cost:
+            print("Not enough mana!")
+            return
+
+        self.mana -= cost
+        print(f"{self.name} uses Lulling Whisper.")
+
+        if self.is_lucid_dream_active:
+            print("The whisper becomes a wave, affecting all targets!")
+            for target in targets:
+                target.status_effects['sleep'] = 6
+                print(f"{target.name} has fallen asleep.")
+        else:
+            if targets:
+                target = targets[0] # Affect only the first target
+                target.status_effects['sleep'] = 6
+                print(f"{target.name} has fallen asleep.")
+
+        self.build_dream_weave(15)
+
+    def phantasmal_grasp(self, target):
+        """Slows a target and deals minor damage over time."""
+        cost = 25
+        if self.mana < cost:
+            print("Not enough mana!")
+            return
+
+        self.mana -= cost
+        print(f"{self.name} uses Phantasmal Grasp on {target.name}.")
+
+        target.status_effects['slow'] = 8
+        target.status_effects['psychic_damage'] = 8 # Represents the DoT effect
+        print(f"{target.name} is slowed by shadowy tendrils.")
+
+        if self.is_lucid_dream_active:
+            print("The grasp erupts from the target, slowing nearby enemies!")
+            # In a real game, you'd find nearby enemies. Here we just simulate it.
+            target.status_effects['slow'] += 4
+
+        self.build_dream_weave(15)
+
+    def fleeting_vision(self, allies):
+        """Grants evasion and speed to an ally or the whole party."""
+        cost = 30
+        if self.mana < cost:
+            print("Not enough mana!")
+            return
+
+        self.mana -= cost
+        print(f"{self.name} uses Fleeting Vision.")
+
+        if self.is_lucid_dream_active:
+            print("The vision is shared with the entire party!")
+            for ally in allies:
+                ally.status_effects['evasion'] = 5
+                print(f"{ally.name} is granted enhanced evasion!")
+        else:
+            if allies:
+                ally = allies[0] # Affect only the first ally
+                ally.status_effects['evasion'] = 5
+                print(f"{ally.name} is granted enhanced evasion!")
+
+    def oneiric_collapse(self, enemies, allies):
+        """Ultimate Ability: Pulls the battlefield into the Dreamscape."""
+        if not self.is_lucid_dream_active:
+            print("Must be in Lucid Dream to use Oneiric Collapse!")
+            return
+
+        print(f"\n!!! {self.name} unleashes her ultimate: ONEIRIC COLLAPSE !!!")
+        print("The area is pulled into the Dreamscape!")
+
+        for enemy in enemies:
+            enemy.status_effects['confusion'] = 10
+            enemy.status_effects['armor_break'] = 10
+            print(f"{enemy.name} is confused and vulnerable!")
+
+        for ally in allies:
+            ally.status_effects['empowered'] = 10 # Simulate faster cooldowns
+            print(f"{ally.name} feels empowered by the dream!")
+
+        self.is_lucid_dream_active = False
+        self.lucid_dream_timer = 0
+
+
 class Enemy(GameObject):
     """
     Represents an enemy character.
@@ -301,15 +479,24 @@ class Enemy(GameObject):
             delta_time (float): Time since last frame.
             player (Player): The player object.
         """
-        super().update(delta_time) # Call the superclass's update method.
+        self.update_status_effects(delta_time)
+
+        if 'sleep' in self.status_effects:
+            print(f"{self.name} is asleep and cannot act.")
+            return
+
         if self.distance_to(player) < self.aggro_range:
+            current_speed = self.speed
+            if 'slow' in self.status_effects:
+                print(f"{self.name} is slowed!")
+                current_speed /= 2
             # Move towards the player
             dx = player.x - self.x
             dy = player.y - self.y
-            dz = self.z - self.z
+            dz = player.z - self.z
             distance = self.distance_to(player)
             if distance > 0:
-              self.move(dx / distance * self.speed * delta_time, dy / distance * self.speed * delta_time, dz/distance * self.speed * delta_time)
+              self.move(dx / distance * current_speed * delta_time, dy / distance * current_speed * delta_time, dz/distance * current_speed * delta_time)
             # Attack the player if close enough.
             if self.distance_to(player) < 1:  # Attack range
                 self.attack(player)
@@ -507,61 +694,72 @@ class Game:
 
 def run_game():
     """
-    Main function to set up and run a demonstration of the game.
+    Main function to set up and run a demonstration of Anastasia's abilities.
     """
+    print("--- Milehigh.World Character Simulation: Anastasia ---")
+
+    # 1. Setup
+    anastasia = Anastasia()
+    cirrus = Player("Cirrus", x=1, y=1) # An ally
+    allies = [anastasia, cirrus]
+
+    enemy1 = Enemy("Void Ravager", x=5, y=5)
+    enemy2 = Enemy("Corrupted Drone", x=-5, y=-5)
+    enemies = [enemy1, enemy2]
+
+    # Create a game instance and add objects
     game = Game()
-
-    # --- 1. Create Player and Set Attributes ---
-    player = Player(name="Hero", x=0, y=0, z=0)
-    player.strength = 15
-    player.dexterity = 12
-    player.intelligence = 18
-    player.defense = 5
-    game.add_object(player)
-    print(f"A {player.name} has appeared! Str: {player.strength}, Dex: {player.dexterity}, Int: {player.intelligence}, Def: {player.defense}")
-
-    # --- 2. Create Enemies ---
-    enemy1 = Enemy(name="Goblin", x=5, y=5, z=0, type="Goblin")
-    enemy1.defense = 2
+    game.add_object(anastasia)
+    game.add_object(cirrus)
     game.add_object(enemy1)
-
-    enemy2 = Enemy(name="Orc", x=-5, y=-5, z=0, type="Orc")
-    enemy2.attack_damage = 15
-    enemy2.defense = 8
     game.add_object(enemy2)
-    print(f"Enemies have spawned: A {enemy1.name} and an {enemy2.name}!")
 
-    # --- 3. Create and Distribute Items ---
-    sword = Weapon(name="Greatsword", damage=18)
-    health_potion1 = HealthPotion(name="Health Potion", amount=40)
-    health_potion2 = HealthPotion(name="Health Potion", amount=40) # A second potion to test stacking
-    mana_potion = ManaPotion(name="Mana Potion", amount=50)
+    print("\n--- Battle Begins ---")
+    print(f"{anastasia.name}, {cirrus.name} vs. {enemy1.name}, {enemy2.name}")
 
-    # Player finds the items
-    player.pickup_item(sword)
-    player.equip_weapon(sword)
-    player.pickup_item(health_potion1)
-    player.pickup_item(health_potion2) # This should stack
-    player.pickup_item(mana_potion)
+    # --- This is a simplified, turn-based simulation to showcase abilities ---
+    # In the real game, the game.start() loop would handle this dynamically.
 
-    # --- 4. Demonstrate Initial Actions ---
-    print("\n--- Initial Actions ---")
-    print(f"Initial state: Player HP: {player.health}, Mana: {player.mana}")
+    # 2. Simulate building the Dream Weave
+    print("\n--- Turn 1: Anastasia starts controlling the field ---")
+    anastasia.lulling_whisper([enemy1, enemy2]) # Puts enemy1 to sleep
+    print(f"Anastasia's Dream Weave: {anastasia.dream_weave:.1f}/{anastasia.max_dream_weave}")
+    game.update(1.0) # Simulate 1 second passing
 
-    # Use a potion
-    player.use_item("Health Potion")
+    print("\n--- Turn 2: Further control and building meter ---")
+    anastasia.phantasmal_grasp(enemy2)
+    print(f"Anastasia's Dream Weave: {anastasia.dream_weave:.1f}/{anastasia.max_dream_weave}")
+    game.update(1.0)
 
-    # Cast a powerful spell, influenced by high intelligence
-    player.cast_spell("fireball", enemy1)
+    # Simulate some other actions that build meter
+    print("\n...other combat happens, building the meter...")
+    anastasia.build_dream_weave(70)
+    print(f"Anastasia's Dream Weave: {anastasia.dream_weave:.1f}/{anastasia.max_dream_weave}")
+    game.update(1.0)
 
-    # A powerful physical attack, influenced by strength
-    player.attack(enemy2)
+    # 3. Activate Lucid Dream
+    print("\n--- Turn 5: The Dream Weave is full! ---")
+    anastasia.activate_lucid_dream()
+    game.update(1.0)
 
-    print(f"\n--- Starting Game Loop ---")
-    print("Watch as the hero and enemies fight to the death! Mana will regenerate over time.\n")
+    # 4. Use empowered abilities
+    print("\n--- Turn 6 (Lucid Dream Active): Anastasia unleashes empowered abilities! ---")
+    anastasia.lulling_whisper(enemies) # Now puts BOTH enemies to sleep
+    game.update(1.0)
 
-    # --- 5. Start the Game ---
-    game.start()
+    print("\n--- Turn 7 (Lucid Dream Active): Anastasia supports her team ---")
+    anastasia.fleeting_vision(allies) # Buffs herself and Cirrus
+    game.update(1.0)
+
+    # 5. Use the Ultimate
+    print("\n--- Turn 8 (Lucid Dream Active): Anastasia uses her ultimate! ---")
+    anastasia.oneiric_collapse(enemies, allies)
+    game.update(1.0) # This will end the lucid dream
+
+    print("\n--- Simulation Complete ---")
+    # We call game.stop() to prevent the real-time loop from starting.
+    game.stop()
+
 
 if __name__ == "__main__":
     run_game()
