@@ -19,6 +19,7 @@ public class EpicBattleScene : MonoBehaviour
     public GameObject aeron;
     public GameObject zaia;
     public GameObject micah;
+    public GameObject kael;
 
     // Dialogue System
     public delegate void DialogueAction(string text);
@@ -46,7 +47,7 @@ public class EpicBattleScene : MonoBehaviour
         ShowDialogue("On one side: Nafaerius, Cyrus, Lucent, Delilah, The Omen, and Kane, a coalition of chaos and corruption.");
         yield return new WaitForSeconds(4f);
 
-        ShowDialogue("On the other: Anastasia, Reverie, Aeron, Zaia, and Micah—the Ɲōvəmîŋāđ, protectors of Mîlēhîgh.wørld.");
+        ShowDialogue("On the other: Anastasia, Reverie, Aeron, Zaia, Kael, and Micah—the Ɲōvəmîŋāđ, protectors of Mîlēhîgh.wørld.");
         yield return new WaitForSeconds(4f);
 
         // --- THE VILLAINS ATTACK ---
@@ -77,6 +78,10 @@ public class EpicBattleScene : MonoBehaviour
 
         ShowDialogue("Reverie's illusions disorient the advancing shadows, creating openings for Zaia's swift, precise attacks.");
         // TODO: Play Reverie's illusion VFX and Zaia's attack animation.
+        yield return new WaitForSeconds(4f);
+
+        ShowDialogue("Kael bends time itself, momentarily slowing the chaotic energies unleashed by Cyrus.");
+        // TODO: Play Kael's time manipulation VFX and apply slow-motion effect to enemy projectiles.
         yield return new WaitForSeconds(4f);
 
         ShowDialogue("Micah the Unbreakable stands firm, his form radiating resilience as he shrugs off hits that would fell lesser beings.");
