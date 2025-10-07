@@ -633,21 +633,82 @@ This mind map provides a high-level visual overview of the core narrative elemen
 
 ```mermaid
 mindmap
-    root((MILEHIGH.WORLD: INTO THE VOID))
-        Topic 1((Setting))
-            Topic 1.1((Milehigh.world))
-            Topic 1.2((The Void))
-        Topic 2((Characters))
-            Topic 2.1((Human))
-                Topic 2.1.1((Micah))
-                Topic 2.1.2((Sky.ix))
-            Topic 2.2((Mythical Creature))
-                Topic 2.2.1((Phoenix))
-                    Topic 2.2.1.1((Ingris))
-                Topic 2.2.2((Dragon))
-                    Topic 2.2.2.1((Cirrus))
-        Topic 3((Themes))
-            Topic 3.1((Technology vs. Magic))
-            Topic 3.2((Love and Sacrifice))
-            Topic 3.3((Balance and Harmony))
+  root((Milehigh.World: Into the Void))
+    I. Core Concept & Setting (The World)
+      Name: Mîlēhîgh.wørld / The Verse
+      Genre: Science-Fantasy
+      Key Concepts
+        The Lost Prophecy of Lîŋq
+        Millenia
+        The Void
+        Onalym Nexus
+        The Dreamscape
+        Magen
+      Dimensions & Locations
+        ŁĪƝĈ
+        ÅẒ̌ŪŘẸ ĤĒĪĜĤṬ§
+        ÆṬĤŸŁĞÅŘÐ
+        "ƁÅČ̣ĤÎŘØN̈, The Fractured Citadel"
+        Shadow Dominion
+      Technology & Mysticism
+        Technology: Space travel, cybernetics, robotics...
+        Mysticism: Phoenix/Dragon powers, prophecy...
+
+    II. Characters
+      "The Ɲōvəmîŋāđ (The Ten Protagonists)"
+        Anastasia the Dreamer
+        Cirrus the Dragon King
+        Ingris the Phoenix Warrior
+        Aeron the Brave
+        Zaia the Just
+        Kai the Prophet
+        "Sky.ix the Bionic Goddess"
+        Reverie
+        Micah the Unbreakable
+        "Otis the Skywanderer (X)"
+      Antagonists
+        Cyrus the Dragon King
+        Lucent the Lightweaver
+        Era
+        Delilah the Desolate
+        Kane
+      Relationship Archetypes
+        "Mentor and Protégé: Cirrus & Otis"
+        "Rival Siblings: Aeron & Kane"
+        "The Corrupted Ally: Ingris -> Delilah"
+        "Reluctant Leader and Skeptic: Anastasia & Reverie"
+
+    III. Narrative & Plot Points
+      "Core Conflict: Invasion by King Cyrus"
+      Major Plot Points
+        The Invasion
+        Character Transformations
+        The Unification
+        "A Fateful Union: Sky.ix & Era merge"
+      Central Conflicts
+        Ideological Clashes
+        Struggles Against Corruption
+        Personal Vendettas
+        Familial Discord
+      Overarching Themes
+        "Destiny vs. Free Will"
+        Redemption and Transformation
+        The corrupting influence of power
+        "Light vs. darkness"
+
+    IV. Game Mechanics & Design
+      Core Design Principles
+        Diversity
+        Synergy
+        Progression
+      "Gameplay Systems (from Python Example)"
+        Object Structure
+        Player Mechanics
+        Enemy AI
+        Combat System
+        Game Loop
+      Suggested Expansions
+        Character Depth
+        Progression
+        Combat
 ```
