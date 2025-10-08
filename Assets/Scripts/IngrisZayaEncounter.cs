@@ -71,22 +71,27 @@ public class IngrisZayaEncounter : MonoBehaviour
     {
         // This coroutine now only *requests* attacks from the server.
         // The server is responsible for cooldowns and validation.
-        while (fightActive && timer > 0)
+        float fightEndTime = Time.time + fightDuration;
+        float nextAttackTime = 0f;
+
+        while (Time.time < fightEndTime)
         {
-            yield return new WaitForSeconds(attackInterval);
-
-            if (Random.value < 0.5f)
+            if (Time.time > nextAttackTime)
             {
-                // Request Ingris's attack
-                IngrisAttackRequest();
+                if (Random.value < 0.5f)
+                {
+                    // Request Ingris's attack
+                    IngrisAttackRequest();
+                }
+                else
+                {
+                    // Request Zaya's attack
+                    ZayaAttackRequest();
+                }
+                nextAttackTime = Time.time + attackInterval;
             }
-            else
-            {
-                // Request Zaya's attack
-                ZayaAttackRequest();
-            }
-
-            timer -= attackInterval;
+            // Wait for the next frame instead of a fixed duration
+            yield return null;
         }
     }
 
