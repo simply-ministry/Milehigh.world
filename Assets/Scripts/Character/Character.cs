@@ -26,6 +26,10 @@ public class Character : MonoBehaviour
 
     [Header("Resistances")]
     public List<DamageTypeResistance> resistances = new List<DamageTypeResistance>();
+
+    [Header("Abilities")]
+    [Tooltip("The list of abilities this character can use.")]
+    public List<Ability> abilities = new List<Ability>();
     private Dictionary<DamageType, int> _resistanceMap;
 
 
@@ -63,6 +67,13 @@ public class Character : MonoBehaviour
     /// <param name="formula">The damage formula for the calculation.</param>
     public void PerformAttack(Character target, Ability ability, CombatManager.DamageFormula formula = CombatManager.DamageFormula.Linear)
     {
+        // Check if the character actually has this ability in their list
+        if (!abilities.Contains(ability))
+        {
+            Debug.LogWarning($"{characterName} tried to use an ability they don't have: {ability.abilityName}.");
+            return; // Exit the method if the character doesn't have the ability
+        }
+
         Debug.Log($"{characterName} uses {ability.abilityName} on {target.characterName}!");
         target.TakeDamage(this, ability, formula);
     }
