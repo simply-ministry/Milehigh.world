@@ -625,6 +625,18 @@ The `SpriteManipulator.cs` script provides a clear, in-engine example of how to 
     *   Attach this script to any GameObject in a Unity scene.
     *   The public variables `moveSpeed`, `rotationSpeed`, and `scaleSpeed` can be adjusted in the Inspector to modify the behavior of the demonstration.
 
+#### F.2. Sprite Visual Effects (`SpriteEffects.cs`)
+The `SpriteEffects.cs` static utility class provides common visual effects for SpriteRenderers, such as flashing and fading. Because it's a static class, its methods can be called from anywhere without needing an instance.
+
+*   **Functionality:**
+    *   **Flash Effect:** Makes a sprite flash a specific color for a given duration. Useful for damage indicators, highlighting objects, or drawing attention to game elements.
+    *   **Fade Effect:** Smoothly fades a sprite's alpha (transparency) to a target value over a specified duration. Can be used for fade-in/fade-out effects, making objects appear or disappear gradually.
+*   **Usage:**
+    *   Call the static methods from any MonoBehaviour script: `SpriteEffects.Flash(this, spriteRenderer, duration, color);`
+    *   Example: Flash a sprite white for 0.2 seconds when taking damage: `SpriteEffects.Flash(this, GetComponent<SpriteRenderer>(), 0.2f, Color.white);`
+    *   Example: Fade out a sprite over 1 second: `SpriteEffects.Fade(this, GetComponent<SpriteRenderer>(), 1f, 0f);`
+    *   The `SpriteEffectsDemo.cs` script provides an interactive demonstration that can be attached to any GameObject with a SpriteRenderer.
+
 ### G. Other Relevant Documents
 (This section will serve as a directory to any external documents, concept art repositories, technical design documents, etc.)
 
