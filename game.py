@@ -2,6 +2,85 @@ import time
 import random
 import math
 
+class Item:
+    """Base class for all items in the game."""
+    def __init__(self, name, description):
+        self.name = name
+        self.description = description
+
+    def __str__(self):
+        return f"{self.name}: {self.description}"
+
+class Weapon(Item):
+    """A type of item that can be equipped to deal damage."""
+    def __init__(self, name, description, damage):
+        super().__init__(name, description)
+        self.damage = damage
+
+    def __str__(self):
+        return f"{self.name} (Weapon, +{self.damage} DMG): {self.description}"
+
+class Consumable(Item):
+    """A type of item that can be used once for an effect."""
+    def __init__(self, name, description, effect, value):
+        super().__init__(name, description)
+        self.effect = effect  # e.g., "heal", "restore_mana"
+        self.value = value
+
+    def __str__(self):
+        return f"{self.name} (Consumable, {self.effect} +{self.value}): {self.description}"
+
+    def use(self, character):
+        """Applies the consumable's effect to a character."""
+        print(f"{character.name} uses {self.name}!")
+        if self.effect == "heal":
+            character.heal(self.value)
+        elif self.effect == "restore_mana":
+            if hasattr(character, 'mana'):
+                character.mana += self.value
+                if character.mana > character.max_mana:
+                    character.mana = character.max_mana
+                print(f"{character.name} restored {self.value} mana.")
+            else:
+                print(f"{character.name} does not have mana.")
+        else:
+            print(f"The {self.name} has no effect.")
+
+class Inventory:
+    """Manages a character's items."""
+    def __init__(self, capacity=20):
+        self.items = []
+        self.capacity = capacity
+
+    def add_item(self, item):
+        """Adds an item to the inventory if there is space."""
+        if len(self.items) < self.capacity:
+            self.items.append(item)
+            print(f"{item.name} was added to the inventory.")
+            return True
+        else:
+            print("Inventory is full!")
+            return False
+
+    def remove_item(self, item_name):
+        """Removes an item from the inventory by name."""
+        for item in self.items:
+            if item.name == item_name:
+                self.items.remove(item)
+                print(f"{item.name} was removed from the inventory.")
+                return
+        print(f"'{item_name}' not found in inventory.")
+
+    def list_items(self):
+        """Prints a list of all items in the inventory."""
+        if not self.items:
+            print("Inventory is empty.")
+            return
+        print("--- Inventory ---")
+        for item in self.items:
+            print(f"- {item}")
+        print("-----------------")
+
 class GameObject:
     """
     Base class for all game objects.  Provides fundamental attributes and methods.
@@ -149,7 +228,7 @@ class Player(GameObject):
     def __init__(self, name="Player", x=0, y=0, z=0):
         super().__init__(name=name, x=x, y=y, z=z, health=100, speed=5)
         self.weapon = None
-        self.inventory = []
+        self.inventory = Inventory()
         self.level = 1
         self.experience = 0
         self.max_health = 100
@@ -214,48 +293,28 @@ class Player(GameObject):
             self.weapon = weapon
             print(f"{self.name} equipped {weapon.name}.")
         else:
-            print(f"{self.name} cannot equip {weapon.name}.  It is not a weapon.")
+            print(f"{self.name} cannot equip {weapon.name}. It is not a weapon.")
 
     def pickup_item(self, item):
         """
-        Picks up an item. If it's a consumable and one of the same
-        name already exists, it stacks. Otherwise, it's added as a new item.
+        Adds an item to the player's inventory.
         """
-        if isinstance(item, Consumable):
-            for inventory_item in self.inventory:
-                if inventory_item.name == item.name and isinstance(inventory_item, Consumable):
-                    inventory_item.quantity += 1
-                    print(f"{self.name} picked up another {item.name}. Quantity: {inventory_item.quantity}")
-                    # Make the picked-up object disappear from the world
-                    item.visible = False
-                    item.solid = False
-                    return  # Exit after stacking
-
-        # If no stack was found, or it's not a consumable, add as a new item
-        self.inventory.append(item)
-        item.visible = False
-        item.solid = False
-        print(f"{self.name} picked up {item.name}.")
+        self.inventory.add_item(item)
 
     def use_item(self, item_name):
         """
-        Uses an item from the inventory. If the item is a consumable,
-        it decreases its quantity and removes it if the quantity is zero.
+        Uses a consumable item from the inventory.
         """
-        for i, item in enumerate(self.inventory):
+        for item in self.inventory.items:
             if item.name == item_name:
                 if isinstance(item, Consumable):
-                    item.use(self)  # Apply the effect
-                    item.quantity -= 1
-                    print(f"{self.name} used a {item.name}. {item.quantity} remaining.")
-                    if item.quantity <= 0:
-                        self.inventory.pop(i)  # Remove the item if quantity is zero
-                        print(f"The last {item.name} was used.")
-                    return True # Indicate success
+                    item.use(self)
+                    self.inventory.remove_item(item_name)
+                    return True
                 else:
-                    print(f"{self.name} cannot use {item.name} as a consumable.")
+                    print(f"{self.name} cannot use {item.name}.")
                     return False
-        print(f"{self.name} does not have '{item_name}' in their inventory.")
+        print(f"'{item_name}' not found in inventory.")
         return False
 
     def gain_experience(self, amount):
@@ -376,58 +435,6 @@ class Enemy(GameObject):
             if self.distance_to(player) < 1:  # Attack range
                 self.attack(player)
 
-class Weapon(GameObject):
-    """
-    Represents a weapon.
-    """
-    def __init__(self, name="Weapon", x=0, y=0, z=0, damage=10, weapon_type="Melee"):
-        super().__init__(name=name, x=x, y=y, z=z, visible=False, solid=False)  # Weapons are not solid by default.
-        self.damage = damage
-        self.weapon_type = weapon_type # e.g., "Melee", "Ranged", "Magic"
-
-class Consumable(GameObject):
-    """
-    Represents a consumable item.
-    """
-    def __init__(self, name="Consumable", x=0, y=0, z=0, effect="None"):
-        super().__init__(name=name, x=x, y=y, z=z, visible=False, solid=False)
-        self.effect = effect
-        self.quantity = 1
-
-    def use(self, target):
-        """
-        Applies the consumable's effect to the target.  Must be overridden.
-
-        Args:
-            target (GameObject): The target of the consumable's effect.
-        """
-        print(f"{self.name} used on {target.name}.  Effect: {self.effect}") # default
-
-class HealthPotion(Consumable):
-    def __init__(self, name="Health Potion", x=0, y=0, z=0, amount=20):
-        super().__init__(name=name, x=x, y=y, z=z, effect=f"Heals {amount} HP")
-        self.amount = amount
-
-    def use(self, target):
-        """Heals the target."""
-        if isinstance(target, GameObject):
-            target.heal(self.amount)
-            print(f"{target.name} healed for {self.amount} HP.")
-        else:
-            print(f"{self.name} cannot be used on {target}.")
-
-class ManaPotion(Consumable):
-    def __init__(self, name="Mana Potion", x=0, y=0, z=0, amount=30):
-        super().__init__(name=name, x=x, y=y, z=z, effect=f"Restores {amount} Mana")
-        self.amount = amount
-
-    def use(self, target):
-        """Restore mana of the target.  Assumes target has a mana attribute."""
-        if hasattr(target, 'mana'):
-            target.mana += self.amount
-            print(f"{target.name} restored for {self.amount} mana.")
-        else:
-            print(f"{target.name} does not have mana.")
 
 class Game:
     """
@@ -597,17 +604,14 @@ def run_game():
     print(f"Enemies have spawned: A {enemy1.name} and an {enemy2.name}!")
 
     # --- 3. Create and Distribute Items ---
-    sword = Weapon(name="Greatsword", damage=18)
-    health_potion1 = HealthPotion(name="Health Potion", amount=40)
-    health_potion2 = HealthPotion(name="Health Potion", amount=40) # A second potion to test stacking
-    mana_potion = ManaPotion(name="Mana Potion", amount=50)
+    sword = Weapon(name="Greatsword", description="A heavy, two-handed sword.", damage=18)
+    health_potion = Consumable(name="Health Potion", description="Restores 40 HP.", effect="heal", value=40)
 
     # Player finds the items
     player.pickup_item(sword)
     player.equip_weapon(sword)
-    player.pickup_item(health_potion1)
-    player.pickup_item(health_potion2) # This should stack
-    player.pickup_item(mana_potion)
+    player.pickup_item(health_potion)
+    player.inventory.list_items()
 
     # --- 4. Demonstrate Initial Actions ---
     print("\n--- Initial Actions ---")
@@ -615,6 +619,7 @@ def run_game():
 
     # Use a potion
     player.use_item("Health Potion")
+    player.inventory.list_items()
 
     # Cast a powerful spell, influenced by high intelligence
     player.cast_spell("fireball", enemy1)

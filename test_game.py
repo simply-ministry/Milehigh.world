@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch
-from game import GameObject, Player, Enemy, Weapon, HealthPotion, ManaPotion, Game
+from game import GameObject, Player, Enemy, Weapon, Consumable, Game
 
 class TestGameLogic(unittest.TestCase):
 
@@ -56,7 +56,7 @@ class TestGameLogic(unittest.TestCase):
 
     def test_player_equip_weapon(self):
         """Test that a player can equip a weapon."""
-        sword = Weapon(name="Test Sword", damage=15)
+        sword = Weapon(name="Test Sword", description="A test sword.", damage=15)
         self.player.equip_weapon(sword)
         self.assertIs(self.player.weapon, sword)
         self.assertEqual(self.player.weapon.damage, 15)
@@ -64,7 +64,7 @@ class TestGameLogic(unittest.TestCase):
     @patch('random.uniform', return_value=20)
     def test_player_attack_regular_hit(self, mock_uniform):
         """Test a player's regular attack on an enemy."""
-        sword = Weapon(name="Test Sword", damage=20)
+        sword = Weapon(name="Test Sword", description="A test sword.", damage=20)
         self.player.equip_weapon(sword)
         self.player.strength = 10
         self.enemy.defense = 5
@@ -80,7 +80,7 @@ class TestGameLogic(unittest.TestCase):
         """Test a player's critical hit attack on an enemy."""
         # Ensure the miss chance roll is high (not a miss) and the crit chance roll is low (a crit)
         mock_uniform.side_effect = [10, 4]
-        sword = Weapon(name="Test Sword", damage=20)
+        sword = Weapon(name="Test Sword", description="A test sword.", damage=20)
         self.player.equip_weapon(sword)
         self.player.strength = 10
         self.player.dexterity = 100 # Guarantees a crit
@@ -106,33 +106,27 @@ class TestGameLogic(unittest.TestCase):
         expected_health = initial_player_health - (self.enemy.attack_damage - self.player.defense)
         self.assertEqual(self.player.health, expected_health)
 
-    def test_item_pickup_and_stacking(self):
-        """Test that a player can pick up items and that they stack correctly."""
-        potion1 = HealthPotion(name="Lesser Heal")
-        potion2 = HealthPotion(name="Lesser Heal")
-        weapon = Weapon("Axe")
+    def test_item_pickup(self):
+        """Test that a player can pick up items."""
+        potion = Consumable(name="Lesser Heal", description="A weak potion.", effect="heal", value=10)
+        weapon = Weapon("Axe", "A simple axe.", 5)
 
-        self.player.pickup_item(potion1)
-        self.assertEqual(len(self.player.inventory), 1)
-        self.assertEqual(self.player.inventory[0].quantity, 1)
-
-        self.player.pickup_item(potion2)
-        self.assertEqual(len(self.player.inventory), 1)
-        self.assertEqual(self.player.inventory[0].quantity, 2)
+        self.player.pickup_item(potion)
+        self.assertEqual(len(self.player.inventory.items), 1)
 
         self.player.pickup_item(weapon)
-        self.assertEqual(len(self.player.inventory), 2)
+        self.assertEqual(len(self.player.inventory.items), 2)
 
     def test_use_health_potion(self):
         """Test that using a health potion restores health and consumes the item."""
         self.player.health = 50
-        potion = HealthPotion(name="Test Potion", amount=30)
-        self.player.inventory.append(potion)
+        potion = Consumable(name="Test Potion", description="A test potion.", effect="heal", value=30)
+        self.player.inventory.add_item(potion)
 
         self.player.use_item("Test Potion")
 
         self.assertEqual(self.player.health, 80)
-        self.assertNotIn(potion, self.player.inventory)
+        self.assertEqual(len(self.player.inventory.items), 0)
 
     def test_level_up_mechanics(self):
         """Test that the player levels up and stats increase after gaining enough experience."""
@@ -269,19 +263,20 @@ class TestGameLogic(unittest.TestCase):
     def test_use_mana_potion(self):
         """Test that using a mana potion restores mana and consumes the item."""
         self.player.mana = 20
-        potion = ManaPotion(name="Test Mana Potion", amount=40)
-        self.player.inventory.append(potion)
+        potion = Consumable(name="Test Mana Potion", description="A test mana potion.", effect="restore_mana", value=40)
+        self.player.inventory.add_item(potion)
 
         self.player.use_item("Test Mana Potion")
 
         self.assertEqual(self.player.mana, 60)
-        self.assertNotIn(potion, self.player.inventory)
+        self.assertEqual(len(self.player.inventory.items), 0)
 
     def test_use_non_consumable_item(self):
         """Test attempting to use a non-consumable item like a weapon."""
-        weapon = Weapon("Sword")
-        self.player.inventory.append(weapon)
+        weapon = Weapon(name="Sword", description="A simple sword.", damage=10)
+        self.player.inventory.add_item(weapon)
         self.assertFalse(self.player.use_item("Sword"))
+        self.assertEqual(len(self.player.inventory.items), 1)
 
     def test_use_item_not_in_inventory(self):
         """Test attempting to use an item that is not in the inventory."""
