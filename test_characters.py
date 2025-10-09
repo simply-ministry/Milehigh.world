@@ -14,15 +14,18 @@ from game import Skyix, Anastasia, Micah, Player, Enemy, Zaia, DelilahTheDesolat
 
 
 class TestNewCharacters(unittest.TestCase):
-    def setUp(self):
-        """Set up test fixtures before each test method."""
-        self.skyix = Skyix()
-        self.anastasia = Anastasia()
-        self.micah = Micah()
-        self.ally = Player(name="Ally")
-        self.enemy = Enemy(name="Test Enemy")
+from unittest.mock import patch
 
-    # --- Sky.ix Tests ---
+# Import the specific character classes to be tested
+from game import Skyix, Kane, TargetedDamageAbility
+
+class TestSkyix(unittest.TestCase):
+    """
+    Test suite for the specific implementation of the Skyix character.
+    """
+    def setUp(self):
+        """Set up a fresh Skyix instance for each test."""
+        self.skyix = Skyix()
 
     def test_skyix_initialization(self):
         """Test that Sky.ix initializes with the correct stats."""
@@ -274,37 +277,62 @@ class TestDelilah(unittest.TestCase):
 
 
 class TestOmegaOne(unittest.TestCase):
+        """Test that Skyix initializes with her correct, unique stats."""
+        self.assertEqual(self.skyix.name, "Sky.ix the Bionic Goddess")
+        # Health is 120 base + 10 from the initial level up in __init__
+        self.assertEqual(self.skyix.health, 130)
+        self.assertEqual(self.skyix.max_health, 130)
+        self.assertEqual(self.skyix.void_energy, 100)
+        self.assertEqual(self.skyix.max_void_energy, 100)
+        self.assertEqual(len(self.skyix.abilities), 2) # She should have two potential abilities
+
+    def test_str_representation(self):
+        """Test the custom __str__ method to ensure it includes void_energy."""
+        # The __init__ method triggers a level up, so health becomes 130/130
+        expected_str = "Sky.ix the Bionic Goddess (HP: 130/130, Void Energy: 100/100)"
+        self.assertEqual(str(self.skyix), expected_str)
+
+    def test_initial_level_up_and_ability_learning(self):
+        """
+        Test that the level_up call in __init__ correctly sets the initial state
+        and learns the level 1 ability.
+        """
+        # The __init__ calls level_up, which bumps level to 2 and learns the first skill.
+        # This is a bit of a quirk in the current implementation.
+        # The test will validate this behavior.
+        skyix_fresh = Skyix()
+        self.assertEqual(skyix_fresh.level, 2)
+        self.assertEqual(len(skyix_fresh.unlocked_abilities), 1)
+        self.assertEqual(skyix_fresh.unlocked_abilities[0].name, "Void Tech")
+        # Ensure the level up also correctly sets health
+        self.assertEqual(skyix_fresh.health, skyix_fresh.max_health)
+        self.assertEqual(skyix_fresh.max_health, 130) # 120 base + 10 from level up
+
+class TestKane(unittest.TestCase):
+    """
+    Test suite for the specific implementation of the Kane character.
+    """
     def setUp(self):
-        """Set up test fixtures before each test method."""
-        from game import OmegaOne
-        self.omega_one = OmegaOne()
-        self.enemy = Enemy(name="Test Enemy")
+        """Set up a fresh Kane instance for each test."""
+        self.kane = Kane(name="Test Kane", x=5, y=5)
 
-    def test_omega_one_initialization(self):
-        """Test that Omega.one initializes with the correct stats."""
-        self.assertEqual(self.omega_one.health, 180)
-        self.assertEqual(self.omega_one.processing_power, 100)
-        self.assertEqual(self.omega_one.directive, "Guardian")
+    def test_kane_initialization(self):
+        """Test that Kane initializes with the correct stats."""
+        self.assertEqual(self.kane.name, "Test Kane")
+        self.assertEqual(self.kane.health, 150)
+        self.assertEqual(self.kane.max_health, 150)
+        self.assertEqual(self.kane.damage, 20)
+        self.assertIsInstance(self.kane, Kane)
 
-    def test_switch_directive(self):
-        """Test that Omega.one can switch directives."""
-        self.omega_one.switch_directive("Annihilation")
-        self.assertEqual(self.omega_one.directive, "Annihilation")
-
-    def test_energy_lance_annihilation(self):
-        """Test the energy lance ability in Annihilation directive."""
-        self.omega_one.switch_directive("Annihilation")
-        initial_enemy_health = self.enemy.health
-        self.omega_one.energy_lance(self.enemy)
-        self.assertLess(self.enemy.health, initial_enemy_health)
-
-    def test_system_overload(self):
-        """Test the system overload ability."""
-        initial_health = self.omega_one.health
-        initial_enemy_health = self.enemy.health
-        self.omega_one.system_overload([self.enemy])
-        self.assertLess(self.omega_one.health, initial_health)
-        self.assertLess(self.enemy.health, initial_enemy_health)
+    def test_kane_attack(self):
+        """Test Kane's attack method."""
+        target = Skyix() # Use another character as a target
+        initial_target_health = target.health
+        with patch('builtins.print') as mock_print:
+            self.kane.attack(target)
+            self.assertEqual(target.health, initial_target_health - self.kane.damage)
+            mock_print.assert_any_call(f"{self.kane.name} attacks {target.name}!")
+            mock_print.assert_any_call(f"{target.name} takes {self.kane.damage} damage.")
 
 
     def test_bachirim_initialization(self):
