@@ -1,9 +1,28 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+# Unity Project Generated Files
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
 
-# Dependencies
-venv/
-*.egg-info/
+# MemoryCaptures can be huge
+/[Mm]emoryCaptures/
+
+# Asset Store folder (should be managed by the Package Manager)
+/Assets/AssetStoreTools*
+
+# VS Code
+.vscode/
+
+# Rider
+.idea/
+
+# Builds
+*.apk
+*.aab
+*.unitypackage
+
+# Crashlytics generated folder
+/[Cc]rashlytics/
