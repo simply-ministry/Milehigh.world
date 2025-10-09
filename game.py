@@ -790,6 +790,67 @@ class Micah(Player):
             print(f"{self.name} lacks the Fortitude for an Earthen Smash.")
 
 
+class Cyrus(Enemy):
+    """
+    Represents Cyrus, the tyrannical ruler from another dimension and father of Cirrus.
+    He is the primary antagonist who initiates the invasion of Mîlēhîgh.wørld.
+    """
+    def __init__(self, name="Cyrus", x=0, y=0):
+        # As a final boss, his health is immense.
+        super().__init__(name=name, x=x, y=y, health=300)
+        self.max_health = 300
+
+        self.son_id = None # Would be set to Cirrus's unique ID
+        self.power_source = "The Onalym Nexus"
+        self.max_tyranny = 100
+        # His power is relentless and doesn't need to be generated.
+        self.tyranny = self.max_tyranny
+        self.attack_damage = 25 # Cyrus is a powerful foe
+
+    def __str__(self):
+        """String representation of Cyrus's status."""
+        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
+                f"Tyranny: {self.tyranny}/{self.max_tyranny}")
+
+    def worldbreaker_strike(self, target):
+        """
+        An ability that shatters the defenses of a target, representing his power to break worlds.
+        """
+        print(f"{self.name} strikes with the force of a collapsing dimension, shattering {target.name}'s defenses!")
+        # In-game logic would deal heavy damage and apply a significant defense-reduction debuff.
+        target.take_damage(75) # High base damage
+
+    def dimensional_rift(self):
+        """
+        Tears open an unstable, damaging rift on the battlefield.
+        """
+        cost = 40
+        if self.tyranny >= cost:
+            # While his resource is always full, abilities still have costs and would likely
+            # have cooldowns in a real game to prevent spamming.
+            self.tyranny -= cost
+            print(f"{self.name} tears open a dimensional rift on the battlefield!")
+            # In-game logic to create a hazardous area (AoE).
+            # This is a good place to simulate a cooldown by not resetting tyranny immediately.
+        else:
+            print(f"{self.name} is still recovering his power.")
+
+    def onalym_purge(self, targets_in_line):
+        """
+        An ultimate ability that channels the Onalym Nexus to unleash a devastating beam.
+        """
+        cost = 100
+        if self.tyranny >= cost:
+            self.tyranny = 0 # Consumes all power, initiating a long cooldown.
+            print(f"{self.name} channels the full power of the Onalym Nexus, unleashing a beam of pure destruction!")
+            for target in targets_in_line:
+                 print(f"...The beam obliterates everything in its path, striking {target.name}!")
+                 # ... logic for extremely high, likely lethal, damage ...
+                 target.take_damage(200)
+        else:
+            print(f"{self.name} has not gathered enough power for the Onalym Purge.")
+
+
 def run_character_demonstration():
     """
     A new function to demonstrate the unique abilities of the new characters.
@@ -834,6 +895,52 @@ def run_character_demonstration():
     print("\n--- Demonstration Complete ---")
 
 
+def run_cyrus_demonstration():
+    """
+    A function to demonstrate the abilities of the new antagonist, Cyrus.
+    """
+    print("\n--- Cyrus Demonstration ---")
+
+    # --- 1. Create Cyrus and a Player to fight ---
+    cyrus = Cyrus(x=10, y=0)
+    hero = Player(name="Hero", x=0, y=0)
+    # Give the hero more health to survive the demonstration
+    hero.health = 250
+    hero.max_health = 250
+
+    print("\n--- Initial State ---")
+    print(cyrus)
+    print(hero)
+
+    # --- 2. Showcase Cyrus's Abilities ---
+    print("\n--- Turn 1: Cyrus uses a standard attack and a special ability ---")
+    cyrus.attack(hero) # A standard attack
+    cyrus.dimensional_rift()
+    print(cyrus)
+    print(hero)
+
+    print("\n--- Turn 2: Cyrus uses his Worldbreaker Strike ---")
+    cyrus.worldbreaker_strike(hero)
+    print(cyrus)
+    print(hero)
+
+    print("\n--- Turn 3: Cyrus unleashes his ultimate ability ---")
+    # We create another player to demonstrate the line attack
+    hero2 = Player(name="Sidekick", x=-1, y=0)
+    hero2.health = 200
+    targets = [hero, hero2]
+    # To showcase the ultimate, we'll reset his Tyranny as if he has powered up
+    print(f"{cyrus.name} gathers his full power for a final strike!")
+    cyrus.tyranny = cyrus.max_tyranny
+    cyrus.onalym_purge(targets)
+    print(cyrus)
+    print(hero)
+    print(hero2)
+
+    print("\n--- Cyrus Demonstration Complete ---")
+
+
 if __name__ == "__main__":
     # run_game() # You can comment this out to only run the character demo
-    run_character_demonstration()
+    # run_character_demonstration()
+    run_cyrus_demonstration()
