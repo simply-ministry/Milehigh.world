@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 /// <summary>
 /// A data structure to associate a DamageType with a resistance value.
@@ -28,6 +29,10 @@ public enum AnimationState
 [RequireComponent(typeof(AdvancedPhysics))]
 public class Character : MonoBehaviour
 {
+    /// <summary>
+    /// A Unique Identifier for each character instance, useful for tracking relationships.
+    /// </summary>
+    public Guid CharacterId { get; private set; } = Guid.NewGuid();
     public string characterName;
     public int maxHealth = 100;
     public int currentHealth;
