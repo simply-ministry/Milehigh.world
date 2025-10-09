@@ -297,6 +297,295 @@ class Kane(Enemy):
 if __name__ == "__main__":
     # --- DEMONSTRATION OF THE ABILITY SYSTEM ---
 
+    print("\n--- Demonstration Complete ---")
+def run_delilah_demonstration():
+    """
+    A function to demonstrate the unique abilities of Delilah the Desolate.
+    """
+    print("\n--- Character Demonstration: Delilah the Desolate ---")
+
+    # --- 1. Create Delilah and an Enemy ---
+    delilah = DelilahTheDesolate(x=0, y=0)
+    enemy = Enemy(name="Void Spawn", x=10, y=0, health=200)
+
+    print("\n--- Initial State ---")
+    print(delilah)
+    print(enemy)
+
+    # --- 2. Showcase Abilities ---
+    print("\n--- Turn 1: Delilah generates Blight ---")
+    delilah.touch_of_decay(enemy)
+    print(delilah)
+
+    print("\n--- Turn 2: Delilah attempts to use an ability without enough Blight ---")
+    delilah.summon_omen_avatar(enemy)
+    print(delilah)
+
+    print("\n--- Turn 3: Delilah generates more Blight ---")
+    # In a real scenario, this would happen over time or through other actions.
+    delilah.blight = 70
+    print(f"(Delilah's Blight is now {delilah.blight})")
+    delilah.summon_omen_avatar(enemy)
+    print(delilah)
+
+    print("\n--- Turn 4: Delilah uses her ultimate ability ---")
+    delilah.blight = 100
+    print(f"(Delilah's Blight is now {delilah.blight})")
+    delilah.voidblight_zone()
+    print(delilah)
+
+
+    print("\n--- Demonstration Complete ---")
+def run_cirrus_demonstration():
+    """
+    A function to demonstrate the unique abilities of Cirrus.
+    """
+    print("\n--- Cirrus Demonstration ---")
+
+    # --- 1. Create Cirrus and an Enemy ---
+    cirrus = Cirrus(x=0, y=0)
+    enemy1 = Enemy(name="Rebel Captain", x=10, y=0, health=150)
+    enemy2 = Enemy(name="Renegade Knight", x=12, y=0, health=180)
+    enemies = [enemy1, enemy2]
+
+    print("\n--- Initial State ---")
+    print(cirrus)
+    print(enemy1)
+    print(enemy2)
+
+    # --- 2. Showcase Humanoid Abilities ---
+    print("\n--- Turn 1: Cirrus asserts his authority ---")
+    cirrus.kings_decree(enemy1)
+    cirrus.draconic_breath(enemies) # Should fail in this form
+
+    # --- 3. Build Sovereignty ---
+    print("\n--- Building Sovereignty... ---")
+    # Simulate time passing to build up his resource
+    for _ in range(200):
+        cirrus.update()
+    print(cirrus)
+
+    # --- 4. Transform and Unleash Dragon Form ---
+    print("\n--- Turn 2: Cirrus transforms! ---")
+    cirrus.assume_dragon_form()
+    print(cirrus)
+
+    # --- 5. Showcase Dragon Abilities ---
+    print("\n--- Turn 3: Cirrus uses his dragon abilities ---")
+    cirrus.kings_decree(enemy2)
+    cirrus.draconic_breath(enemies)
+
+    # --- 6. Revert to Humanoid Form ---
+    print("\n--- Turn 4: The Dragon King returns to his mortal guise ---")
+    cirrus.revert_to_humanoid_form()
+    print(cirrus)
+
+    print("\n--- Cirrus Demonstration Complete ---")
+
+
+class BachirimBase(Character):
+    """
+    A base class for members of The Bachirim, the mysterious beings from the
+    shattered celestial realm of ƁÅČ̣ĤÎŘØN̈. This class provides the foundational
+    abilities and properties common to all Bachirim.
+    """
+    def __init__(self, name="Nameless Bachirim", x=0, y=0):
+        super().__init__(name, x, y, health=150)
+
+        self.home_realm = "ƁÅČ̣ĤÎŘØN̈"
+        self.max_aether = 200
+        self.aether = self.max_aether
+
+    def __str__(self):
+        """String representation of a Bachirim's status."""
+        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
+                f"Aether: {self.aether}/{self.max_aether} | "
+                f"Realm: {self.home_realm}")
+
+    def glimpse_the_fracture(self):
+        """
+        A foundational ability representing the Bachirim's knowledge of the Verse.
+        Child classes can override this with a more specific implementation.
+        """
+        print(f"{self.name} gazes into the fractured reality, discerning a hidden truth.")
+        # In-game logic to provide a tactical advantage, like revealing an invisible enemy.
+
+    def channel_celestial_energy(self, target):
+        """
+        A foundational ability to channel celestial energy.
+        Child classes can implement this as an attack, a shield, or another utility.
+        """
+        cost = 30
+        if self.aether >= cost:
+            self.aether -= cost
+            print(f"{self.name} channels pure celestial energy at {target.name}.")
+        else:
+            print(f"{self.name} lacks the Aether to channel this energy.")
+
+
+def run_bachirim_demonstration():
+    """
+    A function to demonstrate the abilities of the new BachirimBase class.
+    """
+    print("\n--- Bachirim Demonstration ---")
+
+    # --- 1. Create a Bachirim and an Enemy ---
+    bachirim = BachirimBase(name="Elarion the Star-Gazer", x=0, y=0)
+    enemy = Enemy(name="Void Hound", x=5, y=0, health=100)
+
+    print("\n--- Initial State ---")
+    print(bachirim)
+    print(enemy)
+
+    # --- 2. Showcase Bachirim Abilities ---
+    print("\n--- Turn 1: The Bachirim uses its foundational powers ---")
+    bachirim.glimpse_the_fracture()
+    bachirim.channel_celestial_energy(enemy)
+    print(bachirim)
+
+    print("\n--- Turn 2: The Bachirim acts again ---")
+    bachirim.channel_celestial_energy(enemy)
+    print(bachirim)
+
+
+    print("\n--- Bachirim Demonstration Complete ---")
+
+
+def run_cyrus_demonstration():
+    """
+    A function to demonstrate the abilities of the new antagonist, Cyrus.
+    """
+    print("\n--- Cyrus Demonstration ---")
+
+    # --- 1. Create Cyrus and a Player to fight ---
+    cyrus = Cyrus(x=10, y=0)
+    hero = Player(name="Hero", x=0, y=0)
+    # Give the hero more health to survive the demonstration
+    hero.health = 250
+    hero.max_health = 250
+
+    print("\n--- Initial State ---")
+    print(cyrus)
+    print(hero)
+
+    # --- 2. Showcase Cyrus's Abilities ---
+    print("\n--- Turn 1: Cyrus uses a standard attack and a special ability ---")
+    cyrus.attack(hero) # A standard attack
+    cyrus.dimensional_rift()
+    print(cyrus)
+    print(hero)
+
+    print("\n--- Turn 2: Cyrus uses his Worldbreaker Strike ---")
+    cyrus.worldbreaker_strike(hero)
+    print(cyrus)
+    print(hero)
+
+    print("\n--- Turn 3: Cyrus unleashes his ultimate ability ---")
+    # We create another player to demonstrate the line attack
+    hero2 = Player(name="Sidekick", x=-1, y=0)
+    hero2.health = 200
+    targets = [hero, hero2]
+    # To showcase the ultimate, we'll reset his Tyranny as if he has powered up
+    print(f"{cyrus.name} gathers his full power for a final strike!")
+    cyrus.tyranny = cyrus.max_tyranny
+    cyrus.onalym_purge(targets)
+    print(cyrus)
+    print(hero)
+    print(hero2)
+
+    print("\n--- Cyrus Demonstration Complete ---")
+
+
+def run_nyxar_demonstration():
+    """
+    A function to demonstrate the abilities of the antagonist, Nyxar.
+    """
+    print("\n--- Nyxar Demonstration ---")
+
+    # --- 1. Create Nyxar and some heroes to fight ---
+    nyxar = Nyxar(x=0, y=0)
+    hero1 = Player(name="Aeron", x=10, y=5)
+    hero2 = Player(name="Zaia", x=8, y=-5)
+
+    print("\n--- Initial State ---")
+    print(nyxar)
+    print(hero1)
+    print(hero2)
+
+    # --- 2. Showcase Nyxar's Abilities ---
+    print("\n--- Turn 1: Nyxar begins to dominate the field ---")
+    nyxar.shadow_tether(hero1)
+    print(f"(Nyxar's tethered enemies: {[e.name for e in nyxar.tethered_enemies]})")
+    nyxar.update() # Simulate a game tick to generate Dominion
+    print(nyxar)
+
+    print("\n--- Turn 2: Nyxar extends his influence ---")
+    nyxar.shadow_tether(hero2)
+    print(f"(Nyxar's tethered enemies: {[e.name for e in nyxar.tethered_enemies]})")
+
+    print("\n...Time passes, Nyxar's dominion grows...")
+    for _ in range(5): # Simulate a few more ticks
+        nyxar.update()
+    print(nyxar)
+
+
+    print("\n--- Turn 3: Nyxar creates a clone ---")
+    nyxar.create_umbral_clone(hero1)
+    print(nyxar)
+
+    print("\n--- Turn 4: Nyxar gathers his full power ---")
+    # Manually set dominion to max for the ultimate
+    nyxar.dominion = 100
+    print(nyxar)
+    nyxar.worldless_chasm()
+    print(nyxar)
+
+    print("\n--- Nyxar Demonstration Complete ---")
+def run_era_demonstration():
+    """
+    A function to demonstrate the abilities of the new antagonist, Era.
+    """
+    print("\n--- Era Demonstration ---")
+
+    # --- 1. Create Era and a Player to fight ---
+    era = Era(x=10, y=0)
+    hero = Player(name="Hero", x=0, y=0)
+    # Give the hero more health to survive the demonstration
+    hero.health = 400
+    hero.max_health = 400
+    all_heroes = [hero]
+
+    print("\n--- Initial State ---")
+    print(era)
+    print(hero)
+
+    # --- 2. Showcase Era's Abilities ---
+    print("\n--- Turn 1: Era starts spreading corruption ---")
+    era.spread_the_void()
+    print(era)
+
+    print("\n--- Turn 2: Era attacks with chaotic energy ---")
+    era.chaotic_outburst(hero)
+    print(era)
+    print(hero)
+
+    print("\n--- Turn 3: Era unleashes her ultimate ability ---")
+    era.inevitable_collapse(all_heroes)
+    print(era)
+    print(hero)
+
+    print("\n--- Era Demonstration Complete ---")
+def run_omega_one_demonstration():
+    """
+    A function to demonstrate the unique abilities of Omega.one.
+    """
+    print("\n--- Character Demonstration: Omega.one ---")
+
+    # --- 1. Create Omega.one and an Enemy ---
+    omega_one = OmegaOne(x=0, y=0)
+    enemy1 = Enemy(name="Drone Target", x=10, y=0, health=200)
+    enemy2 = Enemy(name="Collateral Target", x=12, y=0, health=200)
+    enemies = [enemy1, enemy2]
     print("--- ABILITY SYSTEM SIMULATION ---")
 
     # 1. Create a character and an enemy
@@ -324,6 +613,17 @@ if __name__ == "__main__":
 
     print(f"\nUnlocked abilities: {[ability.name for ability in hero_skyix.unlocked_abilities]}")
 
+if __name__ == "__main__":
+    # run_game() # You can comment this out to only run the character demo
+    # run_character_demonstration()
+    run_cyrus_demonstration()
+    run_aeron_demonstration()
+    run_delilah_demonstration()
+    run_cirrus_demonstration()
+    run_bachirim_demonstration()
+    run_nyxar_demonstration()
+    run_era_demonstration()
+    run_omega_one_demonstration()
     # 4. Use the newly unlocked ability
     print("\n--- Level 3+ Combat ---")
     hero_skyix.cast_ability("energy blast", enemy_bandit)
