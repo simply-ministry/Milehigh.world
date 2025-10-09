@@ -1,79 +1,118 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 /// <summary>
-/// A static class to manage combat-related calculations,
-/// centralizing damage formulas and other combat logic.
+/// Manages the state and flow of a turn-based combat encounter.
 /// </summary>
-public static class CombatManager
+public class CombatManager : MonoBehaviour
 {
-    /// <summary>
-    /// Defines the various formulas that can be used for damage calculation.
-    /// </summary>
-    public enum DamageFormula
+    public static CombatManager Instance { get; private set; }
+
+    private List<Character> combatants = new List<Character>();
+    private int currentTurnIndex = 0;
+    private bool isCombatActive = false;
+
+    // A new variable to check if the Combat Manager is waiting for player input
+    private bool isPlayerTurn = false;
+
+    void Awake()
     {
-        Linear,
-        RatioBased,
-        PercentageReduction,
-        Additive,
-        Exponential
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
     }
 
     /// <summary>
-    /// Calculates the final damage of an attack, considering the ability used,
-    /// critical hits, a selected damage formula, and the defender's resistances.
+    /// Starts a new combat encounter.
     /// </summary>
-    /// <param name="attacker">The character performing the attack.</param>
-    /// <param name="defender">The character receiving the attack.</param>
-    /// <param name="ability">The ability being used.</param>
-    /// <param name="formula">The core damage formula to apply.</param>
-    /// <param name="customMultiplier">A custom multiplier to apply to the final damage, for special abilities.</param>
-    /// <returns>The final calculated damage amount.</returns>
-    public static int CalculateDamage(Character attacker, Character defender, Ability ability, DamageFormula formula = DamageFormula.Linear, float customMultiplier = 1.0f)
+    /// <param name="playerParty">List of player-controlled characters.</param>
+    /// <param name="enemyParty">List of AI-controlled characters.</param>
+    public void StartCombat(List<Character> playerParty, List<Character> enemyParty)
     {
-        // 1. Determine base power and check for critical hits
-        bool isCrit = Random.value < ability.critChance;
-        float critModifier = isCrit ? ability.critMultiplier : 1.0f;
-        int attackPower = ability.power; // Use the ability's power as the base
+        if (isCombatActive) return;
 
-        // 2. Calculate pre-mitigation damage using the selected formula
-        int defense = defender.defense; // General defense
-        int baseDamage = 0;
-        switch (formula)
+        combatants.Clear();
+        combatants.AddRange(playerParty);
+        combatants.AddRange(enemyParty);
+
+        currentTurnIndex = 0;
+        isCombatActive = true;
+        Debug.Log("===== COMBAT STARTED =====");
+        StartCoroutine(CombatLoop());
+    }
+
+    private IEnumerator CombatLoop()
+    {
+        while (isCombatActive)
         {
-            case DamageFormula.Linear:
-                baseDamage = attackPower - defense;
-                break;
-            case DamageFormula.RatioBased:
-                baseDamage = (defense > 0) ? (attackPower * attackPower) / defense : attackPower;
-                break;
-            case DamageFormula.PercentageReduction:
-                float reduction = (float)defense / (defense + 100);
-                baseDamage = Mathf.RoundToInt(attackPower * (1 - reduction));
-                break;
-            case DamageFormula.Additive:
-                const int c = 50;
-                baseDamage = Mathf.RoundToInt(c * (float)attackPower / (c + defense));
-                break;
-            case DamageFormula.Exponential:
-                baseDamage = Mathf.RoundToInt(Mathf.Pow(1.1f, attackPower - defense));
-                break;
+            Character currentCharacter = combatants[currentTurnIndex];
+
+            if (currentCharacter.isAlive)
+            {
+                Debug.Log($"--- {currentCharacter.characterName}'s Turn ---");
+
+                if (currentCharacter.CompareTag("Player"))
+                {
+                    isPlayerTurn = true;
+                    // The Combat Loop will now wait until the player has made a move
+                    yield return new WaitUntil(() => !isPlayerTurn);
+                }
+                else // This is an AI's turn
+                {
+                    // This assumes you have an AIController attached to your enemy prefabs
+                    var aiController = currentCharacter.GetComponent<AIController>();
+                    if (aiController != null)
+                    {
+                        aiController.TakeTurn();
+                    }
+                    yield return new WaitForSeconds(1f); // Wait a moment after the AI's move
+                }
+            }
+
+            if (CheckForEndOfCombat())
+            {
+                EndCombat();
+                yield break;
+            }
+
+            currentTurnIndex = (currentTurnIndex + 1) % combatants.Count;
         }
+    }
 
-        // Ensure base damage is non-negative before applying multipliers
-        baseDamage = Mathf.Max(0, baseDamage);
+    // This new public method will be called by the UI Buttons
+    public void PlayerAction(Character player, Character target, Ability ability)
+    {
+        if (!isPlayerTurn || player != combatants[currentTurnIndex]) return;
 
-        // 3. Apply critical hit multiplier
-        float damageAfterCrit = baseDamage * critModifier;
-        if (isCrit) Debug.Log("Critical Hit!");
+        ability.Use(player, target);
+        isPlayerTurn = false; // The player's turn is now over
+    }
 
-        // 4. Apply specific resistance to the ability's damage type
-        int resistance = defender.GetResistanceValue(ability.damageType);
-        float finalDamage = damageAfterCrit - resistance;
+    private bool CheckForEndOfCombat()
+    {
+        bool allPlayersDefeated = combatants.Where(c => c.CompareTag("Player")).All(c => !c.isAlive);
+        bool allEnemiesDefeated = combatants.Where(c => c.CompareTag("Enemy")).All(c => !c.isAlive);
 
-        // 5. Apply custom damage multiplier for special abilities
-        finalDamage *= customMultiplier;
+        return allPlayersDefeated || allEnemiesDefeated;
+    }
 
-        // 6. Return final damage, ensuring it's at least 0
-        return Mathf.Max(0, Mathf.RoundToInt(finalDamage));
+    private void EndCombat()
+    {
+        isCombatActive = false;
+        Debug.Log("===== COMBAT ENDED =====");
+    }
+
+    /// <summary>
+    /// Gets a list of all combatants.
+    /// </summary>
+    /// <returns>A new list containing all characters currently in combat.</returns>
+    public List<Character> GetCombatants()
+    {
+        return combatants.ToList();
     }
 }
