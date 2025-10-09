@@ -1,62 +1,13 @@
 using UnityEngine;
 
-[RequireComponent(typeof(Character))]
-public class PlayerController : MonoBehaviour
-{
-    private Character character;
-    private AbilitySystem abilitySystem;
-    private Character currentTarget; // The enemy you are currently targeting
-
-    void Awake()
-    {
-        character = GetComponent<Character>();
-        abilitySystem = GetComponent<AbilitySystem>();
-    }
-
-    void Update()
-    {
-        // Don't process input if the game is paused or in a cutscene
-        // if (GameManager.Instance.GetCurrentState() != GameManager.GameState.Playing) return;
-        if (GameManager.Instance.GetCurrentState() != GameManager.GameState.Playing) return;
-
-        // --- Real-Time Movement ---
-        // Reads input every frame for smooth movement
-        float moveHorizontal = Input.GetAxis("Horizontal"); // A/D keys
-        float moveVertical = Input.GetAxis("Vertical");   // W/S keys
-        Vector3 movement = new Vector3(moveHorizontal, 0.0f, moveVertical);
-        // This would be connected to a character motor or Unity's CharacterController
-        // character.Move(movement * Time.deltaTime * speed);
-
-        // --- Real-Time Targeting ---
-        // Example: Use raycasting to select a target with the mouse
-        if (Input.GetMouseButtonDown(0))
-        {
-            RaycastHit hit;
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out hit))
-            {
-                if (hit.collider.CompareTag("Enemy"))
-                {
-                    currentTarget = hit.collider.GetComponent<Character>();
-                    Debug.Log($"Target set to: {currentTarget.characterName}");
-                }
-            }
-        }
-
-        // --- Real-Time Ability Activation ---
-        // Trigger abilities with key presses (e.g., '1', '2', '3')
-        if (Input.GetKeyDown(KeyCode.Alpha1))
-        {
-            // Assumes the first ability is a basic attack
-            if (currentTarget != null && abilitySystem != null)
-            {
-                abilitySystem.UseAbility(0, currentTarget); // Use the first ability in the list
-            }
 /// <summary>
 /// Handles player input and controls the player character's movement and actions.
 /// This component should be attached to the main player GameObject.
+/// It requires Character, CharacterController, and AbilitySystem components.
 /// </summary>
+[RequireComponent(typeof(Character))]
 [RequireComponent(typeof(CharacterController))]
+[RequireComponent(typeof(AbilitySystem))]
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement Settings")]
@@ -64,12 +15,17 @@ public class PlayerController : MonoBehaviour
     public float movementSpeed = 5.0f;
 
     [Header("References")]
-    [Tooltip("The main camera used for calculating movement direction.")]
+    [Tooltip("The main camera used for calculating movement direction. If not set, it will be found automatically.")]
     public Transform cameraTransform;
+
+    [Header("Targeting")]
+    [Tooltip("The currently selected target for abilities.")]
+    private Character currentTarget;
 
     // Component references
     private CharacterController characterController;
     private Character character;
+    private AbilitySystem abilitySystem;
 
     /// <summary>
     /// Called when the script instance is being loaded.
@@ -79,21 +35,26 @@ public class PlayerController : MonoBehaviour
         // Get the required components attached to this GameObject.
         characterController = GetComponent<CharacterController>();
         character = GetComponent<Character>();
+        abilitySystem = GetComponent<AbilitySystem>();
 
         // Find the main camera if not assigned.
         if (cameraTransform == null)
         {
-            cameraTransform = Camera.main.transform;
+            if (Camera.main != null)
+            {
+                cameraTransform = Camera.main.transform;
+            }
+            else
+            {
+                Debug.LogError("PlayerController: Main camera not found. Please assign the cameraTransform reference.");
+                this.enabled = false; // Disable the script if no camera is found.
+                return;
+            }
         }
 
-        if (characterController == null)
-        {
-            Debug.LogError("PlayerController requires a CharacterController component.");
-        }
-        if (character == null)
-        {
-            Debug.LogError("PlayerController requires a Character component.");
-        }
+        if (characterController == null) Debug.LogError("PlayerController requires a CharacterController component.");
+        if (character == null) Debug.LogError("PlayerController requires a Character component.");
+        if (abilitySystem == null) Debug.LogError("PlayerController requires an AbilitySystem component.");
     }
 
     /// <summary>
@@ -101,14 +62,15 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     void Update()
     {
-        // Don't process input if the game is paused or in a cutscene
-        // if (GameManager.Instance != null && GameManager.Instance.CurrentState != GameState.Playing)
-        // {
-        //     return;
-        // }
+        // Don't process input if the game is not in the 'Playing' state.
+        if (GameManager.Instance == null || GameManager.Instance.GetCurrentState() != GameManager.GameState.Playing)
+        {
+            return;
+        }
 
         HandleMovement();
-        HandleActionInput();
+        HandleTargeting();
+        HandleAbilityInput();
     }
 
     /// <summary>
@@ -138,27 +100,60 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// Handles input for actions like attacking.
-    /// Interaction is handled by the separate Interactor.cs script.
+    /// Handles selecting a target with the mouse.
     /// </summary>
-    private void HandleActionInput()
+    private void HandleTargeting()
     {
-        // Check for the primary mouse button (left-click) to attack.
-        if (Input.GetMouseButtonDown(0))
+        // Use raycasting to select a target with the mouse
+        if (Input.GetMouseButtonDown(0)) // Left-click to target
         {
-            // In the future, this will trigger an attack animation and call the CombatManager.
-            // For now, we just log a message.
-            Debug.Log($"{character.characterName} performs a basic attack!");
-
-            // Example of how it might eventually work:
-            // Find a target in front of the player
-            // Character target = FindTarget();
-            // if (target != null)
-            // {
-            //     // Get a default or equipped ability
-            //     Ability basicAttack = GetBasicAttackAbility();
-            //     CombatManager.Instance.PlayerAction(character, target, basicAttack);
-            // }
+            RaycastHit hit;
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            if (Physics.Raycast(ray, out hit))
+            {
+                // Check if the hit object is an enemy.
+                if (hit.collider.CompareTag("Enemy"))
+                {
+                    Character targetCharacter = hit.collider.GetComponent<Character>();
+                    if (targetCharacter != null)
+                    {
+                        currentTarget = targetCharacter;
+                        Debug.Log($"Target set to: {currentTarget.characterName}");
+                    }
+                }
+            }
         }
+    }
+
+    /// <summary>
+    /// Handles input for using abilities.
+    /// </summary>
+    private void HandleAbilityInput()
+    {
+        // Trigger abilities with key presses (e.g., '1', '2', '3')
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            if (currentTarget != null)
+            {
+                abilitySystem.UseAbility(0, currentTarget); // Use the first ability in the list
+            }
+            else
+            {
+                Debug.Log("No target selected to use ability on.");
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            if (currentTarget != null)
+            {
+                abilitySystem.UseAbility(1, currentTarget); // Use the second ability
+            }
+             else
+            {
+                Debug.Log("No target selected to use ability on.");
+            }
+        }
+        // Add more keybindings for other abilities as needed.
     }
 }
