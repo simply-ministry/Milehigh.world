@@ -563,6 +563,7 @@ class Enemy(GameObject):
         self.type = type  # e.g., "Goblin", "Orc", "Dragon"
         self.attack_damage = 10
         self.aggro_range = 10  # Range at which the enemy will start attacking.
+        self.xp_value = 0
 
     def attack(self, target):
         """
@@ -667,6 +668,14 @@ class Game:
         self.running = False
         self.last_time = time.time()
         self.game_time = 0 # Keep track of total game time.
+        self.message_log = []
+
+    def log_message(self, message):
+        """Adds a message to the game log."""
+        print(message)
+        self.message_log.append(message)
+        if len(self.message_log) > 5: # Keep log from getting too long
+            self.message_log.pop(0)
 
     def add_object(self, obj):
         """
@@ -706,23 +715,43 @@ class Game:
         self.running = False
         print("Game stopped.")
 
-    def handle_input(self, delta_time):
+    def handle_input(self, scene_manager):
         """
-        Handles user input.  This is a placeholder and should be implemented
-        using a specific input library (e.g., pygame, keyboard).
-        Args:
-            delta_time (float): Time since last frame.
+        Handles user input for the current scene.
         """
-        # Example: Move player with arrow keys (using a hypothetical keyboard library)
-        # if keyboard.is_pressed('up'):
-        #     self.player.move(0, -self.player.speed * delta_time)
-        # if keyboard.is_pressed('down'):
-        #     self.player.move(0, self.player.speed * delta_time)
-        # if keyboard.is_pressed('left'):
-        #     self.player.move(-self.player.speed * delta_time, 0)
-        # if keyboard.is_pressed('right'):
-        #     self.player.move(self.player.speed * delta_time, 0)
-        pass #  Do nothing for now.
+        player = scene_manager.scene.player_character
+        if not player or player.health <= 0:
+            return # No input if player is dead
+
+        command = input(f"What will {player.name} do? (attack, use [item], status, quit): ").lower().strip()
+        parts = command.split()
+        action = parts[0]
+
+        if action == "quit":
+            scene_manager.is_running = False
+            return
+
+        if action == "attack":
+            # In this simple scene, the only target is Kane
+            target = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Kane)), None)
+            if target and target.health > 0:
+                player.attack(target)
+            else:
+                self.log_message("There is no one to attack.")
+
+        elif action == "use" and len(parts) > 1:
+            item_name = " ".join(parts[1:])
+            player.use_item(item_name)
+
+        elif action == "status":
+            self.log_message(f"{player.name} HP: {player.health}/{player.max_health}")
+            kane = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Kane)), None)
+            if kane:
+                 self.log_message(f"{kane.name} HP: {kane.health}")
+
+        else:
+            self.log_message("Invalid command.")
+
 
     def update(self, delta_time):
         """
@@ -755,13 +784,26 @@ class Game:
         obj1.move(-0.5, 0)
         obj2.move(0.5, 0)
 
-    def draw(self):
+    def draw(self, scene):
         """
-        Draws the game objects.  This is a placeholder and should be implemented
-        using a specific graphics library (e.g., pygame, OpenGL).
+        Draws the current scene.
         """
-        for obj in self.objects:
-            obj.draw()
+        print("\n" + "="*scene.width)
+        # Rudimentary drawing of the scene
+        player = scene.player_character
+        kane = next((obj for obj in scene.game_objects if isinstance(obj, Kane)), None)
+
+        if player:
+            print(f"| {player.name} (HP: {player.health}){' '*(scene.width-20)} |")
+        if kane:
+             print(f"| {' '*(scene.width-20)}{kane.name} (HP: {kane.health}) |")
+
+        print("="*scene.width)
+        print("Recent Messages:")
+        for msg in self.message_log:
+            print(f"- {msg}")
+        print("-"*scene.width)
+
 
     def game_loop(self):
         """
@@ -793,73 +835,133 @@ class Game:
 
         time.sleep(0.01)
 
+# --- (I will add the character classes Aeron and Kane here in a later step) ---
+# For now, let's assume they exist and inherit from Player.
+class Aeron(Player):
+    pass
+class Kane(Enemy): # For simplicity, Kane will be an Enemy for this scene
+    pass
+
+
+# --- 2. NEW Scene Management Classes ---
+
+class Scene:
+    """Represents a specific location or encounter in the game."""
+    def __init__(self, name, width=40, height=10):
+        self.name = name
+        self.width = width
+        self.height = height
+        self.game_objects = []
+        self.player_character = None
+
+    def add_object(self, obj):
+        # This will now include all objects, not just enemies
+        self.game_objects.append(obj)
+
+    def set_player(self, player):
+        self.player_character = player
+        self.add_object(player) # Player is also a game object
+
+class SceneManager:
+    """Controls the setup, execution, and conclusion of a specific scene."""
+    def __init__(self, scene, game):
+        self.scene = scene
+        self.game = game # A reference to the main game engine
+        self.is_running = True
+
+    def setup(self):
+        """Sets up the initial state of the scene."""
+        # This method will be customized for each specific scene
+        pass
+
+    def update(self):
+        """Runs one tick of the scene's logic and checks for end conditions."""
+        # This will also be customized
+        pass
+
+    def run(self):
+        """The main loop for the scene."""
+        self.setup()
+        while self.is_running:
+            # The game class methods will now need to be adapted
+            # to take the scene as an argument
+            self.game.draw(self.scene)
+            self.game.handle_input(self) # Pass self to handle scene-specific logic
+            self.update()
+
+# --- 3. SCRIPTING THE "BATTLE OF AETHELGARD" SCENE ---
+
+class AethelgardBattle(SceneManager):
+    """A specific scene manager for the Aeron vs. Kane fight."""
+    def setup(self):
+        """Sets up the characters, items, and quest for this specific battle."""
+        # Create characters
+        player = Aeron(name="Aeron", x=5, y=5)
+        enemy = Kane(name="Kane", x=10, y=5)
+        # Let's make Kane a bit tougher for this encounter
+        enemy.health = 250
+        enemy.attack_damage = 20
+        enemy.xp_value = 500 # This would be a new attribute on Enemy
+
+        # Give player items
+        player.pickup_item(Weapon("Valiant Sword", "A blade that shines with honor.", 25))
+        # A simple quest system could be added to the Player class later
+        # player.journal.add_quest(Quest("The Sibling Rivalry", "Defeat Kane.", [{'type': 'defeat', 'target': 'Kane', 'current': 0, 'required': 1}]))
+
+        # Add them to the scene
+        self.scene.set_player(player)
+        self.scene.add_object(enemy)
+        self.game.log_message("Aethelgard stands silent. Your brother, Kane, awaits.")
+
+    def update(self):
+        """Handles the AI and checks for victory/defeat conditions."""
+        player = self.scene.player_character
+        # Find Kane in the scene's game objects
+        kane = next((obj for obj in self.scene.game_objects if isinstance(obj, Kane) and obj.name == "Kane"), None)
+
+        if not player or not kane:
+            self.is_running = False
+            return
+
+        # Simple AI: Kane attacks Aeron if he's alive
+        if kane.health > 0 and player.health > 0:
+             kane.attack(player)
+
+        # Victory Condition
+        if kane.health <= 0:
+            self.game.log_message("With a final blow, your brother falls. Aethelgard is safe, but at what cost?")
+            # player.journal.update_quest("The Sibling Rivalry", "defeat", "Kane")
+            self.is_running = False
+            return
+
+        # Defeat Condition
+        if player.health <= 0:
+            self.game.log_message("You have been defeated. The kingdom is lost.")
+            self.is_running = False
+            return
+
+
 def run_game():
     """
-    Main function to set up and run a demonstration of Anastasia's abilities.
+    Main function to set up and run the Aethelgard Battle scene.
     """
-    print("--- Milehigh.World Character Simulation: Anastasia ---")
+    print("--- Milehigh.World RPG ---")
+    print("--- SCENE: The Battle of Aethelgard ---")
 
-    # 1. Setup
-    anastasia = Anastasia()
-    cirrus = Player("Cirrus", x=1, y=1) # An ally
-    allies = [anastasia, cirrus]
-
-    enemy1 = Enemy("Void Ravager", x=5, y=5)
-    enemy2 = Enemy("Corrupted Drone", x=-5, y=-5)
-    enemies = [enemy1, enemy2]
-
-    # Create a game instance and add objects
+    # 1. Initialize the main game engine
     game = Game()
-    game.add_object(anastasia)
-    game.add_object(cirrus)
-    game.add_object(enemy1)
-    game.add_object(enemy2)
 
-    print("\n--- Battle Begins ---")
-    print(f"{anastasia.name}, {cirrus.name} vs. {enemy1.name}, {enemy2.name}")
+    # 2. Create the specific scene
+    battle_scene = Scene("Aethelgard Bridge")
 
-    # --- This is a simplified, turn-based simulation to showcase abilities ---
-    # In the real game, the game.start() loop would handle this dynamically.
+    # 3. Initialize the scene manager with the scene and game engine
+    scene_manager = AethelgardBattle(battle_scene, game)
 
-    # 2. Simulate building the Dream Weave
-    print("\n--- Turn 1: Anastasia starts controlling the field ---")
-    anastasia.lulling_whisper([enemy1, enemy2]) # Puts enemy1 to sleep
-    print(f"Anastasia's Dream Weave: {anastasia.dream_weave:.1f}/{anastasia.max_dream_weave}")
-    game.update(1.0) # Simulate 1 second passing
+    # 4. Run the scene
+    # The scene_manager.run() method will now control the game loop
+    scene_manager.run()
 
-    print("\n--- Turn 2: Further control and building meter ---")
-    anastasia.phantasmal_grasp(enemy2)
-    print(f"Anastasia's Dream Weave: {anastasia.dream_weave:.1f}/{anastasia.max_dream_weave}")
-    game.update(1.0)
-
-    # Simulate some other actions that build meter
-    print("\n...other combat happens, building the meter...")
-    anastasia.build_dream_weave(70)
-    print(f"Anastasia's Dream Weave: {anastasia.dream_weave:.1f}/{anastasia.max_dream_weave}")
-    game.update(1.0)
-
-    # 3. Activate Lucid Dream
-    print("\n--- Turn 5: The Dream Weave is full! ---")
-    anastasia.activate_lucid_dream()
-    game.update(1.0)
-
-    # 4. Use empowered abilities
-    print("\n--- Turn 6 (Lucid Dream Active): Anastasia unleashes empowered abilities! ---")
-    anastasia.lulling_whisper(enemies) # Now puts BOTH enemies to sleep
-    game.update(1.0)
-
-    print("\n--- Turn 7 (Lucid Dream Active): Anastasia supports her team ---")
-    anastasia.fleeting_vision(allies) # Buffs herself and Cirrus
-    game.update(1.0)
-
-    # 5. Use the Ultimate
-    print("\n--- Turn 8 (Lucid Dream Active): Anastasia uses her ultimate! ---")
-    anastasia.oneiric_collapse(enemies, allies)
-    game.update(1.0) # This will end the lucid dream
-
-    print("\n--- Simulation Complete ---")
-    # We call game.stop() to prevent the real-time loop from starting.
-    game.stop()
+    print("\n--- Scene Concluded ---")
 
 
 if __name__ == "__main__":
