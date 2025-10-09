@@ -3,11 +3,12 @@ using UnityEngine;
 /// <summary>
 /// Handles player input and controls the player character's movement and actions.
 /// This component should be attached to the main player GameObject.
-/// It requires Character, CharacterController, and AbilitySystem components.
+/// It requires Character, CharacterController, AbilitySystem, and Interactor components.
 /// </summary>
 [RequireComponent(typeof(Character))]
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(AbilitySystem))]
+[RequireComponent(typeof(Interactor))]
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement Settings")]
@@ -26,93 +27,88 @@ public class PlayerController : MonoBehaviour
     private CharacterController characterController;
     private Character character;
     private AbilitySystem abilitySystem;
+    private Interactor interactor;
 
-    /// <summary>
-    /// Called when the script instance is being loaded.
-    /// </summary>
     void Awake()
     {
         // Get the required components attached to this GameObject.
         characterController = GetComponent<CharacterController>();
         character = GetComponent<Character>();
         abilitySystem = GetComponent<AbilitySystem>();
+        interactor = GetComponent<Interactor>();
 
-        // Find the main camera if not assigned.
-        if (cameraTransform == null)
+        if (Camera.main != null)
         {
-            if (Camera.main != null)
-            {
-                cameraTransform = Camera.main.transform;
-            }
-            else
-            {
-                Debug.LogError("PlayerController: Main camera not found. Please assign the cameraTransform reference.");
-                this.enabled = false; // Disable the script if no camera is found.
-                return;
-            }
+            cameraTransform = Camera.main.transform;
         }
-
-        if (characterController == null) Debug.LogError("PlayerController requires a CharacterController component.");
-        if (character == null) Debug.LogError("PlayerController requires a Character component.");
-        if (abilitySystem == null) Debug.LogError("PlayerController requires an AbilitySystem component.");
-    }
-
-    /// <summary>
-    /// Called once per frame.
-    /// </summary>
-    void Update()
-    {
-        // Don't process input if the game is not in the 'Playing' state.
-        if (GameManager.Instance == null || GameManager.Instance.GetCurrentState() != GameManager.GameState.Playing)
+        else
         {
+            Debug.LogError("PlayerController: Main camera not found. Please assign the cameraTransform reference.");
+            this.enabled = false;
             return;
         }
-
-        HandleMovement();
-        HandleTargeting();
-        HandleAbilityInput();
     }
 
-    /// <summary>
-    /// Handles the character's movement based on player input.
-    /// </summary>
+    void Update()
+    {
+        // If combat is active, movement and interaction are typically disabled.
+        if (CombatManager.Instance != null && CombatManager.Instance.IsCombatActive())
+        {
+            // In combat, we only handle combat-related inputs.
+            HandleTargetSelection();
+            HandleCombatInput();
+        }
+        else
+        {
+            // If not in combat, handle world exploration inputs.
+            HandleMovement();
+            interactor.CheckForInteractable(); // Let the interactor look for things.
+            HandleInteractionInput();
+        }
+    }
+
     private void HandleMovement()
     {
-        // Get input from the horizontal and vertical axes (e.g., WASD or joystick).
         float horizontalInput = Input.GetAxis("Horizontal");
         float verticalInput = Input.GetAxis("Vertical");
 
-        // Calculate the movement direction relative to the camera.
         Vector3 cameraForward = Vector3.Scale(cameraTransform.forward, new Vector3(1, 0, 1)).normalized;
         Vector3 movementDirection = (cameraForward * verticalInput + cameraTransform.right * horizontalInput).normalized;
 
-        // Apply movement speed.
         Vector3 moveVector = movementDirection * movementSpeed;
 
-        // Apply gravity. The CharacterController.isGrounded check is important.
         if (!characterController.isGrounded)
         {
             moveVector.y += Physics.gravity.y * Time.deltaTime;
         }
 
-        // Move the character.
         characterController.Move(moveVector * Time.deltaTime);
     }
 
     /// <summary>
-    /// Handles selecting a target with the mouse.
+    /// Handles input for interacting with the environment.
     /// </summary>
-    private void HandleTargeting()
+    private void HandleInteractionInput()
     {
-        // Use raycasting to select a target with the mouse
-        if (Input.GetMouseButtonDown(0)) // Left-click to target
+        // Default interaction key is 'E', handled by the Interactor component.
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            interactor.TryInteract();
+        }
+    }
+
+    /// <summary>
+    /// Handles selecting a target with the mouse (now on right-click).
+    /// </summary>
+    private void HandleTargetSelection()
+    {
+        if (Input.GetMouseButtonDown(1)) // Right-click to target
         {
             RaycastHit hit;
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out hit))
             {
-                // Check if the hit object is an enemy.
-                if (hit.collider.CompareTag("Enemy"))
+                if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
                 {
                     Character targetCharacter = hit.collider.GetComponent<Character>();
                     if (targetCharacter != null)
@@ -126,34 +122,53 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// Handles input for using abilities.
+    /// Handles all combat-related input, like basic attacks and abilities.
     /// </summary>
-    private void HandleAbilityInput()
+    private void HandleCombatInput()
     {
-        // Trigger abilities with key presses (e.g., '1', '2', '3')
-        if (Input.GetKeyDown(KeyCode.Alpha1))
+        // Basic attack with left-click
+        if (Input.GetMouseButtonDown(0))
         {
-            if (currentTarget != null)
+            if (currentTarget != null && abilitySystem.abilities.Count > 0)
             {
-                abilitySystem.UseAbility(0, currentTarget); // Use the first ability in the list
+                // Use the first ability as the "basic attack"
+                CombatManager.Instance.PlayerAction(character, currentTarget, abilitySystem.abilities[0]);
             }
             else
             {
-                Debug.Log("No target selected to use ability on.");
+                Debug.Log("Select a target first (right-click) before attacking.");
             }
+        }
+
+        // Trigger abilities with number keys
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            TryUseAbility(1);
         }
 
         if (Input.GetKeyDown(KeyCode.Alpha2))
         {
-            if (currentTarget != null)
-            {
-                abilitySystem.UseAbility(1, currentTarget); // Use the second ability
-            }
-             else
-            {
-                Debug.Log("No target selected to use ability on.");
-            }
+            TryUseAbility(2);
         }
         // Add more keybindings for other abilities as needed.
+    }
+
+    /// <summary>
+    /// Helper function to use a specific ability from the ability system.
+    /// </summary>
+    private void TryUseAbility(int abilityIndex)
+    {
+        if (currentTarget == null)
+        {
+            Debug.Log("No target selected to use ability on.");
+            return;
+        }
+        if (abilityIndex < 0 || abilityIndex >= abilitySystem.abilities.Count)
+        {
+            Debug.Log($"No ability found at index {abilityIndex}.");
+            return;
+        }
+
+        CombatManager.Instance.PlayerAction(character, currentTarget, abilitySystem.abilities[abilityIndex]);
     }
 }
