@@ -655,6 +655,21 @@ class HealthPotion(Consumable):
         else:
             print(f"{self.name} cannot be used on {target}.")
 
+
+class Interactable(GameObject):
+    """
+    Represents an object in the world that the player can examine for information.
+    """
+    def __init__(self, name, x, y, description, symbol='?'):
+        super().__init__(name=name, x=x, y=y)
+        self.description = description
+        self.symbol = symbol # The character that will represent it on the map
+        self.is_alive = True # To make it drawable in the current draw logic
+
+    def examine(self):
+        """Returns the description of the object when examined."""
+        return self.description
+
 class ManaPotion(Consumable):
     def __init__(self, name="Mana Potion", x=0, y=0, z=0, amount=30):
         super().__init__(name=name, x=x, y=y, z=z, effect=f"Restores {amount} Mana")
@@ -684,8 +699,7 @@ class Game:
         self.message_log = []
 
     def log_message(self, message):
-        """Adds a message to the game log."""
-        print(message)
+        """Adds a message to the game log queue."""
         self.message_log.append(message)
         if len(self.message_log) > 5: # Keep log from getting too long
             self.message_log.pop(0)
@@ -734,6 +748,7 @@ class Game:
             return
 
         command = input("Action: ").lower().strip()
+        command = input(f"What will {player.name} do? (attack, use [item], examine, status, quit): ").lower().strip()
         parts = command.split()
         action = parts[0]
 
@@ -789,6 +804,16 @@ class Game:
         elif action == "use" and len(parts) > 1:
             item_name = " ".join(parts[1:])
             player.use_item(item_name)
+
+        elif action == "examine":
+            found_something = False
+            for obj in scene_manager.scene.game_objects:
+                if isinstance(obj, Interactable) and player.distance_to(obj) < 1.5:
+                    self.log_message(obj.examine())
+                    found_something = True
+                    break
+            if not found_something:
+                self.log_message("There is nothing nearby to examine.")
 
         elif action == "status":
             self.log_message(f"{player.name} - HP: {player.health}/{player.max_health}, Mana: {int(player.mana)}/{player.max_mana}")
@@ -858,9 +883,40 @@ class Game:
 
         # Print messages
         print("Recent Messages:")
+        """Draws the scene with a grid, showing objects and player status."""
+        # Create the grid
+        grid = [['.' for _ in range(scene.width)] for _ in range(scene.height)]
+
+        # Place all game objects on the grid
+        for obj in scene.game_objects:
+            # Check if the object is within the grid boundaries
+            if 0 <= int(obj.x) < scene.width and 0 <= int(obj.y) < scene.height:
+                if isinstance(obj, Interactable):
+                    grid[int(obj.y)][int(obj.x)] = obj.symbol
+                elif isinstance(obj, Player):
+                    grid[int(obj.y)][int(obj.x)] = '@' # Player symbol
+                elif isinstance(obj, Enemy):
+                    grid[int(obj.y)][int(obj.x)] = 'E' # Enemy symbol
+                elif obj.visible: # For other visible objects like items
+                    grid[int(obj.y)][int(obj.x)] = '*'
+
+        # Clear screen and print
+        print("\033[H\033[J") # Clears the console screen
+        print(f"--- {scene.name} ---")
+        for row in grid:
+            print(" ".join(row))
+        print("-" * (scene.width * 2))
+
+        # Print Player Status
+        player = scene.player_character
+        if player:
+            print(f"{player.name} | HP: {player.health}/{player.max_health} | Mana: {int(player.mana)}/{player.max_mana}")
+
+        # Print recent messages
+        print("Log:")
         for msg in self.message_log:
             print(f"- {msg}")
-        print("-"*scene.width)
+        self.message_log.clear() # Clear messages after printing
 
 
     def game_loop(self):
@@ -966,9 +1022,19 @@ class AethelgardBattle(SceneManager):
         # A simple quest system could be added to the Player class later
         # player.journal.add_quest(Quest("The Sibling Rivalry", "Defeat Kane.", [{'type': 'defeat', 'target': 'Kane', 'current': 0, 'required': 1}]))
 
+        # Add a test interactable object
+        ancient_statue = Interactable(
+            name="Ancient Statue",
+            x=5,
+            y=4,
+            symbol='S',
+            description="The statue depicts a forgotten king. A faint inscription reads: 'Only the worthy may pass.'"
+        )
+
         # Add them to the scene
         self.scene.set_player(player)
         self.scene.add_object(enemy)
+        self.scene.add_object(ancient_statue)
         self.game.log_message("Aethelgard stands silent. Your brother, Kane, awaits.")
 
     def update(self):
