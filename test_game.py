@@ -5,6 +5,7 @@ from game import (
     GameObject, Character, NPC, Item, Consumable, Weapon, Inventory, Game,
     Micah, Kane, Delilah, Player
 )
+from game import GameObject, Character, NPC, Item, Consumable, Weapon, Inventory, Game
 
 class TestGame(unittest.TestCase):
 
@@ -21,12 +22,34 @@ class TestGame(unittest.TestCase):
         self.game.set_player_character(self.player)
         self.game.add_object(self.enemy)
 
+        self.player = Character(name="Hero", x=5, y=5)
+        self.enemy = Character(name="Goblin", x=10, y=10, health=80)
+        self.game.set_player_character(self.player)
+        self.game.add_object(self.enemy)
+
+# Import the refactored and new classes from game.py
+from game import (
+    GameObject,
+    Item,
+    Weapon,
+    Consumable,
+    Inventory,
+    Character,
+    Player,
+    Enemy,
+    Ability,
+    TargetedDamageAbility,
+    Skyix,
+    Kane,
+)
+
+class TestGameObject(unittest.TestCase):
     def test_game_object_creation(self):
         """Test the creation of a GameObject."""
-        obj = GameObject(name="Tree", x=1, y=2, health=50)
+        obj = GameObject(name="Tree", x=10, y=20, health=50)
         self.assertEqual(obj.name, "Tree")
-        self.assertEqual(obj.x, 1)
-        self.assertEqual(obj.y, 2)
+        self.assertEqual(obj.x, 10)
+        self.assertEqual(obj.y, 20)
         self.assertEqual(obj.health, 50)
         self.assertEqual(obj.max_health, 50)
 
@@ -45,8 +68,8 @@ class TestGame(unittest.TestCase):
         self.player.heal(40)
         self.assertEqual(self.player.health, 100)
 
-    def test_player_equip_weapon(self):
-        """Test that a player can equip a weapon."""
+    def test_character_equip_weapon(self):
+        """Test that a character can equip a weapon by name."""
         sword = Weapon(name="Test Sword", description="A test sword.", damage=15)
         self.player.equip_weapon(sword)
         self.assertIs(self.player.weapon, sword)
@@ -80,9 +103,31 @@ class TestGame(unittest.TestCase):
         expected_damage = max(0, attack_damage - self.player.defense)
         self.enemy.attack(self.player)
         self.assertEqual(self.player.health, initial_player_health - expected_damage)
+        self.player.pickup_item(sword)
+        self.player.equip_weapon("Test Sword")
+        self.assertIsNotNone(self.player.equipped_weapon)
+        self.assertEqual(self.player.equipped_weapon.name, "Test Sword")
+        self.assertEqual(self.player.equipped_weapon.damage, 15)
+
+    def test_character_attack(self):
+        """Test a character's attack on another character."""
+        initial_enemy_health = self.enemy.health
+        self.player.attack(self.enemy)
+        expected_damage = self.player.base_attack_damage
+        self.assertEqual(self.enemy.health, initial_enemy_health - expected_damage)
+
+    def test_character_attack_with_weapon(self):
+        """Test a character's attack with an equipped weapon."""
+        sword = Weapon(name="Test Sword", description="A test sword.", damage=15)
+        self.player.pickup_item(sword)
+        self.player.equip_weapon("Test Sword")
+        initial_enemy_health = self.enemy.health
+        self.player.attack(self.enemy)
+        expected_damage = self.player.base_attack_damage + sword.damage
+        self.assertEqual(self.enemy.health, initial_enemy_health - expected_damage)
 
     def test_item_pickup(self):
-        """Test that a player can pick up items."""
+        """Test that a character can pick up items."""
         potion = Consumable(name="Lesser Heal", description="A weak potion.", effect="heal", value=10)
         self.player.pickup_item(potion)
         self.assertIn(potion, self.player.inventory.items)
@@ -95,6 +140,10 @@ class TestGame(unittest.TestCase):
         self.player.use_item("Test Potion")
         self.assertEqual(self.player.health, 80)
         self.assertNotIn(potion, self.player.inventory.items)
+        self.player.pickup_item(potion)
+        self.player.use_item("Test Potion")
+        self.assertEqual(self.player.health, 80)
+        self.assertEqual(len(self.player.inventory.items), 0)
 
     def test_inventory_add_and_list(self):
         """Test adding an item to the inventory and listing items."""
@@ -122,11 +171,113 @@ class TestGame(unittest.TestCase):
         self.player.use_item("Mana Elixir")
         self.assertEqual(self.player.mana, 80)
         self.assertNotIn(elixir, self.player.inventory.items)
+    def test_take_damage(self):
+        """Test that take_damage correctly reduces health."""
+        obj = GameObject(health=100)
+        obj.take_damage(30)
+        self.assertEqual(obj.health, 70)
 
-    def test_talk_to_npc(self):
-        """Test the dialogue interaction between a character and an NPC."""
-        npc = NPC(name="Guard", x=6, y=5, dialogue="Halt! Who goes there?")
-        self.game.add_object(npc)
+    def test_heal(self):
+        """Test that heal correctly increases health without exceeding max."""
+        obj = GameObject(health=100)
+        obj.health = 40
+        obj.heal(20)
+        self.assertEqual(obj.health, 60)
+        obj.heal(50) # Should cap at max_health
+        self.assertEqual(obj.health, 100)
+
+    def test_die(self):
+        """Test the die method."""
+        obj = GameObject()
+        with patch('builtins.print') as mock_print:
+            obj.die()
+            self.assertFalse(obj.visible)
+            self.assertFalse(obj.solid)
+            mock_print.assert_called_with(f"{obj.name} has been defeated.")
+
+class TestInventory(unittest.TestCase):
+    def setUp(self):
+        self.inventory = Inventory()
+        self.item1 = Item("Potion", "A healing potion.")
+        self.item2 = Weapon("Sword", "A sharp blade.", 10)
+
+    def test_add_item(self):
+        """Test adding an item to the inventory."""
+        self.assertTrue(self.inventory.add_item(self.item1))
+        self.assertIn(self.item1, self.inventory.items)
+        self.assertEqual(len(self.inventory.items), 1)
+
+    def test_inventory_full(self):
+        """Test that adding to a full inventory fails."""
+        full_inventory = Inventory(capacity=1)
+        full_inventory.add_item(self.item1)
+        self.assertFalse(full_inventory.add_item(self.item2))
+
+    def test_remove_item(self):
+        """Test removing an item from the inventory."""
+        self.inventory.add_item(self.item1)
+        removed_item = self.inventory.remove_item("potion") # Test case-insensitivity
+        self.assertEqual(removed_item, self.item1)
+        self.assertNotIn(self.item1, self.inventory.items)
+
+    def test_remove_item_not_found(self):
+        """Test removing an item that doesn't exist."""
+        self.assertIsNone(self.inventory.remove_item("nonexistent"))
+
+class TestCharacter(unittest.TestCase):
+    def setUp(self):
+        self.char = Character("TestChar", health=100)
+
+    def test_gain_xp_and_level_up(self):
+        """Test that gaining enough XP triggers a level up."""
+        self.char.xp_to_next_level = 100
+        self.char.gain_xp(120)
+        self.assertEqual(self.char.level, 2)
+        self.assertEqual(self.char.xp, 20)
+        self.assertEqual(self.char.max_health, 110)
+        self.assertEqual(self.char.health, 110) # Should heal on level up
+
+class TestAbilitySystem(unittest.TestCase):
+    def setUp(self):
+        """Set up a character and abilities for testing."""
+        self.skyix = Skyix()
+        self.bandit = Kane("Test Bandit")
+
+    def test_skyix_initial_abilities(self):
+        """Test that Skyix learns her level 1 ability upon creation."""
+        self.assertEqual(len(self.skyix.unlocked_abilities), 1)
+        self.assertEqual(self.skyix.unlocked_abilities[0].name, "Void Tech")
+
+    def test_learn_ability_on_level_up(self):
+        """Test that Skyix learns a new ability when she reaches the required level."""
+        self.skyix.gain_xp(200) # Should be enough to reach level 3
+        self.assertGreaterEqual(self.skyix.level, 3)
+        unlocked_names = [a.name for a in self.skyix.unlocked_abilities]
+        self.assertIn("Void Tech", unlocked_names)
+        self.assertIn("Energy Blast", unlocked_names)
+
+    def test_cast_ability_success(self):
+        """Test successfully casting a known ability."""
+        initial_bandit_health = self.bandit.health
+        initial_void_energy = self.skyix.void_energy
+        ability = self.skyix.unlocked_abilities[0] # Void Tech
+
+        self.skyix.cast_ability("void tech", self.bandit)
+
+        self.assertEqual(self.skyix.void_energy, initial_void_energy - ability.cost)
+        self.assertEqual(self.bandit.health, initial_bandit_health - ability.damage)
+
+    def test_cast_ability_not_enough_resource(self):
+        """Test casting an ability without enough resource."""
+        self.skyix.void_energy = 10 # Not enough for Void Tech (cost: 40)
+        initial_bandit_health = self.bandit.health
+        with patch('builtins.print') as mock_print:
+            self.skyix.cast_ability("void tech", self.bandit)
+            self.assertEqual(self.bandit.health, initial_bandit_health) # No damage dealt
+            mock_print.assert_called_with("Not enough Void Energy for Void Tech.")
+
+    def test_cast_ability_unknown_spell(self):
+        """Test casting an ability the character does not know."""
         with patch('builtins.print') as mock_print:
             self.player.talk(npc)
             mock_print.assert_called_with("[Guard]: Halt! Who goes there?")
@@ -171,6 +322,17 @@ class TestGame(unittest.TestCase):
         self.player.use_item("Test Mana Potion")
         self.assertEqual(self.player.mana, 60)
         self.assertNotIn(potion, self.player.inventory.items)
+        delilah_exists = any(obj.name == "Delilah the Desolate" for obj in self.game.game_objects)
+        self.assertTrue(delilah_exists)
+
+    def test_cast_spell_from_input(self):
+        """Test casting a spell on a target via game input."""
+        self.player.mana = 100
+        initial_enemy_health = self.enemy.health
+        with patch('builtins.input', return_value='cast nightmare on Goblin'):
+            self.game.handle_input()
+        self.assertEqual(self.enemy.health, initial_enemy_health - 50)
+        self.assertEqual(self.player.mana, 65)
 
     def test_use_non_consumable_item(self):
         """Test attempting to use a non-consumable item like a weapon."""
@@ -192,6 +354,11 @@ class TestGame(unittest.TestCase):
         self.game.remove_object(enemy_to_remove)
         self.assertEqual(len(self.game.game_objects), initial_object_count - 1)
         self.assertNotIn(enemy_to_remove, self.game.game_objects)
+        self.player.use_item("Imaginary Potion")
+        # No assertion needed, just checking for no errors
+            self.skyix.cast_ability("fireball", self.bandit)
+            mock_print.assert_called_with(f"{self.skyix.name} does not know the ability 'fireball'.")
+
 
 if __name__ == '__main__':
     unittest.main()
