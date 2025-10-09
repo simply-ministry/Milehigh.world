@@ -1,6 +1,5 @@
 import unittest
-from game import Skyix, Anastasia, Micah, Player, Enemy, Zaia
-from game import Skyix, Anastasia, Micah, Player, Enemy, DelilahTheDesolate
+from game import Skyix, Anastasia, Micah, Player, Enemy, Zaia, DelilahTheDesolate
 
 class TestNewCharacters(unittest.TestCase):
 
@@ -96,6 +95,49 @@ class TestNewCharacters(unittest.TestCase):
         self.assertLess(self.enemy.health, initial_enemy_health)
         self.assertLess(self.micah.fortitude, 50)
 
+    # --- Delilah Tests ---
+
+    def test_delilah_initialization(self):
+        """Test that Delilah initializes with the correct stats."""
+        self.assertEqual(self.delilah.health, 160)
+        self.assertEqual(self.delilah.blight, 25)
+        self.assertEqual(self.delilah.max_blight, 100)
+
+    def test_touch_of_decay_generates_blight(self):
+        """Test that touch_of_decay increases blight."""
+        initial_blight = self.delilah.blight
+        self.delilah.touch_of_decay(self.enemy)
+        self.assertEqual(self.delilah.blight, initial_blight + 5)
+
+    def test_summon_omen_avatar_success(self):
+        """Test that summon_omen_avatar can be used with sufficient blight."""
+        self.delilah.blight = 70
+        initial_blight = self.delilah.blight
+        self.delilah.summon_omen_avatar(self.enemy)
+        self.assertEqual(self.delilah.blight, initial_blight - 60)
+
+    def test_summon_omen_avatar_insufficient_blight(self):
+        """Test that summon_omen_avatar cannot be used without enough blight."""
+        self.delilah.blight = 50
+        initial_blight = self.delilah.blight
+        self.delilah.summon_omen_avatar(self.enemy)
+        self.assertEqual(self.delilah.blight, initial_blight)
+
+    def test_voidblight_zone_success(self):
+        """Test that voidblight_zone can be used with sufficient blight."""
+        self.delilah.blight = 95
+        initial_blight = self.delilah.blight
+        self.delilah.voidblight_zone()
+        self.assertEqual(self.delilah.blight, initial_blight - 90)
+
+    def test_voidblight_zone_insufficient_blight(self):
+        """Test that voidblight_zone cannot be used without enough blight."""
+        self.delilah.blight = 80
+        initial_blight = self.delilah.blight
+        self.delilah.voidblight_zone()
+        self.assertEqual(self.delilah.blight, initial_blight)
+
+
 # --- Zaia Tests ---
 class TestZaia(unittest.TestCase):
     def setUp(self):
@@ -155,47 +197,41 @@ class TestZaia(unittest.TestCase):
         self.zaia.exploit_weakness(self.enemy)
         self.assertEqual(self.zaia.momentum, 40)
         self.assertEqual(self.enemy.health, initial_enemy_health)
-    # --- Delilah Tests ---
 
-    def test_delilah_initialization(self):
-        """Test that Delilah initializes with the correct stats."""
-        self.assertEqual(self.delilah.health, 160)
-        self.assertEqual(self.delilah.blight, 25)
-        self.assertEqual(self.delilah.max_blight, 100)
 
-    def test_touch_of_decay_generates_blight(self):
-        """Test that touch_of_decay increases blight."""
-        initial_blight = self.delilah.blight
-        self.delilah.touch_of_decay(self.enemy)
-        self.assertEqual(self.delilah.blight, initial_blight + 5)
+class TestOmegaOne(unittest.TestCase):
+    def setUp(self):
+        """Set up test fixtures before each test method."""
+        from game import OmegaOne
+        self.omega_one = OmegaOne()
+        self.enemy = Enemy(name="Test Enemy")
 
-    def test_summon_omen_avatar_success(self):
-        """Test that summon_omen_avatar can be used with sufficient blight."""
-        self.delilah.blight = 70
-        initial_blight = self.delilah.blight
-        self.delilah.summon_omen_avatar(self.enemy)
-        self.assertEqual(self.delilah.blight, initial_blight - 60)
+    def test_omega_one_initialization(self):
+        """Test that Omega.one initializes with the correct stats."""
+        self.assertEqual(self.omega_one.health, 180)
+        self.assertEqual(self.omega_one.processing_power, 100)
+        self.assertEqual(self.omega_one.directive, "Guardian")
 
-    def test_summon_omen_avatar_insufficient_blight(self):
-        """Test that summon_omen_avatar cannot be used without enough blight."""
-        self.delilah.blight = 50
-        initial_blight = self.delilah.blight
-        self.delilah.summon_omen_avatar(self.enemy)
-        self.assertEqual(self.delilah.blight, initial_blight)
+    def test_switch_directive(self):
+        """Test that Omega.one can switch directives."""
+        self.omega_one.switch_directive("Annihilation")
+        self.assertEqual(self.omega_one.directive, "Annihilation")
 
-    def test_voidblight_zone_success(self):
-        """Test that voidblight_zone can be used with sufficient blight."""
-        self.delilah.blight = 95
-        initial_blight = self.delilah.blight
-        self.delilah.voidblight_zone()
-        self.assertEqual(self.delilah.blight, initial_blight - 90)
+    def test_energy_lance_annihilation(self):
+        """Test the energy lance ability in Annihilation directive."""
+        self.omega_one.switch_directive("Annihilation")
+        initial_enemy_health = self.enemy.health
+        self.omega_one.energy_lance(self.enemy)
+        self.assertLess(self.enemy.health, initial_enemy_health)
 
-    def test_voidblight_zone_insufficient_blight(self):
-        """Test that voidblight_zone cannot be used without enough blight."""
-        self.delilah.blight = 80
-        initial_blight = self.delilah.blight
-        self.delilah.voidblight_zone()
-        self.assertEqual(self.delilah.blight, initial_blight)
+    def test_system_overload(self):
+        """Test the system overload ability."""
+        initial_health = self.omega_one.health
+        initial_enemy_health = self.enemy.health
+        self.omega_one.system_overload([self.enemy])
+        self.assertLess(self.omega_one.health, initial_health)
+        self.assertLess(self.enemy.health, initial_enemy_health)
+
 
 if __name__ == '__main__':
     unittest.main()
