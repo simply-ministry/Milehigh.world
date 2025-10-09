@@ -790,6 +790,94 @@ class Micah(Player):
             print(f"{self.name} lacks the Fortitude for an Earthen Smash.")
 
 
+class Aeron(Player):
+    """
+    Represents Aeron, a noble warrior of Aethelgard and one of the Ɲōvəmîŋāđ.
+    His relationship with his brother, Kane, is a central conflict in his story.
+    """
+    def __init__(self, name="Aeron", x=0, y=0):
+        # Starts in a defensive 'Unyielding' stance
+        super().__init__(name, x, y)
+        self.health = 180
+        self.max_health = 180
+        self.state = "Unyielding" # Using state to manage stance
+
+        self.rival_brother_id = None # Would be set to Kane's unique ID
+        self.max_resolve = 100
+        self.resolve = 0
+
+    @property
+    def stance(self):
+        """A property to get his current combat stance from the state."""
+        return self.state
+
+    def __str__(self):
+        """String representation of Aeron's status."""
+        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
+                f"Resolve: {self.resolve}/{self.max_resolve} | "
+                f"Stance: {self.stance}")
+
+    def switch_stance(self):
+        """
+        Switches Aeron's combat stance, changing the effect of his other abilities.
+        """
+        if self.state == "Unyielding":
+            self.state = "Commanding"
+            print(f"{self.name} switches to a Commanding stance, ready to lead the attack!")
+        else:
+            self.state = "Unyielding"
+            print(f"{self.name} switches to an Unyielding stance, focusing on defense!")
+
+    def valiant_strike(self, target):
+        """
+        A basic melee attack that builds Resolve.
+        """
+        # For simplicity, we'll use the base attack method and then add resolve
+        super().attack(target)
+        resolve_gained = 10
+        self.resolve = min(self.max_resolve, self.resolve + resolve_gained)
+        print(f"{self.name} strikes {target.name} with valor! (+{resolve_gained} Resolve)")
+
+    def lions_roar(self, allies):
+        """
+        A powerful ability whose effect changes based on Aeron's current stance.
+        """
+        cost = 50
+        if self.resolve >= cost:
+            self.resolve -= cost
+            print(f"{self.name} lets out a mighty roar!")
+
+            if self.stance == "Unyielding":
+                # In defensive stance, the roar grants a defensive buff to allies.
+                print("...His roar inspires resilience, granting a defensive shield to his allies!")
+                for ally in allies:
+                    # Let's simulate a shield by giving temporary bonus defense
+                    ally.defense += 10
+                    print(f"{ally.name}'s defense was boosted!")
+            elif self.stance == "Commanding":
+                # In offensive stance, the roar grants an offensive buff.
+                print("...His roar ignites courage, boosting the attack power of his allies!")
+                for ally in allies:
+                    # Let's simulate a damage boost by increasing strength
+                    ally.strength += 10
+                    print(f"{ally.name}'s strength was boosted!")
+        else:
+            print(f"{self.name} does not have enough Resolve.")
+
+    def skyfall_charge(self, target):
+        """
+        An ultimate ability representing a diving attack, leveraging his winged nature.
+        """
+        cost = 90
+        if self.resolve >= cost:
+            self.resolve -= cost
+            print(f"{self.name} soars into the sky and dives down upon {target.name} in a devastating charge!")
+            # High single-target damage
+            target.take_damage(150)
+        else:
+            print(f"{self.name} lacks the Resolve for this attack.")
+
+
 def run_character_demonstration():
     """
     A new function to demonstrate the unique abilities of the new characters.
@@ -834,6 +922,74 @@ def run_character_demonstration():
     print("\n--- Demonstration Complete ---")
 
 
+def run_aeron_demonstration():
+    """
+    A function to demonstrate the unique abilities of Aeron.
+    """
+    print("\n--- Character Demonstration: Aeron ---")
+
+    # --- 1. Create Characters and an Enemy ---
+    aeron = Aeron(x=0, y=0)
+    # An ally to demonstrate buffing abilities
+    ally = Player(name="Cirrus", x=1, y=0)
+    allies = [aeron, ally]
+    enemy = Enemy(name="Shadow Mercenary", x=10, y=0, health=300)
+
+    print("\n--- Initial State ---")
+    print(aeron)
+    print(ally)
+    print(enemy)
+
+    # --- 2. Showcase Abilities ---
+    print("\n--- Turn 1: Aeron builds Resolve ---")
+    aeron.valiant_strike(enemy)
+    aeron.valiant_strike(enemy)
+    aeron.valiant_strike(enemy)
+    aeron.valiant_strike(enemy)
+    aeron.valiant_strike(enemy)
+    print(aeron)
+
+    print("\n--- Turn 2: Aeron uses his defensive stance ability ---")
+    aeron.lions_roar(allies)
+    print(aeron)
+    print(f"Ally defense is now: {ally.defense}")
+
+
+    print("\n--- Turn 3: Aeron switches stances and uses his offensive ability ---")
+    aeron.switch_stance()
+    # Build up resolve again
+    aeron.valiant_strike(enemy)
+    aeron.valiant_strike(enemy)
+    aeron.valiant_strike(enemy)
+    aeron.valiant_strike(enemy)
+    aeron.valiant_strike(enemy)
+    print(aeron)
+    aeron.lions_roar(allies)
+    print(aeron)
+    print(f"Ally strength is now: {ally.strength}")
+
+
+    print("\n--- Turn 4: Aeron unleashes his ultimate ---")
+    # Build up resolve for the ultimate
+    aeron.valiant_strike(enemy)
+    aeron.valiant_strike(enemy)
+    aeron.valiant_strike(enemy)
+    aeron.valiant_strike(enemy)
+    aeron.valiant_strike(enemy)
+    aeron.valiant_strike(enemy)
+    aeron.valiant_strike(enemy)
+    aeron.valiant_strike(enemy)
+    aeron.valiant_strike(enemy)
+    print(aeron)
+    aeron.skyfall_charge(enemy)
+    print(enemy)
+    print(aeron)
+
+
+    print("\n--- Demonstration Complete ---")
+
+
 if __name__ == "__main__":
     # run_game() # You can comment this out to only run the character demo
-    run_character_demonstration()
+    # run_character_demonstration()
+    run_aeron_demonstration()
