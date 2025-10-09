@@ -1,26 +1,12 @@
-import time
-import random
-import math
+# --- 1. ALL CORE CLASSES (PASTED FROM PREVIOUS STEPS) ---
+# (Includes GameObject, Character, Item, etc.)
+# ... (For brevity, imagine all previously defined core classes are here) ...
 
 class GameObject:
-    """
-    Base class for all game objects.  Provides fundamental attributes and methods.
-    """
-    def __init__(self, name="GameObject", x=0, y=0, z=0, health=100, speed=1, visible=True, solid=True, defense=0):
-        """
-        Constructor for GameObject.
-        Args:
-            name (str): The name of the object.
-            x (float): The x-coordinate of the object's position.
-            y (float): The y-coordinate of the object's position.
-            z (float): The z-coordinate of the object's position (for 3D).
-            health (int): The health of the object.
-            speed (float): The speed of the object.
-            visible (bool): Whether the object is visible.
-            solid (bool): Whether the object is solid (can collide with other objects).
-            defense (int): The defense of the object.
-        """
+    """The base class for all objects in the game world."""
+    def __init__(self, name="Object", symbol='?', x=0, y=0, state=None):
         self.name = name
+        self.symbol = symbol
         self.x = x
         self.y = y
         self.z = z
@@ -85,75 +71,25 @@ class GameObject:
             print(f"{self.name} takes {actual_damage} damage.")
         else:
             print(f"{self.name}'s defense holds strong!")
+        self.state = state # e.g., 'normal', 'hostile', 'dead'
 
-        if self.health <= 0:
-            self.die()
-
-    def heal(self, amount):
-        """
-        Increases the object's health.
-        Args:
-            amount (int): The amount to heal.
-        """
-        self.health += amount
-        if self.health > 100:  # Assuming max health is 100
-            self.health = 100
-
-    def die(self):
-        """
-        Handles the object's death.  This can be overridden in subclasses.
-        """
-        self.visible = False
-        self.solid = False
-        print(f"{self.name} has died.")
-
-    def update(self, delta_time):
-        """
-        Updates the object's state.  This method is called every frame.
-        This is meant to be overridden in subclasses.
-        Args:
-           delta_time: Time since the last frame in seconds.
-        """
+    def update(self, scene_manager):
+        """Placeholder for object-specific logic that runs each turn."""
         pass
 
-    def update_status_effects(self, delta_time):
-        """Updates status effects, applying their effects and decrementing timers."""
-        # Using list() to create a copy, allowing modification during iteration
-        for effect, duration in list(self.status_effects.items()):
-            # Decrement timer
-            new_duration = duration - delta_time
-            if new_duration > 0:
-                self.status_effects[effect] = new_duration
-            else:
-                del self.status_effects[effect]
-                print(f"{self.name}'s {effect} has worn off.")
-                continue # Skip to next effect once it's removed
-
-            # Apply passive effects
-            if effect == 'psychic_damage':
-                dot_damage = 5 * delta_time # 5 damage per second
-                print(f"{self.name} is taking psychic damage.")
-                self.take_damage(dot_damage)
-
-    def draw(self):
-        """
-        Draws the object.  This method is called every frame.
-        This is meant to be overridden in subclasses, using a graphics library.
-        """
-        if self.visible:
-            print(f"Drawing {self.name} at ({self.x}, {self.y}, {self.z})") # Basic drawing for now.
+class Item(GameObject):
+    """Represents items that can be picked up or used."""
+    def __init__(self, name="Item", symbol='*', x=0, y=0):
+        super().__init__(name, symbol, x, y)
 
 class Interactable(GameObject):
-    """
-    Represents an object in the world that the player can examine for information.
-    """
-    def __init__(self, name, x, y, description, symbol='?'):
-        super().__init__(name, x, y)
+    """Represents objects that can be examined for a description."""
+    def __init__(self, name, symbol, x, y, description):
+        super().__init__(name, symbol, x, y)
         self.description = description
-        self.symbol = symbol # The character that will represent it on the map
 
-    def examine(self):
-        """Returns the description of the object when examined."""
+    def on_examine(self):
+        """Returns the description of the object."""
         return self.description
 
 class Player(GameObject):
@@ -723,119 +659,157 @@ class Equipment:
         for slot, item in self.slots.items():
             print(f"- {slot.capitalize()}: {'Empty' if not item else item.name}")
         print("--------------------")
+# --- 2. NEW Dialogue System Classes ---
 
-class Aeron(Player):
-    pass
+class DialogueNode:
+    """Represents a single piece of dialogue and potential player choices."""
+    def __init__(self, text, character_name="Narrator", options=None):
+        self.text = text
+        self.character_name = character_name
+        # Options is a dictionary: {"Player choice text": "next_node_key"}
+        self.options = options if options else {}
 
-class Kane(Enemy): # For simplicity, Kane will be an Enemy for this scene
-    pass
+class DialogueManager:
+    """Controls the flow of a single conversation."""
+    def __init__(self, start_node_key="start"):
+        self.nodes = {}
+        self.current_node_key = start_node_key
 
-class Game:
-    """
-    Represents the game engine.  Handles game logic, object management, and the game loop.
-    """
-    def __init__(self):
-        self.objects = []
-        self.player = None
-        self.running = False
-        self.last_time = time.time()
-        self.game_time = 0 # Keep track of total game time.
-        self.message_log = []
+    def add_node(self, key, node):
+        """Adds a dialogue node to the conversation tree."""
+        self.nodes[key] = node
 
-    def log_message(self, message):
-        """Adds a message to the game log queue."""
-        self.message_log.append(message)
-        if len(self.message_log) > 5: # Keep log from getting too long
-            self.message_log.pop(0)
+    def get_current_node(self):
+        """Returns the current dialogue node."""
+        return self.nodes.get(self.current_node_key)
+
+    def select_option(self, choice_index):
+        """Moves to the next node based on the player's choice."""
+        node = self.get_current_node()
+        if node and node.options:
+            option_keys = list(node.options.values())
+            if 0 <= choice_index < len(option_keys):
+                self.current_node_key = option_keys[choice_index]
+                return True
+        return False
+
+# --- 3. UPDATING THE CHARACTER AND GAME ENGINE ---
+
+class Character(GameObject):
+    def __init__(self, name="Character", x=0, y=0, health=100, state=None):
+        super().__init__(name, 'C', x, y, state)
+        self.health = health
+        self.max_health = health
+        # --- NEW ---
+        self.dialogue = None # A character can hold a conversation tree
+
+class Anastasia(Character):
+    def __init__(self, name="Anastasia", x=0, y=0):
+        super().__init__(name, x, y, health=120)
+        self.symbol = '@'
+
+class Reverie(Character):
+    def __init__(self, name="Reverie", x=0, y=0):
+        super().__init__(name, x, y, health=100)
+        self.symbol = 'R'
+
+class Scene:
+    """Holds all the data for a single game area: map, objects, etc."""
+    def __init__(self, name, width=40, height=10):
+        self.name = name
+        self.width = width
+        self.height = height
+        self.game_objects = []
+        self.player_character = None
 
     def add_object(self, obj):
-        """
-        Adds a GameObject to the game.
-        Args:
-            obj (GameObject): The GameObject to add.
-        """
-        self.objects.append(obj)
-        if isinstance(obj, Player):
-            self.player = obj
+        self.game_objects.append(obj)
 
-    def remove_object(self, obj):
-        """
-        Removes a GameObject from the game.
-        Args:
-            obj (GameObject): The GameObject to remove.
-        """
-        self.objects.remove(obj)
+    def set_player(self, player):
+        self.player_character = player
+        self.add_object(player)
 
-    def start(self):
-        """
-        Starts the game loop.
-        """
-        if self.player is None:
-            print("Cannot start game without a Player.")
-            return
-        self.running = True
-        print("Game started.")
-        self.last_time = time.time()  # Initialize last_time here
-        while self.running:
-            self.game_loop()
+    def get_object_at(self, x, y):
+        for obj in self.game_objects:
+            if obj.x == x and obj.y == y:
+                return obj
+        return None
 
-    def stop(self):
-        """
-        Stops the game loop.
-        """
-        self.running = False
-        print("Game stopped.")
+class Game:
+    def __init__(self, width=40, height=10):
+        self.width = width
+        self.height = height
+        self.message_log = []
+        self.turn_taken = False
+        self.game_over = False
+        # --- NEW ---
+        self.in_conversation = False
+        self.dialogue_manager = None
+
+    def log_message(self, message):
+        self.message_log.append(message)
+        if len(self.message_log) > 5:
+            self.message_log.pop(0)
 
     def handle_input(self, scene_manager):
-        player = scene_manager.scene.player_character
-        if not player or player.health <= 0:
+        """UPDATED to handle dialogue choices and the 'talk' command."""
+        if self.in_conversation:
+            # Handle dialogue input
+            choice = input("Choose an option (number): ")
+            if choice.isdigit() and self.dialogue_manager.select_option(int(choice) - 1):
+                # Valid choice made, continue conversation
+                pass
+            else:
+                self.log_message("Invalid choice.")
+            # In conversation, every input is a turn
+            self.turn_taken = True
             return
 
         command = input(f"What will {player.name} do? (attack, equip [item], use [item], examine, status, quit): ").lower().strip()
+        command = input("Action: ").lower().strip()
         parts = command.split()
-        action = parts[0]
+        action = parts[0] if parts else ""
 
-        if action == "quit":
-            scene_manager.is_running = False
-            return
-
-        elif action == "move" and len(parts) > 1:
+        if action == "move" and len(parts) > 1:
             direction = parts[1]
-            if direction in ["w", "up"]:
-                player.move(0, -1)
-            elif direction in ["s", "down"]:
-                player.move(0, 1)
-            elif direction in ["a", "left"]:
-                player.move(-1, 0)
-            elif direction in ["d", "right"]:
-                player.move(1, 0)
+            dx, dy = 0, 0
+            if direction == "up": dy = -1
+            elif direction == "down": dy = 1
+            elif direction == "left": dx = -1
+            elif direction == "right": dx = 1
+
+            player = scene_manager.scene.player_character
+            new_x, new_y = player.x + dx, player.y + dy
+
+            if 0 <= new_x < self.width and 0 <= new_y < self.height:
+                target = scene_manager.scene.get_object_at(new_x, new_y)
+                if not target:
+                    player.x = new_x
+                    player.y = new_y
+                    self.turn_taken = True
+                else:
+                    self.log_message(f"You can't move there. {target.name} is in the way.")
             else:
-                self.log_message("Invalid direction. Use w, a, s, d (or up, down, left, right).")
-                return # Not a valid move, so don't log position
-            self.log_message(f"{player.name} is at ({int(player.x)}, {int(player.y)})")
+                self.log_message("You can't move off the map.")
 
         elif action == "examine" and len(parts) > 1:
             target_name = " ".join(parts[1:])
-            target = next((obj for obj in scene_manager.scene.game_objects if obj.name.lower() == target_name.lower()), None)
-
-            if target and isinstance(target, Interactable):
-                distance = player.distance_to(target)
-                if distance < 2: # Must be close to examine
-                    self.log_message(f"You examine the {target.name}: \"{target.examine()}\"")
-                else:
-                    self.log_message(f"You are too far away to examine the {target.name}.")
+            target = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Interactable) and obj.name.lower() == target_name.lower()), None)
+            if target:
+                self.log_message(f"{target.name}: {target.on_examine()}")
             else:
-                self.log_message(f"You don't see a '{target_name}' to examine.")
+                self.log_message(f"There is no '{target_name}' to examine.")
+            self.turn_taken = True
 
-        elif action == "attack":
-            if len(parts) > 1:
-                # Targeted attack
-                target_name = " ".join(parts[1:])
-                target = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Enemy) and obj.name.lower() == target_name.lower() and obj.health > 0), None)
-                if target:
-                    player.attack(target)
+        elif action == "talk" and len(parts) > 1:
+            target_name = " ".join(parts[1:])
+            target = next((obj for obj in scene_manager.scene.game_objects if obj.name.lower() == target_name.lower()), None)
+            if target and isinstance(target, Character) and target.dialogue:
+                distance = abs(scene_manager.scene.player_character.x - target.x) + abs(scene_manager.scene.player_character.y - target.y)
+                if distance <= 2: # A slightly larger range for talking
+                    self.start_conversation(target.dialogue)
                 else:
-                    self.log_message(f"You don't see a '{target_name}' to attack.")
+                    self.log_message(f"You are too far away to talk to {target.name}.")
             else:
                 # Simple attack (for single-enemy scenes)
                 target = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Enemy) and obj.health > 0), None)
@@ -872,183 +846,94 @@ class Game:
         else:
             self.log_message("Invalid command. Try: move [w/a/s/d], examine [object], attack [target], use [item], equip [item], status, quit")
 
+                self.log_message(f"'{target_name}' has nothing to say or isn't here.")
+            self.turn_taken = True
+        elif action == "quit":
+            self.game_over = True
+        else:
+            self.log_message("Unknown command. Try: move [up|down|left|right], talk [name], examine [name], quit")
 
-    def update(self, delta_time):
-        """
-        Updates the game state. This is called every frame.
-        """
-        # Update each object based on its type
-        for obj in self.objects:
-            if isinstance(obj, Enemy):
-                obj.update(delta_time, self.player)  # Enemy update requires the player
-            else:
-                obj.update(delta_time)  # Other objects have a simpler update
 
-        # Example: Check for collisions (very basic)
-        for i in range(len(self.objects)):
-            for j in range(i + 1, len(self.objects)):
-                obj1 = self.objects[i]
-                obj2 = self.objects[j]
-                if obj1.solid and obj2.solid and obj1.distance_to(obj2) < 1:  # Simple collision check
-                    self.handle_collision(obj1, obj2)
+    def start_conversation(self, dialogue_manager):
+        """Initiates a conversation."""
+        self.in_conversation = True
+        self.dialogue_manager = dialogue_manager
+        self.log_message("A conversation begins.")
 
-    def handle_collision(self, obj1, obj2):
-        """
-        Handles collisions between two GameObjects.  This is a placeholder.
-        Args:
-            obj1 (GameObject): The first GameObject.
-            obj2 (GameObject): The second GameObject.
-        """
-        print(f"Collision between {obj1.name} and {obj2.name}")
-        # Example:  Make them bounce
-        obj1.move(-0.5, 0)
-        obj2.move(0.5, 0)
+    def end_conversation(self):
+        """Ends the current conversation."""
+        self.in_conversation = False
+        self.dialogue_manager = None
+        self.log_message("The conversation ends.")
 
     def draw(self, scene):
-        """Draws the current scene using a grid."""
-        grid = [['.' for _ in range(scene.width)] for _ in range(scene.height)]
+        """Draws the game state to the console."""
+        # Clear screen
+        print("\033c", end="")
 
-        # Combine scene objects and the player for drawing, ensuring no duplicates.
-        all_objects = list(set(scene.game_objects + [scene.player_character]))
-
-        # Draw all visible game objects
-        for obj in all_objects:
-            # Ensure the object exists and is within the grid bounds
-            if obj and obj.visible and 0 <= int(obj.y) < scene.height and 0 <= int(obj.x) < scene.width:
-                if isinstance(obj, Interactable):
-                    grid[int(obj.y)][int(obj.x)] = obj.symbol
-                elif isinstance(obj, Player):
-                    grid[int(obj.y)][int(obj.x)] = obj.name[0]
-                elif isinstance(obj, Enemy):
-                    grid[int(obj.y)][int(obj.x)] = obj.name[0]
-
-        # Print the grid
-        print("\n" + "="*scene.width)
-        for row in grid:
-            print("".join(row))
-        print("="*scene.width)
-
-        # Print messages
-        print("Recent Messages:")
-        """Draws the scene with a grid, showing objects and player status."""
-        # Create the grid
-        grid = [['.' for _ in range(scene.width)] for _ in range(scene.height)]
-
-        # Place all game objects on the grid
-        for obj in scene.game_objects:
-            # Check if the object is within the grid boundaries
-            if 0 <= int(obj.x) < scene.width and 0 <= int(obj.y) < scene.height:
-                if isinstance(obj, Interactable):
-                    grid[int(obj.y)][int(obj.x)] = obj.symbol
-                elif isinstance(obj, Player):
-                    grid[int(obj.y)][int(obj.x)] = '@' # Player symbol
-                elif isinstance(obj, Enemy):
-                    grid[int(obj.y)][int(obj.x)] = 'E' # Enemy symbol
-                elif obj.visible: # For other visible objects like items
-                    grid[int(obj.y)][int(obj.x)] = '*'
-
-        # Clear screen and print
-        print("\033[H\033[J") # Clears the console screen
         print(f"--- {scene.name} ---")
+
+        if self.in_conversation:
+            node = self.dialogue_manager.get_current_node()
+            if not node:
+                self.end_conversation()
+                # Fall through to draw the map on the turn the conversation ends
+            else:
+                print(f"\n--- Conversation with {node.character_name} ---")
+                print(f"> \"{node.text}\"")
+                if node.options:
+                    for i, option_text in enumerate(node.options.keys()):
+                        print(f"  {i+1}. {option_text}")
+                else:
+                    # If there are no options, the conversation ends on the next player input
+                    self.end_conversation()
+                # Don't draw map while in conversation
+                return
+
+        # --- Draw Map ---
+        grid = [['.' for _ in range(self.width)] for _ in range(self.height)]
+        for obj in sorted(scene.game_objects, key=lambda o: 0 if isinstance(o, Character) else -1):
+             if 0 <= obj.x < self.width and 0 <= obj.y < self.height:
+                grid[obj.y][obj.x] = obj.symbol
+
         for row in grid:
             print(" ".join(row))
-        print("-" * (scene.width * 2))
 
-        # Print Player Status
+        # --- Draw Player Status and Message Log ---
         player = scene.player_character
-        if player:
-            print(f"{player.name} | HP: {player.health}/{player.max_health} | Mana: {int(player.mana)}/{player.max_mana}")
-
-        # Print recent messages
-        print("Log:")
+        print("-" * (self.width * 2 - 1))
+        print(f"{player.name} | Health: {player.health}/{player.max_health}")
+        print("-- Messages --")
         for msg in self.message_log:
             print(f"- {msg}")
-        self.message_log.clear() # Clear messages after printing
+        print("-" * (self.width * 2 - 1))
 
-
-    def game_loop(self):
-        """
-        The main game loop. Checks for end-game conditions each frame.
-        """
-        current_time = time.time()
-        delta_time = current_time - self.last_time
-        self.last_time = current_time
-        self.game_time += delta_time
-
-        delta_time = min(delta_time, 0.1)
-
-        self.handle_input(delta_time)
-        self.update(delta_time)
-        self.draw()
-
-        # --- Check for Game-End Conditions ---
-        if self.player.health <= 0:
-            print("\n--- GAME OVER ---")
-            self.stop()
-            return
-
-        # Check if any enemies are still alive (visible)
-        if not any(isinstance(obj, Enemy) and obj.visible for obj in self.objects):
-            print("\n--- YOU WIN! ---")
-            print("All enemies have been defeated.")
-            self.stop()
-            return
-
-        time.sleep(0.01)
-
-# --- (I will add the character classes Aeron and Kane here in a later step) ---
-# For now, let's assume they exist and inherit from Player.
-class Kane(Enemy): # For simplicity, Kane will be an Enemy for this scene
-    pass
-
-
-# --- 2. NEW Scene Management Classes ---
-
-class Scene:
-    """Represents a specific location or encounter in the game."""
-    def __init__(self, name, width=40, height=10):
-        self.name = name
-        self.width = width
-        self.height = height
-        self.game_objects = []
-        self.player_character = None
-
-    def add_object(self, obj):
-        # This will now include all objects, not just enemies
-        self.game_objects.append(obj)
-
-    def set_player(self, player):
-        self.player_character = player
-        self.add_object(player) # Player is also a game object
 
 class SceneManager:
-    """Controls the setup, execution, and conclusion of a specific scene."""
+    """Base class for controlling scenes, events, and game logic."""
     def __init__(self, scene, game):
         self.scene = scene
-        self.game = game # A reference to the main game engine
+        self.game = game
         self.is_running = True
+        self.setup()
 
     def setup(self):
-        """Sets up the initial state of the scene."""
-        # This method will be customized for each specific scene
-        pass
+        """Initializes the scene with objects, characters, etc."""
+        raise NotImplementedError
 
     def update(self):
-        """Runs one tick of the scene's logic and checks for end conditions."""
-        # This will also be customized
+        """Runs every game loop, checking for win/loss conditions, etc."""
         pass
 
     def run(self):
-        """The main loop for the scene."""
-        self.setup()
-        while self.is_running:
-            # The game class methods will now need to be adapted
-            # to take the scene as an argument
+        """Main game loop for this scene."""
+        while not self.game.game_over and self.is_running:
             self.game.draw(self.scene)
-            self.game.handle_input(self) # Pass self to handle scene-specific logic
-            self.update()
+            if self.game.game_over: break
 
-# --- 3. SCRIPTING THE "BATTLE OF AETHELGARD" SCENE ---
+            self.game.turn_taken = False
+            while not self.game.turn_taken and not self.game.game_over:
+                self.game.handle_input(self)
 
 class AethelgardBattle(SceneManager):
     """A specific scene manager for the Aeron vs. Kane fight."""
@@ -1084,92 +969,52 @@ class AethelgardBattle(SceneManager):
         self.scene.add_object(ancient_statue)
         self.game.log_message("Aethelgard stands silent. Your brother, Kane, awaits.")
         self.game.log_message("You feel the weight of the Aethelgard Plate. Type 'equip Aethelgard Plate' to wear it.")
+            if self.game.turn_taken:
+                # AI turn logic would go here
+                for obj in self.scene.game_objects:
+                    obj.update(self)
 
-    def update(self):
-        """Handles the AI and checks for victory/defeat conditions."""
-        player = self.scene.player_character
-        # Find Kane in the scene's game objects
-        kane = next((obj for obj in self.scene.game_objects if isinstance(obj, Kane) and obj.name == "Kane"), None)
+            self.update() # Check for scene-specific win/loss conditions
 
-        if not player or not kane:
-            self.is_running = False
-            return
+# --- 4. SCRIPTING THE ANASTASIA & REVERIE DIALOGUE ---
 
-        # Simple AI: Kane attacks Aeron if he's alive
-        if kane.health > 0 and player.health > 0:
-             kane.attack(player)
-
-        # Victory Condition
-        if kane.health <= 0:
-            self.game.log_message("With a final blow, your brother falls. Aethelgard is safe, but at what cost?")
-            # player.journal.update_quest("The Sibling Rivalry", "defeat", "Kane")
-            self.is_running = False
-            return
-
-        # Defeat Condition
-        if player.health <= 0:
-            self.game.log_message("You have been defeated. The kingdom is lost.")
-            self.is_running = False
-            return
-
-class AncientLinkRuins(SceneManager):
-    """A scene focused on exploration and discovery."""
+class FirstMeetingScene(SceneManager):
+    """A scene where Anastasia and Reverie meet for the first time."""
     def setup(self):
-        # Create the player
-        player = Anastasia(name="Anastasia", x=2, y=5)
+        player = Anastasia(name="Anastasia", x=5, y=5)
+        npc = Reverie(name="Reverie", x=7, y=5)
+
+        # Create the dialogue tree for Reverie
+        reverie_dialogue = DialogueManager()
+        reverie_dialogue.add_node("start", DialogueNode(
+            "Another one drawn by these old stones. You have the look of a believer. Are you one of the ten the prophecy speaks of?",
+            "Reverie",
+            {"I am. My name is Anastasia.": "anastasia_intro", "Who's asking?": "who_asking"}
+        ))
+        reverie_dialogue.add_node("anastasia_intro", DialogueNode(
+            "Anastasia the Dreamer. I've heard the whispers. They say you're meant to lead us. I remain unconvinced.",
+            "Reverie" # Ends conversation
+        ))
+        reverie_dialogue.add_node("who_asking", DialogueNode(
+            "Someone who finds prophecies to be... unreliable. I am Reverie. Now, answer the question.",
+            "Reverie",
+            {"I am Anastasia. And we need to work together.": "anastasia_intro"}
+        ))
+        npc.dialogue = reverie_dialogue
+
         self.scene.set_player(player)
+        self.scene.add_object(npc)
+        self.game.log_message("You approach a skeptical-looking woman leaning against a monolith.")
 
-        # Create interactable lore objects based on your documents
-        prophecy_mural = Interactable(
-            name="Ancient Mural", x=15, y=3, symbol='M',
-            description="The mural depicts ten figures standing against a shadowy dominion. You recognize the sigil of Lîŋq."
-        )
-        void_crystal = Interactable(
-            name="Corrupted Crystal", x=25, y=7, symbol='C',
-            description="A pulsating crystal radiates a cold, dark energy. It feels connected to the Void."
-        )
-
-        # Add objects to the scene
-        self.scene.add_object(prophecy_mural)
-        self.scene.add_object(void_crystal)
-
-        self.game.log_message("You enter the ruins of Āɲč̣ịəŋṭ^Łīɲč̣. The air hums with forgotten power.")
-
-    def update(self):
-        # This scene has no combat, so the update loop is simple
-        if not self.scene.player_character.is_alive:
-            self.is_running = False
-
-def run_aethelgard_battle():
-    """
-    Main function to set up and run the Aethelgard Battle scene.
-    """
-    print("--- Milehigh.World RPG ---")
-    print("--- SCENE: The Battle of Aethelgard ---")
-
-    game = Game()
-    battle_scene = Scene("Aethelgard Bridge")
-    scene_manager = AethelgardBattle(battle_scene, game)
-    scene_manager.run()
-
-    print("\n--- Scene Concluded ---")
-
-
+# --- 5. RUNNING THE DIALOGUE SCENE ---
 if __name__ == "__main__":
-    # By default, run the new exploration scene.
-    # To run the original battle scene, comment out the lines below
-    # and uncomment the call to run_aethelgard_battle().
-
-    # --- Run the Ancient Link Ruins Scene ---
     game_engine = Game()
-    ruins_scene = Scene("Ancient Link Ruins", width=40, height=10)
-    ruins_manager = AncientLinkRuins(ruins_scene, game_engine)
-
-    # The new scene is ready to be played.
-    # To play, uncomment the line below.
-    # ruins_manager.run()
-    print("Ancient Link Ruins scene is ready to be tested.")
-    print("Uncomment `ruins_manager.run()` in the main block to play.")
-
-    # --- To run the original battle, uncomment the line below ---
-    # run_aethelgard_battle()
+    meeting_scene = Scene("Monolith Clearing")
+    meeting_manager = FirstMeetingScene(meeting_scene, game_engine)
+    # To play, uncomment below
+    # meeting_manager.run()
+    print("First Meeting scene is ready.")
+    print("Uncomment 'meeting_manager.run()' to play.")
+    print("\n--- HOW TO PLAY ---")
+    print("Example Commands:")
+    print("  talk Reverie")
