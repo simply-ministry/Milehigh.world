@@ -1375,6 +1375,74 @@ def run_cirrus_demonstration():
     print("\n--- Cirrus Demonstration Complete ---")
 
 
+class BachirimBase(Character):
+    """
+    A base class for members of The Bachirim, the mysterious beings from the
+    shattered celestial realm of ƁÅČ̣ĤÎŘØN̈. This class provides the foundational
+    abilities and properties common to all Bachirim.
+    """
+    def __init__(self, name="Nameless Bachirim", x=0, y=0):
+        super().__init__(name, x, y, health=150)
+
+        self.home_realm = "ƁÅČ̣ĤÎŘØN̈"
+        self.max_aether = 200
+        self.aether = self.max_aether
+
+    def __str__(self):
+        """String representation of a Bachirim's status."""
+        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
+                f"Aether: {self.aether}/{self.max_aether} | "
+                f"Realm: {self.home_realm}")
+
+    def glimpse_the_fracture(self):
+        """
+        A foundational ability representing the Bachirim's knowledge of the Verse.
+        Child classes can override this with a more specific implementation.
+        """
+        print(f"{self.name} gazes into the fractured reality, discerning a hidden truth.")
+        # In-game logic to provide a tactical advantage, like revealing an invisible enemy.
+
+    def channel_celestial_energy(self, target):
+        """
+        A foundational ability to channel celestial energy.
+        Child classes can implement this as an attack, a shield, or another utility.
+        """
+        cost = 30
+        if self.aether >= cost:
+            self.aether -= cost
+            print(f"{self.name} channels pure celestial energy at {target.name}.")
+        else:
+            print(f"{self.name} lacks the Aether to channel this energy.")
+
+
+def run_bachirim_demonstration():
+    """
+    A function to demonstrate the abilities of the new BachirimBase class.
+    """
+    print("\n--- Bachirim Demonstration ---")
+
+    # --- 1. Create a Bachirim and an Enemy ---
+    bachirim = BachirimBase(name="Elarion the Star-Gazer", x=0, y=0)
+    enemy = Enemy(name="Void Hound", x=5, y=0, health=100)
+
+    print("\n--- Initial State ---")
+    print(bachirim)
+    print(enemy)
+
+    # --- 2. Showcase Bachirim Abilities ---
+    print("\n--- Turn 1: The Bachirim uses its foundational powers ---")
+    bachirim.glimpse_the_fracture()
+    bachirim.channel_celestial_energy(enemy)
+    print(bachirim)
+
+    print("\n--- Turn 2: The Bachirim acts again ---")
+    bachirim.channel_celestial_energy(enemy)
+    print(bachirim)
+
+
+    print("\n--- Bachirim Demonstration Complete ---")
+
+
 def run_cyrus_demonstration():
     """
     A function to demonstrate the abilities of the new antagonist, Cyrus.
@@ -1427,3 +1495,4 @@ if __name__ == "__main__":
     run_aeron_demonstration()
     run_delilah_demonstration()
     run_cirrus_demonstration()
+    run_bachirim_demonstration()

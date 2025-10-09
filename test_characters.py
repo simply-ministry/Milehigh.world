@@ -1,9 +1,17 @@
 import unittest
-from game import Skyix, Anastasia, Micah, Player, Enemy, Zaia
-from game import Skyix, Anastasia, Micah, Player, Enemy, DelilahTheDesolate
+from game import (
+    Skyix,
+    Anastasia,
+    Micah,
+    Player,
+    Enemy,
+    Zaia,
+    DelilahTheDesolate,
+    BachirimBase,
+)
+
 
 class TestNewCharacters(unittest.TestCase):
-
     def setUp(self):
         """Set up test fixtures before each test method."""
         self.skyix = Skyix()
@@ -96,7 +104,49 @@ class TestNewCharacters(unittest.TestCase):
         self.assertLess(self.enemy.health, initial_enemy_health)
         self.assertLess(self.micah.fortitude, 50)
 
-# --- Zaia Tests ---
+    # --- Delilah Tests ---
+
+    def test_delilah_initialization(self):
+        """Test that Delilah initializes with the correct stats."""
+        self.assertEqual(self.delilah.health, 160)
+        self.assertEqual(self.delilah.blight, 25)
+        self.assertEqual(self.delilah.max_blight, 100)
+
+    def test_touch_of_decay_generates_blight(self):
+        """Test that touch_of_decay increases blight."""
+        initial_blight = self.delilah.blight
+        self.delilah.touch_of_decay(self.enemy)
+        self.assertEqual(self.delilah.blight, initial_blight + 5)
+
+    def test_summon_omen_avatar_success(self):
+        """Test that summon_omen_avatar can be used with sufficient blight."""
+        self.delilah.blight = 70
+        initial_blight = self.delilah.blight
+        self.delilah.summon_omen_avatar(self.enemy)
+        self.assertEqual(self.delilah.blight, initial_blight - 60)
+
+    def test_summon_omen_avatar_insufficient_blight(self):
+        """Test that summon_omen_avatar cannot be used without enough blight."""
+        self.delilah.blight = 50
+        initial_blight = self.delilah.blight
+        self.delilah.summon_omen_avatar(self.enemy)
+        self.assertEqual(self.delilah.blight, initial_blight)
+
+    def test_voidblight_zone_success(self):
+        """Test that voidblight_zone can be used with sufficient blight."""
+        self.delilah.blight = 95
+        initial_blight = self.delilah.blight
+        self.delilah.voidblight_zone()
+        self.assertEqual(self.delilah.blight, initial_blight - 90)
+
+    def test_voidblight_zone_insufficient_blight(self):
+        """Test that voidblight_zone cannot be used without enough blight."""
+        self.delilah.blight = 80
+        initial_blight = self.delilah.blight
+        self.delilah.voidblight_zone()
+        self.assertEqual(self.delilah.blight, initial_blight)
+
+
 class TestZaia(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures before each test method."""
@@ -155,47 +205,50 @@ class TestZaia(unittest.TestCase):
         self.zaia.exploit_weakness(self.enemy)
         self.assertEqual(self.zaia.momentum, 40)
         self.assertEqual(self.enemy.health, initial_enemy_health)
-    # --- Delilah Tests ---
 
-    def test_delilah_initialization(self):
-        """Test that Delilah initializes with the correct stats."""
-        self.assertEqual(self.delilah.health, 160)
-        self.assertEqual(self.delilah.blight, 25)
-        self.assertEqual(self.delilah.max_blight, 100)
 
-    def test_touch_of_decay_generates_blight(self):
-        """Test that touch_of_decay increases blight."""
-        initial_blight = self.delilah.blight
-        self.delilah.touch_of_decay(self.enemy)
-        self.assertEqual(self.delilah.blight, initial_blight + 5)
+class TestBachirimBase(unittest.TestCase):
+    def setUp(self):
+        """Set up test fixtures before each test method."""
+        self.bachirim = BachirimBase(name="Test Bachirim")
+        self.enemy = Enemy(name="Test Enemy")
 
-    def test_summon_omen_avatar_success(self):
-        """Test that summon_omen_avatar can be used with sufficient blight."""
-        self.delilah.blight = 70
-        initial_blight = self.delilah.blight
-        self.delilah.summon_omen_avatar(self.enemy)
-        self.assertEqual(self.delilah.blight, initial_blight - 60)
+    def test_bachirim_initialization(self):
+        """Test that BachirimBase initializes with the correct stats."""
+        self.assertEqual(self.bachirim.name, "Test Bachirim")
+        self.assertEqual(self.bachirim.health, 150)
+        self.assertEqual(self.bachirim.max_health, 150)
+        self.assertEqual(self.bachirim.home_realm, "ƁÅČ̣ĤÎŘØN̈")
+        self.assertEqual(self.bachirim.max_aether, 200)
+        self.assertEqual(self.bachirim.aether, 200)
 
-    def test_summon_omen_avatar_insufficient_blight(self):
-        """Test that summon_omen_avatar cannot be used without enough blight."""
-        self.delilah.blight = 50
-        initial_blight = self.delilah.blight
-        self.delilah.summon_omen_avatar(self.enemy)
-        self.assertEqual(self.delilah.blight, initial_blight)
+    def test_bachirim_str_representation(self):
+        """Test the string representation of BachirimBase."""
+        expected_str = (
+            "Test Bachirim | Health: 150/150 | "
+            "Aether: 200/200 | "
+            "Realm: ƁÅČ̣ĤÎŘØN̈"
+        )
+        self.assertEqual(str(self.bachirim), expected_str)
 
-    def test_voidblight_zone_success(self):
-        """Test that voidblight_zone can be used with sufficient blight."""
-        self.delilah.blight = 95
-        initial_blight = self.delilah.blight
-        self.delilah.voidblight_zone()
-        self.assertEqual(self.delilah.blight, initial_blight - 90)
+    def test_glimpse_the_fracture(self):
+        """Test the glimpse_the_fracture method."""
+        # This method only prints, so we just call it to ensure no errors.
+        self.bachirim.glimpse_the_fracture()
 
-    def test_voidblight_zone_insufficient_blight(self):
-        """Test that voidblight_zone cannot be used without enough blight."""
-        self.delilah.blight = 80
-        initial_blight = self.delilah.blight
-        self.delilah.voidblight_zone()
-        self.assertEqual(self.delilah.blight, initial_blight)
+    def test_channel_celestial_energy_success(self):
+        """Test that channel_celestial_energy consumes aether."""
+        initial_aether = self.bachirim.aether
+        self.bachirim.channel_celestial_energy(self.enemy)
+        self.assertEqual(self.bachirim.aether, initial_aether - 30)
 
-if __name__ == '__main__':
+    def test_channel_celestial_energy_insufficient_aether(self):
+        """Test that channel_celestial_energy fails without enough aether."""
+        self.bachirim.aether = 20
+        initial_aether = self.bachirim.aether
+        self.bachirim.channel_celestial_energy(self.enemy)
+        self.assertEqual(self.bachirim.aether, initial_aether)
+
+
+if __name__ == "__main__":
     unittest.main()
