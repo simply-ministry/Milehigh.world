@@ -46,6 +46,17 @@ public class Character : MonoBehaviour
     [Header("Abilities")]
     [Tooltip("The list of abilities this character can use.")]
     public List<Ability> abilities = new List<Ability>();
+
+    [Header("Leveling")]
+    [Tooltip("The character's current level.")]
+    public int level = 1;
+    [Tooltip("The character's current experience points.")]
+    public int experiencePoints = 0;
+    [Tooltip("The experience points needed to reach the next level.")]
+    public int xpToNextLevel = 100;
+    [Tooltip("The number of points available to spend on skills.")]
+    public int skillPoints = 0;
+
     private Dictionary<DamageType, int> _resistanceMap;
 
     protected Animator animator;
@@ -80,6 +91,41 @@ public class Character : MonoBehaviour
         {
             SetAnimationState(AnimationState.Idle);
         }
+    }
+
+    /// <summary>
+    /// Adds experience points to the character and checks for level up.
+    /// </summary>
+    /// <param name="amount">The amount of XP to gain.</param>
+    public void GainXP(int amount)
+    {
+        experiencePoints += amount;
+        Debug.Log($"{characterName} gained {amount} XP.");
+        while (experiencePoints >= xpToNextLevel)
+        {
+            LevelUp();
+        }
+    }
+
+    /// <summary>
+    /// Handles the character's level-up logic.
+    /// </summary>
+    protected virtual void LevelUp()
+    {
+        experiencePoints -= xpToNextLevel;
+        level++;
+        skillPoints++; // Grant one skill point per level up
+        xpToNextLevel = Mathf.RoundToInt(xpToNextLevel * 1.5f); // Increase XP requirement for next level
+
+        // Restore health and apply potential stat gains
+        maxHealth += 10;
+        currentHealth = maxHealth;
+        attack += 5;
+        defense += 5;
+
+        Debug.Log($"*** {characterName} has reached Level {level}! ***");
+        Debug.Log($"Health: {maxHealth}, Attack: {attack}, Defense: {defense}");
+        Debug.Log($"Gained 1 Skill Point! Total Skill Points: {skillPoints}");
     }
 
     /// <summary>
