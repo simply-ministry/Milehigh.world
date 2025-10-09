@@ -1,5 +1,5 @@
 import unittest
-from game import Skyix, Anastasia, Micah, Player, Enemy
+from game import Skyix, Anastasia, Micah, Player, Enemy, DelilahTheDesolate
 
 class TestNewCharacters(unittest.TestCase):
 
@@ -8,6 +8,7 @@ class TestNewCharacters(unittest.TestCase):
         self.skyix = Skyix()
         self.anastasia = Anastasia()
         self.micah = Micah()
+        self.delilah = DelilahTheDesolate()
         self.ally = Player(name="Ally")
         self.enemy = Enemy(name="Test Enemy")
 
@@ -93,6 +94,48 @@ class TestNewCharacters(unittest.TestCase):
         self.micah.earthen_smash(self.enemy)
         self.assertLess(self.enemy.health, initial_enemy_health)
         self.assertLess(self.micah.fortitude, 50)
+
+    # --- Delilah Tests ---
+
+    def test_delilah_initialization(self):
+        """Test that Delilah initializes with the correct stats."""
+        self.assertEqual(self.delilah.health, 160)
+        self.assertEqual(self.delilah.blight, 25)
+        self.assertEqual(self.delilah.max_blight, 100)
+
+    def test_touch_of_decay_generates_blight(self):
+        """Test that touch_of_decay increases blight."""
+        initial_blight = self.delilah.blight
+        self.delilah.touch_of_decay(self.enemy)
+        self.assertEqual(self.delilah.blight, initial_blight + 5)
+
+    def test_summon_omen_avatar_success(self):
+        """Test that summon_omen_avatar can be used with sufficient blight."""
+        self.delilah.blight = 70
+        initial_blight = self.delilah.blight
+        self.delilah.summon_omen_avatar(self.enemy)
+        self.assertEqual(self.delilah.blight, initial_blight - 60)
+
+    def test_summon_omen_avatar_insufficient_blight(self):
+        """Test that summon_omen_avatar cannot be used without enough blight."""
+        self.delilah.blight = 50
+        initial_blight = self.delilah.blight
+        self.delilah.summon_omen_avatar(self.enemy)
+        self.assertEqual(self.delilah.blight, initial_blight)
+
+    def test_voidblight_zone_success(self):
+        """Test that voidblight_zone can be used with sufficient blight."""
+        self.delilah.blight = 95
+        initial_blight = self.delilah.blight
+        self.delilah.voidblight_zone()
+        self.assertEqual(self.delilah.blight, initial_blight - 90)
+
+    def test_voidblight_zone_insufficient_blight(self):
+        """Test that voidblight_zone cannot be used without enough blight."""
+        self.delilah.blight = 80
+        initial_blight = self.delilah.blight
+        self.delilah.voidblight_zone()
+        self.assertEqual(self.delilah.blight, initial_blight)
 
 if __name__ == '__main__':
     unittest.main()

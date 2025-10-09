@@ -790,6 +790,64 @@ class Micah(Player):
             print(f"{self.name} lacks the Fortitude for an Earthen Smash.")
 
 
+class DelilahTheDesolate(Player):
+    """
+    Represents Delilah the Desolate, the embodiment of The Omen and an agent of the Void.
+    Born from the darkness expelled from Ingris, she is a being of decay and destruction.
+    """
+    def __init__(self, name="Delilah the Desolate", x=0, y=0):
+        super().__init__(name, x, y)
+        self.health = 160
+        self.max_health = 160
+        self.original_self_id = None # Would be set to Ingris's unique ID
+        self.power_source = "The Omen"
+        self.max_blight = 100
+        self.blight = 25 # Starts with some Blight
+
+    def __str__(self):
+        """String representation of Delilah's status."""
+        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
+                f"Blight: {self.blight}/{self.max_blight}")
+
+    def touch_of_decay(self, target):
+        """
+        A basic ranged attack that applies a "decay" status effect, dealing damage
+        over time and generating Blight.
+        """
+        print(f"{self.name} touches {target.name}, afflicting them with a decaying curse.")
+        # In-game logic would apply a damage-over-time (DoT) effect to the target.
+        # As the DoT deals damage, it would generate Blight for Delilah.
+        blight_gained = 5
+        self.blight = min(self.max_blight, self.blight + blight_gained)
+        print(f"({self.name} gains {blight_gained} Blight.)")
+
+    def summon_omen_avatar(self, target):
+        """
+        Spends Blight to summon a manifestation of The Omen to attack her enemies.
+        """
+        cost = 60
+        if self.blight >= cost:
+            self.blight -= cost
+            print(f"{self.name} spends Blight to summon a terrifying avatar of The Omen to assault {target.name}!")
+            # In-game logic would create a temporary AI-controlled creature.
+        else:
+            print(f"{self.name} does not have enough Blight to summon an avatar.")
+
+    def voidblight_zone(self):
+        """
+        An ultimate ability that corrupts a large area of the battlefield.
+        Enemies within the area take continuous damage and are weakened.
+        """
+        cost = 90
+        if self.blight >= cost:
+            self.blight -= cost
+            print(f"{self.name} unleashes her full power, creating a large Voidblight Zone on the ground!")
+            print("...Enemies inside are weakened and slowly consumed by decay!")
+            # ... logic to create a persistent damaging and debuffing area of effect (AoE) ...
+        else:
+            print(f"{self.name} lacks the Blight to create a Voidblight Zone.")
+
+
 def run_character_demonstration():
     """
     A new function to demonstrate the unique abilities of the new characters.
@@ -834,6 +892,47 @@ def run_character_demonstration():
     print("\n--- Demonstration Complete ---")
 
 
+def run_delilah_demonstration():
+    """
+    A function to demonstrate the unique abilities of Delilah the Desolate.
+    """
+    print("\n--- Character Demonstration: Delilah the Desolate ---")
+
+    # --- 1. Create Delilah and an Enemy ---
+    delilah = DelilahTheDesolate(x=0, y=0)
+    enemy = Enemy(name="Void Spawn", x=10, y=0, health=200)
+
+    print("\n--- Initial State ---")
+    print(delilah)
+    print(enemy)
+
+    # --- 2. Showcase Abilities ---
+    print("\n--- Turn 1: Delilah generates Blight ---")
+    delilah.touch_of_decay(enemy)
+    print(delilah)
+
+    print("\n--- Turn 2: Delilah attempts to use an ability without enough Blight ---")
+    delilah.summon_omen_avatar(enemy)
+    print(delilah)
+
+    print("\n--- Turn 3: Delilah generates more Blight ---")
+    # In a real scenario, this would happen over time or through other actions.
+    delilah.blight = 70
+    print(f"(Delilah's Blight is now {delilah.blight})")
+    delilah.summon_omen_avatar(enemy)
+    print(delilah)
+
+    print("\n--- Turn 4: Delilah uses her ultimate ability ---")
+    delilah.blight = 100
+    print(f"(Delilah's Blight is now {delilah.blight})")
+    delilah.voidblight_zone()
+    print(delilah)
+
+
+    print("\n--- Demonstration Complete ---")
+
+
 if __name__ == "__main__":
     # run_game() # You can comment this out to only run the character demo
-    run_character_demonstration()
+    # run_character_demonstration()
+    run_delilah_demonstration()
