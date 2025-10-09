@@ -15,6 +15,7 @@ class GameObject:
         self.y = int(y)
         self.health = health
         self.max_health = health
+        self.is_alive = True
         self.visible = True
         self.solid = True
 
@@ -155,6 +156,8 @@ class TargetedDamageAbility(Ability):
 # --- Character Classes ---
 
 class Character(GameObject):
+    """UPDATED base class, now with a leveling and experience system."""
+    def __init__(self, name="Character", x=0, y=0, health=100, state=None):
     """
     UPDATED base class for all characters, with an ability system.
     """
@@ -166,6 +169,65 @@ class Character(GameObject):
         self.max_mana = 100
         self.is_asleep = False
         self.sleep_duration = 0
+        self.base_attack_damage = 5
+        self.defense = 0
+        self.level = 1
+        self.xp = 0
+        self.xp_to_next_level = 100
+        self.xp_value = 50
+        self.weapon = None
+        self.strength = 10 # Added for test compatibility
+        self.dexterity = 10 # Added for test compatibility
+
+    def __str__(self):
+        """UPDATED to show Level and XP."""
+        return (f"{self.name} (Lvl {self.level}) | "
+                f"HP: {self.health}/{self.max_health} | "
+                f"XP: {self.xp}/{self.xp_to_next_level}")
+
+    def gain_xp(self, amount):
+        """Gains experience points and checks for level up."""
+        self.xp += amount
+        print(f"{self.name} gains {amount} XP!")
+        if self.xp >= self.xp_to_next_level:
+            self.level_up()
+
+    def level_up(self):
+        """Increases the character's level and stats."""
+        while self.xp >= self.xp_to_next_level:
+            self.level += 1
+            self.xp -= self.xp_to_next_level
+            self.xp_to_next_level = int(self.xp_to_next_level * 1.5)
+            self.max_health += 10
+            self.health = self.max_health
+            self.base_attack_damage += 2
+            print(f"*** {self.name} has reached Level {self.level}! ***")
+            print(f"Max Health increased to {self.max_health}.")
+            print(f"Base Attack increased to {self.base_attack_damage}.")
+
+    def take_damage(self, amount):
+        """UPDATED to handle character death."""
+        actual_damage = max(0, amount - self.defense)
+        self.health -= actual_damage
+        if self.health <= 0:
+            self.health = 0
+            self.is_alive = False
+            self.die()
+            print(f"{self.name} has been defeated!")
+        else:
+            print(f"{self.name} takes {actual_damage:.0f} damage, {self.health:.0f} HP remaining.")
+
+    def attack(self, target):
+        """A simple attack method."""
+        print(f"{self.name} attacks {target.name} for {self.base_attack_damage} damage.")
+        target.take_damage(self.base_attack_damage)
+
+    def equip_weapon(self, weapon):
+        if isinstance(weapon, Weapon):
+            self.weapon = weapon
+            print(f"{self.name} equipped {weapon.name}.")
+        else:
+            print(f"{self.name} cannot equip {weapon.name}. It is not a weapon.")
         self.equipped_weapon = None
         self.base_attack_damage = 5
 
@@ -173,12 +235,11 @@ class Character(GameObject):
         self.inventory.add_item(item)
 
     def use_item(self, item_name):
-        """Finds an item by name in inventory and uses it."""
         for item in self.inventory.items:
             if item.name.lower() == item_name.lower():
                 if isinstance(item, Consumable):
                     item.use(self)
-                    self.inventory.remove_item(item_name) # Remove after use
+                    self.inventory.remove_item(item_name)
                     return
                 else:
                     print(f"'{item.name}' cannot be used.")
@@ -186,7 +247,6 @@ class Character(GameObject):
         print(f"'{item_name}' not found in inventory.")
 
     def talk(self, target):
-        """Initiates dialogue with another character."""
         if hasattr(target, 'dialogue'):
             print(f"[{target.name}]: {target.dialogue}")
         self.level = 1
@@ -213,6 +273,23 @@ class Character(GameObject):
             # and deduct costs before calling the ability's use() method.
             print(f"'{ability_name}' is a valid ability, but the base Character class cannot use it.")
         else:
+            print(f"{target.name} has nothing to say.")
+
+    def cast_spell(self, spell_name, target):
+        spell_name = spell_name.lower()
+        if spell_name == "dream weave" and self.mana >= 20:
+            self.mana -= 20
+            print(f"{self.name} weaves a dream, putting {target.name} to sleep!")
+            target.is_asleep = True
+            target.sleep_duration = 3
+        elif spell_name == "nightmare" and self.mana >= 35:
+            self.mana -= 35
+            print(f"{self.name} conjures a nightmare, damaging {target.name}'s mind!")
+            target.take_damage(50)
+        elif spell_name == "soothing slumber" and self.mana >= 25:
+            self.mana -= 25
+            print(f"{self.name} casts a soothing slumber, healing {target.name}!")
+            target.heal(40)
             print(f"{self.name} does not know the ability '{ability_name}'.")
 
     def gain_xp(self, amount):
@@ -271,6 +348,13 @@ class Enemy(Character):
         super().__init__(name, x, y, health=health)
         self.damage = damage
 
+    def update(self):
+        if self.is_asleep:
+            self.sleep_duration -= 1
+            print(f"{self.name} is asleep.")
+            if self.sleep_duration <= 0:
+                self.is_asleep = False
+                print(f"{self.name} woke up.")
     def equip_weapon(self, weapon_name):
         """Equips a weapon from the inventory."""
         for item in self.inventory.items:
@@ -393,6 +477,36 @@ def run_cirrus_demonstration():
     """
     A function to demonstrate the unique abilities of Cirrus.
     """
+    def __init__(self, width=80, height=24):
+        self.game_objects = []
+        self.player_character = None
+        self.is_running = True
+        self.width = width
+        self.height = height
+        self.message_log = []
+        self.event_flags = {} # For tracking scripted events like "delilah_battle"
+
+    def add_object(self, obj):
+        """Adds a game object to the world."""
+        self.game_objects.append(obj)
+
+    def remove_object(self, obj):
+        """Removes a game object from the world."""
+        if obj in self.game_objects:
+            self.game_objects.remove(obj)
+
+    def set_player_character(self, character):
+        """Sets the character the player will control."""
+        self.player_character = character
+        if character not in self.game_objects:
+            self.add_object(character)
+
+    def get_object_at(self, x, y):
+        """Gets the top-most object at a specific coordinate."""
+        for obj in reversed(self.game_objects):
+            if obj.x == x and obj.y == y:
+                return obj
+        return None
     print("\n--- Cirrus Demonstration ---")
 
     # --- 1. Create Cirrus and an Enemy ---
@@ -579,6 +693,23 @@ class BachirimBase(Character):
         else:
             print(f"{self.name} lacks the Aether to channel this energy.")
 
+    def update(self):
+        """Update all game objects."""
+        defeated_enemies = [obj for obj in self.game_objects if isinstance(obj, Character) and not obj.is_alive and obj != self.player_character]
+        for enemy in defeated_enemies:
+            if self.player_character:
+                self.player_character.gain_xp(enemy.xp_value)
+            self.game_objects.remove(enemy)
+            self.message_log.append(f"{enemy.name} is vanquished!")
+
+        for obj in self.game_objects[:]: # Iterate on a copy
+            obj.update()
+
+        if self.player_character and self.player_character.x > 15 and not self.event_triggered("delilah_battle"):
+            self.message_log.append("Suddenly, the air grows cold. Delilah the Desolate appears!")
+            delilah = Delilah(x=self.player_character.x + 2, y=self.player_character.y)
+            self.add_object(delilah)
+            self.trigger_event("delilah_battle")
 
 def run_bachirim_demonstration():
     """
@@ -594,6 +725,58 @@ def run_bachirim_demonstration():
     print(bachirim)
     print(enemy)
 
+def run_level_up_demonstration():
+    """
+    Demonstrates the character leveling system.
+    """
+    print("--- LEVEL UP SIMULATION ---")
+
+    # Create a hero and a weak enemy
+    hero_micah = Micah(name="Micah", x=5, y=5)
+    weak_enemy = Kane(name="Weak Bandit", x=6, y=5)
+    weak_enemy.health = 30
+    weak_enemy.max_health = 30
+    weak_enemy.xp_value = 75 # This enemy gives 75 XP
+
+    # Setup a dummy game to handle the update loop
+    sim_game = Game()
+    sim_game.set_player_character(hero_micah)
+    sim_game.add_object(weak_enemy)
+
+    print("--- Before Combat ---")
+    print(hero_micah)
+    print(weak_enemy)
+
+    # Combat
+    print("\n--- Combat ---")
+    while weak_enemy.is_alive:
+        hero_micah.attack(weak_enemy)
+
+    # After the "turn", the game's update logic runs
+    print("\n--- Post-Combat Update ---")
+    sim_game.update() # This will check for the death and award XP
+
+    print("\n--- After Combat ---")
+    print(hero_micah)
+
+    # Now, have Micah defeat another enemy to level up
+    another_enemy = Kane(name="Bandit Captain", x=7, y=5)
+    another_enemy.health = 30
+    another_enemy.max_health = 30
+    another_enemy.xp_value = 80
+    sim_game.add_object(another_enemy)
+
+    while another_enemy.is_alive:
+        hero_micah.attack(another_enemy)
+
+    sim_game.update()
+
+    print("\n--- Final Status ---")
+    print(hero_micah)
+
+
+if __name__ == "__main__":
+    run_level_up_demonstration()
     # --- 2. Showcase Bachirim Abilities ---
     print("\n--- Turn 1: The Bachirim uses its foundational powers ---")
     bachirim.glimpse_the_fracture()
