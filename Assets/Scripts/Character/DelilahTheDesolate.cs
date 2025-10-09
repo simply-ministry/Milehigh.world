@@ -1,22 +1,39 @@
 using UnityEngine;
 using System;
 
+/// <summary>
+/// Represents Delilah the Desolate, a character corrupted by a powerful, dark entity.
+/// Her abilities revolve around spreading blight and decay, using a unique resource.
+/// </summary>
 public class DelilahTheDesolate : Character
 {
-    // A reference to her original, uncorrupted self, if applicable in the story.
+    /// <summary>
+    /// A reference to her original, uncorrupted self, if applicable in the story.
+    /// This could be used for narrative triggers or flashbacks.
+    /// </summary>
     public Guid OriginalSelfId { get; set; }
 
-    // The source of Delilah's power, a core narrative element.
+    /// <summary>
+    /// The source of Delilah's power, a core narrative element.
+    /// </summary>
     public string PowerSource { get; private set; } = "The Omen";
 
-    // Blight is a resource she uses for her special abilities.
+    /// <summary>
+    /// Blight is a resource she generates and consumes for her special abilities.
+    /// </summary>
     [Header("Delilah's Unique Stats")]
     [Tooltip("Current Blight resource level.")]
     public float Blight { get; private set; }
 
+    /// <summary>
+    /// The maximum amount of Blight Delilah can accumulate.
+    /// </summary>
     [Tooltip("Maximum Blight resource level.")]
     public float MaxBlight { get; private set; } = 100f;
 
+    /// <summary>
+    /// Initializes Delilah's specific attributes, setting her name, health, and starting Blight.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();

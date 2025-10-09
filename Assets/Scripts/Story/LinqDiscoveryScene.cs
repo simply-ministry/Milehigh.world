@@ -3,17 +3,37 @@ using System.Collections;
 
 /// <summary>
 /// Manages the discovery scene in the ruins of Lîŋq,
-/// featuring Micah, Omega.one, and Cirrus.
+/// featuring Micah, Omega.one, and Cirrus. This script controls the dialogue
+/// and the reveal of the Onalym Nexus.
 /// </summary>
 public class LinqDiscoveryScene : MonoBehaviour
 {
+    /// <summary>
+    /// A reference to the Micah character component.
+    /// </summary>
     public Character micah;
+    /// <summary>
+    /// A reference to the Omega.one character component.
+    /// </summary>
     public Character omegaOne;
+    /// <summary>
+    /// A reference to the Cirrus character component.
+    /// </summary>
     public Character cirrus;
+    /// <summary>
+    /// The GameObject representing the Onalym Nexus, which is revealed during the scene.
+    /// </summary>
     public GameObject onalymNexus;
 
+    /// <summary>
+    /// The time in seconds to pause between each line of dialogue.
+    /// </summary>
     public float dialoguePause = 2.5f;
 
+    /// <summary>
+    /// Called when the script instance is being loaded.
+    /// Initializes the scene by hiding the Nexus and starting the sequence.
+    /// </summary>
     void Start()
     {
         if (onalymNexus != null)
@@ -23,6 +43,10 @@ public class LinqDiscoveryScene : MonoBehaviour
         StartCoroutine(SceneSequence());
     }
 
+    /// <summary>
+    /// Coroutine that controls the step-by-step flow of the narrative scene.
+    /// </summary>
+    /// <returns>An IEnumerator to be used by StartCoroutine.</returns>
     IEnumerator SceneSequence()
     {
         // Initial dialogue

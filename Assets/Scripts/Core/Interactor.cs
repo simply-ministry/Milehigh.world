@@ -8,12 +8,21 @@ using UnityEngine.UI;
 public class Interactor : MonoBehaviour
 {
     [Header("Interaction Settings")]
+    /// <summary>
+    /// The distance from the player within which interactions are possible.
+    /// </summary>
     [Tooltip("The distance from the player within which interactions are possible.")]
     public float interactionDistance = 3f;
 
+    /// <summary>
+    /// The key used to trigger an interaction.
+    /// </summary>
     [Tooltip("The key used to trigger an interaction.")]
     public KeyCode interactionKey = KeyCode.E;
 
+    /// <summary>
+    /// The UI Text element that displays the interaction prompt.
+    /// </summary>
     [Tooltip("The UI Text element that displays the interaction prompt.")]
     public Text interactionPromptText;
 

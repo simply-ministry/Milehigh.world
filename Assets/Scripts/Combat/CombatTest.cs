@@ -7,6 +7,11 @@ using UnityEngine;
 /// </summary>
 public class CombatTest : MonoBehaviour
 {
+    /// <summary>
+    /// Sets up and executes a combat scenario when the script starts.
+    /// This method creates an attacker, a defender with specific resistances,
+    /// and an ability, then simulates an attack to test the combat calculations.
+    /// </summary>
     void Start()
     {
         // --- Test Setup ---

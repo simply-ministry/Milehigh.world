@@ -17,8 +17,14 @@ public class CollisionManager : MonoBehaviour
     [Range(0f, 1f)]
     public float restitution = 0.8f;
 
+    /// <summary>
+    /// A reference to the Rigidbody component on this GameObject.
+    /// </summary>
     private Rigidbody rb;
 
+    /// <summary>
+    /// Initializes the component by getting the required Rigidbody reference.
+    /// </summary>
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -27,6 +33,11 @@ public class CollisionManager : MonoBehaviour
         // For this example, we will calculate and apply the impulse manually.
     }
 
+    /// <summary>
+    /// Called when this collider/rigidbody has begun touching another rigidbody/collider.
+    /// This method initiates the custom collision handling logic.
+    /// </summary>
+    /// <param name="collision">The collision data associated with this event.</param>
     void OnCollisionEnter(Collision collision)
     {
         // Ensure the other object also has a Rigidbody to participate in the physics calculation.

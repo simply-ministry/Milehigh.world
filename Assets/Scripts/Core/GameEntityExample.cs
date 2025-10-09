@@ -1,27 +1,46 @@
 using UnityEngine;
 
 /// <summary>
-/// A MonoBehaviour to demonstrate the usage of the GameEntity class within Unity.
-/// To use this, attach it to a GameObject in a Unity scene.
+/// An example script demonstrating how to use the GameEntity class.
+/// To use this example:
+/// 1. Create two GameObjects in your scene (e.g., "Player" and "Monster").
+/// 2. Attach the GameEntity script to both GameObjects.
+/// 3. In the Inspector for each GameObject, set their Entity Name and Health.
+/// 4. Create another GameObject (e.g., "ExampleRunner").
+/// 5. Attach this GameEntityExample script to the "ExampleRunner" GameObject.
+/// 6. Drag the "Player" and "Monster" GameObjects from the Hierarchy into the
+///    corresponding "Player" and "Monster" fields in the Inspector for this script.
+/// 7. Run the scene.
 /// </summary>
 public class GameEntityExample : MonoBehaviour
 {
-    private GameEntity player;
-    private GameEntity monster;
+    /// <summary>
+    /// A reference to the GameEntity that represents the player.
+    /// Assign this in the Unity Inspector.
+    /// </summary>
+    public GameEntity player;
+
+    /// <summary>
+    /// A reference to the GameEntity that represents the monster.
+    /// Assign this in the Unity Inspector.
+    /// </summary>
+    public GameEntity monster;
 
     /// <summary>
     /// This method is called when the script instance is being loaded.
+    /// It runs the combat simulation if both entities have been assigned.
     /// </summary>
     void Start()
     {
+        if (player == null || monster == null)
+        {
+            Debug.LogError("Player and Monster entities must be assigned in the Inspector for the example to run.");
+            return;
+        }
+
         Debug.Log("--- Starting GameEntity Example ---");
 
-        // Create a new GameEntity instance representing a player character.
-        player = new GameEntity("Hero", 0, 0, 100);
         Debug.Log($"Initial state: {player}"); // Uses the overridden ToString() method
-
-        // Create another instance for a monster.
-        monster = new GameEntity("Goblin", 10, 5, 30);
         Debug.Log($"A wild {monster.Name} appears!");
 
         Debug.Log("\n--- Simulating Combat ---");
@@ -36,7 +55,6 @@ public class GameEntityExample : MonoBehaviour
 
         Debug.Log("\n--- Accessing Public Properties ---");
         // Access the public properties of the player instance.
-        Debug.Log($"Player's X position: {player.X}");
         Debug.Log($"Player's current health: {player.Health}");
         Debug.Log($"Monster's current health: {monster.Health}");
 
