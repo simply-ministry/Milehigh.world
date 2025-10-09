@@ -231,7 +231,8 @@ class TestGameLogic(unittest.TestCase):
         self.player.attack(self.enemy)
         self.assertEqual(self.enemy.health, initial_enemy_health)
 
-    def test_player_attack_bare_handed(self):
+    @patch('random.uniform', return_value=20)
+    def test_player_attack_bare_handed(self, mock_uniform):
         """Test player's attack damage with no weapon."""
         self.player.weapon = None
         self.player.strength = 10

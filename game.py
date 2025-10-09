@@ -34,6 +34,7 @@ class GameObject:
         self.intelligence = 10
         self.defense = defense
         self.attributes = {}  # Dictionary for storing additional attributes.
+        self.status_effects = {}  # e.g., {'sleep': 6, 'slow': 8}
 
     def __repr__(self):
         """
@@ -105,6 +106,25 @@ class GameObject:
         self.solid = False
         print(f"{self.name} has died.")
 
+    def update_status_effects(self, delta_time):
+        """Updates status effects, applying their effects and decrementing timers."""
+        # Using list() to create a copy, allowing modification during iteration
+        for effect, duration in list(self.status_effects.items()):
+            # Decrement timer
+            new_duration = duration - delta_time
+            if new_duration > 0:
+                self.status_effects[effect] = new_duration
+            else:
+                del self.status_effects[effect]
+                print(f"{self.name}'s {effect} has worn off.")
+                continue # Skip to next effect once it's removed
+
+            # Apply passive effects
+            if effect == 'psychic_damage':
+                dot_damage = 5 * delta_time # 5 damage per second
+                print(f"{self.name} is taking psychic damage.")
+                self.take_damage(dot_damage)
+
     def update(self, delta_time):
         """
         Updates the object's state.  This method is called every frame.
@@ -142,6 +162,7 @@ class Player(GameObject):
         Updates the player's state, including mana regeneration.
         """
         super().update(delta_time)
+        self.update_status_effects(delta_time)
         self.mana += self.mana_regeneration_rate * delta_time
         if self.mana > self.max_mana:
             self.mana = self.max_mana
@@ -288,8 +309,8 @@ class Enemy(GameObject):
     """
     Represents an enemy character.
     """
-    def __init__(self, name="Enemy", x=0, y=0, z=0, type="Generic"):
-        super().__init__(name=name, x=x, y=y, z=z, health=50, speed=2)
+    def __init__(self, name="Enemy", x=0, y=0, z=0, type="Generic", health=50):
+        super().__init__(name=name, x=x, y=y, z=z, health=health, speed=2)
         self.type = type  # e.g., "Goblin", "Orc", "Dragon"
         self.attack_damage = 10
         self.aggro_range = 10  # Range at which the enemy will start attacking.
@@ -312,15 +333,24 @@ class Enemy(GameObject):
             delta_time (float): Time since last frame.
             player (Player): The player object.
         """
-        super().update(delta_time) # Call the superclass's update method.
+        self.update_status_effects(delta_time)
+
+        if 'sleep' in self.status_effects:
+            print(f"{self.name} is asleep and cannot act.")
+            return
+
         if self.distance_to(player) < self.aggro_range:
+            current_speed = self.speed
+            if 'slow' in self.status_effects:
+                print(f"{self.name} is slowed!")
+                current_speed /= 2
             # Move towards the player
             dx = player.x - self.x
             dy = player.y - self.y
             dz = player.z - self.z
             distance = self.distance_to(player)
             if distance > 0:
-              self.move(dx / distance * self.speed * delta_time, dy / distance * self.speed * delta_time, dz/distance * self.speed * delta_time)
+              self.move(dx / distance * current_speed * delta_time, dy / distance * current_speed * delta_time, dz/distance * current_speed * delta_time)
             # Attack the player if close enough.
             if self.distance_to(player) < 1:  # Attack range
                 self.attack(player)
@@ -577,5 +607,233 @@ def run_game():
     # --- 5. Start the Game ---
     game.start()
 
+class Skyix(Player):
+    """
+    Represents the character Sky.ix, the Bionic Goddess.
+    Inherits from the Player class, adding unique Void-based mechanics.
+    """
+
+    def __init__(self, name="Sky.ix", x=0, y=0, z=0):
+        # Initialize the parent Player class with Sky.ix's specific stats
+        super().__init__(name, x, y, z)
+        self.health = 120  # Overriding the default health
+        self.max_health = 120
+        self.mana = 150    # We'll use 'mana' from the Player class to represent 'VoidEnergy'
+        self.max_mana = 150
+        self.active_drones = 0
+
+        # Add her unique abilities as spells she can cast
+        self.spells = {"void_tech": {"cost": 40, "damage": 50}, "energy_blast": {"cost": 10, "damage": 20}}
+        print(f"'{self.name}' has entered the world, crackling with Void energy.")
+
+    def __str__(self):
+        # Override the string representation to include her unique resource
+        player_info = super().__str__()
+        return f"{player_info} | Drones: {self.active_drones}"
+
+    def deploy_drone(self, drone_type="Attack"):
+        """
+        Deploys a drone to assist in combat.
+        """
+        cost = 25
+        if self.mana >= cost:
+            self.mana -= cost
+            self.active_drones += 1
+            print(f"{self.name} deploys an {drone_type} drone! ({self.active_drones} active). ({self.mana}/{self.max_mana} Void Energy)")
+        else:
+            print(f"{self.name} lacks the Void Energy to deploy a drone.")
+
+    def cast_spell(self, spell_name, target):
+        """
+        Sky.ix's custom spell casting for her Void-based abilities.
+        """
+        if spell_name in self.spells:
+            spell = self.spells[spell_name]
+            cost = spell["cost"]
+            if self.mana >= cost:
+                self.mana -= cost
+                damage = spell["damage"]
+                print(f"{self.name} unleashes {spell_name} on {target.name} for {damage} damage! ({self.mana}/{self.max_mana} Void Energy)")
+                target.take_damage(damage)
+            else:
+                print(f"{self.name} lacks the Void Energy to cast {spell_name}.")
+        else:
+            # Fallback to the parent's cast_spell method if it's a general spell
+            super().cast_spell(spell_name, target)
+
+
+class Anastasia(Player):
+    """
+    Represents Anastasia the Dreamer, a support mage who shapes reality.
+    Inherits from the Player class, with a focus on healing and control abilities.
+    """
+
+    def __init__(self, name="Anastasia", x=0, y=0, z=0):
+        # Initialize the parent Player class with Anastasia's specific stats
+        super().__init__(name, x, y, z)
+        self.health = 90  # As a mage, slightly less durable
+        self.max_health = 90
+        self.mana = 200   # Represents her 'Dream Energy'
+        self.max_mana = 200
+        self.visions = [] # A list to store her prophetic visions
+
+        # Add her spells. Note that "Dream Weaving" is implemented as a custom method
+        # because of its dual nature.
+        self.spells = {"somnus_aura": {"cost": 50}}
+        print(f"'{self.name}' has awoken, her mind filled with prophetic dreams.")
+
+    def __str__(self):
+        # Add her unique properties to the string output
+        player_info = super().__str__()
+        return f"{player_info} | Visions: {len(self.visions)}"
+
+    def weave_dream(self, target, is_healing=True):
+        """
+        A versatile ability that can either heal an ally or create a debuffing
+        illusion on an enemy.
+        """
+        cost = 30
+        if self.mana >= cost:
+            self.mana -= cost
+            if is_healing:
+                # Heal an ally
+                target.heal(25)
+                print(f"{self.name} weaves a soothing dream, healing {target.name} for 25 health. ({self.mana}/{self.max_mana} Dream Energy)")
+            else:
+                # Harm an enemy (represented as direct damage for this example)
+                target.take_damage(20)
+                print(f"{self.name} weaves a nightmare, inflicting 20 psychic damage on {target.name}. ({self.mana}/{self.max_mana} Dream Energy)")
+        else:
+            print(f"{self.name} lacks the Dream Energy to weave the dream.")
+
+    def glimpse_future(self):
+        """
+        A narrative/utility skill that reveals information.
+        """
+        # In a real game, this might reveal an enemy's weakness or a hidden path.
+        new_vision = "A vision reveals the enemy's next move!"
+        self.visions.append(new_vision)
+        print(f"A prophetic vision flashes in {self.name}'s mind: '{new_vision}'")
+
+
+class Micah(Player):
+    """
+    Represents Micah the Unbreakable, a formidable tank and earth-shaper.
+    Inherits from the Player class, with mechanics focused on defense and a
+    unique resource, Fortitude, gained by taking damage.
+    """
+
+    def __init__(self, name="Micah", x=0, y=0, z=0):
+        # Initialize the parent Player class with Micah's tanky stats
+        super().__init__(name, x, y, z)
+        self.health = 200  # High health pool for a tank
+        self.max_health = 200
+        self.mana = 0      # He doesn't use mana; his resource is Fortitude
+        self.max_mana = 0
+
+        # Micah's unique properties
+        self.fortitude = 0
+        self.max_fortitude = 100
+        self.is_adamantine_skin_active = False
+
+        # We'll implement his abilities as custom methods
+        self.spells = {} # Clear the default spells
+        print(f"'{self.name}' stands firm, an unbreakable wall.")
+
+    def __str__(self):
+        # Add his unique resource to the string output
+        player_info = super().__str__()
+        skin_status = "Active" if self.is_adamantine_skin_active else "Inactive"
+        return f"{player_info} | Fortitude: {self.fortitude}/{self.max_fortitude} | Adamantine Skin: {skin_status}"
+
+    def take_damage(self, damage):
+        """
+        Micah takes damage but also gains Fortitude.
+        """
+        # If Adamantine Skin is active, reduce damage taken
+        if self.is_adamantine_skin_active:
+            damage_reduction = 0.5 # 50% damage reduction
+            damage = int(damage * (1-damage_reduction))
+            print(f"{self.name}'s Adamantine Skin reduces the damage!")
+
+        super().take_damage(damage)
+        # Gain fortitude equal to 100% of damage taken
+        fortitude_gain = int(damage * 1.0)
+        self.fortitude = min(self.max_fortitude, self.fortitude + fortitude_gain)
+        print(f"{self.name} gains {fortitude_gain} Fortitude from the blow!")
+
+
+    def activate_adamantine_skin(self):
+        """
+        Activates a defensive stance that reduces incoming damage but consumes
+        Fortitude over time.
+        """
+        cost = 20
+        if self.fortitude >= cost:
+            self.fortitude -= cost
+            self.is_adamantine_skin_active = True
+            print(f"{self.name} activates Adamantine Skin, hardening his defenses!")
+        else:
+            print(f"{self.name} doesn't have enough Fortitude to activate Adamantine Skin.")
+
+    def earthen_smash(self, target):
+        """
+        An attack that consumes Fortitude to deal damage.
+        """
+        cost = 30
+        if self.fortitude >= cost:
+            self.fortitude -= cost
+            damage = 40
+            print(f"{self.name} smashes {target.name} with the force of the earth, dealing {damage} damage!")
+            target.take_damage(damage)
+        else:
+            print(f"{self.name} lacks the Fortitude for an Earthen Smash.")
+
+
+def run_character_demonstration():
+    """
+    A new function to demonstrate the unique abilities of the new characters.
+    """
+    print("\n--- Character Demonstration ---")
+
+    # --- 1. Create Characters and an Enemy ---
+    skyix = Skyix(x=0, y=0)
+    anastasia = Anastasia(x=2, y=0)
+    micah = Micah(x=4, y=0)
+    enemy = Enemy(name="Void Beast", x=10, y=0, health=500)
+    enemy.attack_damage = 25 # Increase damage to build Fortitude faster
+
+    print("\n--- Initial State ---")
+    print(skyix)
+    print(anastasia)
+    print(micah)
+    print(enemy)
+
+    # --- 2. Showcase Abilities ---
+    print("\n--- Turn 1: Sky.ix and Anastasia take action ---")
+    skyix.deploy_drone()
+    anastasia.weave_dream(micah, is_healing=True) # Heal Micah to show support role
+    anastasia.weave_dream(enemy, is_healing=False) # Harm the enemy
+
+    print("\n--- Turn 2: Micah takes damage and builds Fortitude ---")
+    enemy.attack(micah) # Enemy attacks Micah
+    enemy.attack(micah) # Attack again to build more Fortitude
+    print(micah)
+
+    print("\n--- Turn 3: Micah retaliates ---")
+    micah.activate_adamantine_skin()
+    micah.earthen_smash(enemy)
+    print(micah)
+    print(enemy)
+
+    print("\n--- Turn 4: Sky.ix unleashes a powerful attack ---")
+    skyix.cast_spell("void_tech", enemy)
+    print(skyix)
+    print(enemy)
+
+    print("\n--- Demonstration Complete ---")
+
+
 if __name__ == "__main__":
-    run_game()
+    # run_game() # You can comment this out to only run the character demo
+    run_character_demonstration()
