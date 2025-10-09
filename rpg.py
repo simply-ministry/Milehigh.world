@@ -642,21 +642,6 @@ class HealthPotion(Consumable):
         else:
             print(f"{self.name} cannot be used on {target}.")
 
-
-class Interactable(GameObject):
-    """
-    Represents an object in the world that the player can examine for information.
-    """
-    def __init__(self, name, x, y, description, symbol='?'):
-        super().__init__(name=name, x=x, y=y)
-        self.description = description
-        self.symbol = symbol # The character that will represent it on the map
-        self.is_alive = True # To make it drawable in the current draw logic
-
-    def examine(self):
-        """Returns the description of the object when examined."""
-        return self.description
-
 class ManaPotion(Consumable):
     def __init__(self, name="Mana Potion", x=0, y=0, z=0, amount=30):
         super().__init__(name=name, x=x, y=y, z=z, effect=f"Restores {amount} Mana")
@@ -672,6 +657,26 @@ class ManaPotion(Consumable):
                 print(f"{target.name} does not have mana.")
         else:
             print(f"{self.name} cannot be used on {target}.")
+
+class Interactable(GameObject):
+    """
+    Represents an object in the world that the player can examine for information.
+    """
+    def __init__(self, name, x, y, description, symbol='?'):
+        super().__init__(name=name, x=x, y=y)
+        self.description = description
+        self.symbol = symbol # The character that will represent it on the map
+        self.is_alive = True # To make it drawable in the current draw logic
+
+    def examine(self):
+        """Returns the description of the object when examined."""
+        return self.description
+
+class Aeron(Player):
+    pass
+
+class Kane(Enemy): # For simplicity, Kane will be an Enemy for this scene
+    pass
 
 class Game:
     """
@@ -877,8 +882,6 @@ class Game:
 
 # --- (I will add the character classes Aeron and Kane here in a later step) ---
 # For now, let's assume they exist and inherit from Player.
-class Aeron(Player):
-    pass
 class Kane(Enemy): # For simplicity, Kane will be an Enemy for this scene
     pass
 
