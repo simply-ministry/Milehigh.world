@@ -138,6 +138,19 @@ class GameObject:
         if self.visible:
             print(f"Drawing {self.name} at ({self.x}, {self.y}, {self.z})") # Basic drawing for now.
 
+class Interactable(GameObject):
+    """
+    Represents an object in the world that the player can examine for information.
+    """
+    def __init__(self, name, x, y, description, symbol='?'):
+        super().__init__(name, x, y)
+        self.description = description
+        self.symbol = symbol # The character that will represent it on the map
+
+    def examine(self):
+        """Returns the description of the object when examined."""
+        return self.description
+
 class Player(GameObject):
     """
     Represents the player character.
@@ -716,14 +729,11 @@ class Game:
         print("Game stopped.")
 
     def handle_input(self, scene_manager):
-        """
-        Handles user input for the current scene.
-        """
         player = scene_manager.scene.player_character
         if not player or player.health <= 0:
-            return # No input if player is dead
+            return
 
-        command = input(f"What will {player.name} do? (attack, use [item], status, quit): ").lower().strip()
+        command = input("Action: ").lower().strip()
         parts = command.split()
         action = parts[0]
 
@@ -731,26 +741,64 @@ class Game:
             scene_manager.is_running = False
             return
 
-        if action == "attack":
-            # In this simple scene, the only target is Kane
-            target = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Kane)), None)
-            if target and target.health > 0:
-                player.attack(target)
+        elif action == "move" and len(parts) > 1:
+            direction = parts[1]
+            if direction in ["w", "up"]:
+                player.move(0, -1)
+            elif direction in ["s", "down"]:
+                player.move(0, 1)
+            elif direction in ["a", "left"]:
+                player.move(-1, 0)
+            elif direction in ["d", "right"]:
+                player.move(1, 0)
             else:
-                self.log_message("There is no one to attack.")
+                self.log_message("Invalid direction. Use w, a, s, d (or up, down, left, right).")
+                return # Not a valid move, so don't log position
+            self.log_message(f"{player.name} is at ({int(player.x)}, {int(player.y)})")
+
+        elif action == "examine" and len(parts) > 1:
+            target_name = " ".join(parts[1:])
+            target = next((obj for obj in scene_manager.scene.game_objects if obj.name.lower() == target_name.lower()), None)
+
+            if target and isinstance(target, Interactable):
+                distance = player.distance_to(target)
+                if distance < 2: # Must be close to examine
+                    self.log_message(f"You examine the {target.name}: \"{target.examine()}\"")
+                else:
+                    self.log_message(f"You are too far away to examine the {target.name}.")
+            else:
+                self.log_message(f"You don't see a '{target_name}' to examine.")
+
+        elif action == "attack":
+            if len(parts) > 1:
+                # Targeted attack
+                target_name = " ".join(parts[1:])
+                target = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Enemy) and obj.name.lower() == target_name.lower() and obj.health > 0), None)
+                if target:
+                    player.attack(target)
+                else:
+                    self.log_message(f"You don't see a '{target_name}' to attack.")
+            else:
+                # Simple attack (for single-enemy scenes)
+                target = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Enemy) and obj.health > 0), None)
+                if target:
+                    player.attack(target)
+                else:
+                    self.log_message("There is no one to attack.")
 
         elif action == "use" and len(parts) > 1:
             item_name = " ".join(parts[1:])
             player.use_item(item_name)
 
         elif action == "status":
-            self.log_message(f"{player.name} HP: {player.health}/{player.max_health}")
-            kane = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Kane)), None)
-            if kane:
-                 self.log_message(f"{kane.name} HP: {kane.health}")
+            self.log_message(f"{player.name} - HP: {player.health}/{player.max_health}, Mana: {int(player.mana)}/{player.max_mana}")
+            # Making status more general
+            for obj in scene_manager.scene.game_objects:
+                if isinstance(obj, Enemy) and obj.health > 0:
+                     self.log_message(f"{obj.name} - HP: {obj.health}")
 
         else:
-            self.log_message("Invalid command.")
+            self.log_message("Invalid command. Try: move [w/a/s/d], examine [object], attack [target], use [item], status, quit")
 
 
     def update(self, delta_time):
@@ -785,20 +833,30 @@ class Game:
         obj2.move(0.5, 0)
 
     def draw(self, scene):
-        """
-        Draws the current scene.
-        """
+        """Draws the current scene using a grid."""
+        grid = [['.' for _ in range(scene.width)] for _ in range(scene.height)]
+
+        # Combine scene objects and the player for drawing, ensuring no duplicates.
+        all_objects = list(set(scene.game_objects + [scene.player_character]))
+
+        # Draw all visible game objects
+        for obj in all_objects:
+            # Ensure the object exists and is within the grid bounds
+            if obj and obj.visible and 0 <= int(obj.y) < scene.height and 0 <= int(obj.x) < scene.width:
+                if isinstance(obj, Interactable):
+                    grid[int(obj.y)][int(obj.x)] = obj.symbol
+                elif isinstance(obj, Player):
+                    grid[int(obj.y)][int(obj.x)] = obj.name[0]
+                elif isinstance(obj, Enemy):
+                    grid[int(obj.y)][int(obj.x)] = obj.name[0]
+
+        # Print the grid
         print("\n" + "="*scene.width)
-        # Rudimentary drawing of the scene
-        player = scene.player_character
-        kane = next((obj for obj in scene.game_objects if isinstance(obj, Kane)), None)
-
-        if player:
-            print(f"| {player.name} (HP: {player.health}){' '*(scene.width-20)} |")
-        if kane:
-             print(f"| {' '*(scene.width-20)}{kane.name} (HP: {kane.health}) |")
-
+        for row in grid:
+            print("".join(row))
         print("="*scene.width)
+
+        # Print messages
         print("Recent Messages:")
         for msg in self.message_log:
             print(f"- {msg}")
@@ -940,29 +998,64 @@ class AethelgardBattle(SceneManager):
             self.is_running = False
             return
 
+class AncientLinkRuins(SceneManager):
+    """A scene focused on exploration and discovery."""
+    def setup(self):
+        # Create the player
+        player = Anastasia(name="Anastasia", x=2, y=5)
+        self.scene.set_player(player)
 
-def run_game():
+        # Create interactable lore objects based on your documents
+        prophecy_mural = Interactable(
+            name="Ancient Mural", x=15, y=3, symbol='M',
+            description="The mural depicts ten figures standing against a shadowy dominion. You recognize the sigil of Lîŋq."
+        )
+        void_crystal = Interactable(
+            name="Corrupted Crystal", x=25, y=7, symbol='C',
+            description="A pulsating crystal radiates a cold, dark energy. It feels connected to the Void."
+        )
+
+        # Add objects to the scene
+        self.scene.add_object(prophecy_mural)
+        self.scene.add_object(void_crystal)
+
+        self.game.log_message("You enter the ruins of Āɲč̣ịəŋṭ^Łīɲč̣. The air hums with forgotten power.")
+
+    def update(self):
+        # This scene has no combat, so the update loop is simple
+        if not self.scene.player_character.is_alive:
+            self.is_running = False
+
+def run_aethelgard_battle():
     """
     Main function to set up and run the Aethelgard Battle scene.
     """
     print("--- Milehigh.World RPG ---")
     print("--- SCENE: The Battle of Aethelgard ---")
 
-    # 1. Initialize the main game engine
     game = Game()
-
-    # 2. Create the specific scene
     battle_scene = Scene("Aethelgard Bridge")
-
-    # 3. Initialize the scene manager with the scene and game engine
     scene_manager = AethelgardBattle(battle_scene, game)
-
-    # 4. Run the scene
-    # The scene_manager.run() method will now control the game loop
     scene_manager.run()
 
     print("\n--- Scene Concluded ---")
 
 
 if __name__ == "__main__":
-    run_game()
+    # By default, run the new exploration scene.
+    # To run the original battle scene, comment out the lines below
+    # and uncomment the call to run_aethelgard_battle().
+
+    # --- Run the Ancient Link Ruins Scene ---
+    game_engine = Game()
+    ruins_scene = Scene("Ancient Link Ruins", width=40, height=10)
+    ruins_manager = AncientLinkRuins(ruins_scene, game_engine)
+
+    # The new scene is ready to be played.
+    # To play, uncomment the line below.
+    # ruins_manager.run()
+    print("Ancient Link Ruins scene is ready to be tested.")
+    print("Uncomment `ruins_manager.run()` in the main block to play.")
+
+    # --- To run the original battle, uncomment the line below ---
+    # run_aethelgard_battle()
