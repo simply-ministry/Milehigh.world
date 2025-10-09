@@ -305,6 +305,27 @@ class Player(GameObject):
         else:
             print(f"{self.name} does not know the spell {spell_name}.")
 
+
+class Character(Player):
+    """
+    An intermediary class for specialized characters.
+    It allows for setting health and state during initialization.
+    """
+    def __init__(self, name, x=0, y=0, z=0, health=100, state=None):
+        super().__init__(name, x, y, z)
+        self.health = health
+        self.max_health = health
+        self.state = state
+
+    def update(self):
+        """
+        The character update method. It calls the parent `Player` update
+        with a delta_time of 0 to prevent unintended real-time effects
+        for turn-based characters.
+        """
+        super().update(0)
+
+
 class Enemy(GameObject):
     """
     Represents an enemy character.
@@ -862,6 +883,139 @@ class Zaia(Player):
         """
         print(f"{self.name} performs a nimble dash, evading incoming attacks.")
         # In-game logic would move her character quickly and grant brief invulnerability.
+class DelilahTheDesolate(Player):
+    """
+    Represents Delilah the Desolate, the embodiment of The Omen and an agent of the Void.
+    Born from the darkness expelled from Ingris, she is a being of decay and destruction.
+    """
+    def __init__(self, name="Delilah the Desolate", x=0, y=0):
+        super().__init__(name, x, y)
+        self.health = 160
+        self.max_health = 160
+        self.original_self_id = None # Would be set to Ingris's unique ID
+        self.power_source = "The Omen"
+        self.max_blight = 100
+        self.blight = 25 # Starts with some Blight
+
+    def __str__(self):
+        """String representation of Delilah's status."""
+        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
+                f"Blight: {self.blight}/{self.max_blight}")
+
+    def touch_of_decay(self, target):
+        """
+        A basic ranged attack that applies a "decay" status effect, dealing damage
+        over time and generating Blight.
+        """
+        print(f"{self.name} touches {target.name}, afflicting them with a decaying curse.")
+        # In-game logic would apply a damage-over-time (DoT) effect to the target.
+        # As the DoT deals damage, it would generate Blight for Delilah.
+        blight_gained = 5
+        self.blight = min(self.max_blight, self.blight + blight_gained)
+        print(f"({self.name} gains {blight_gained} Blight.)")
+
+    def summon_omen_avatar(self, target):
+        """
+        Spends Blight to summon a manifestation of The Omen to attack her enemies.
+        """
+        cost = 60
+        if self.blight >= cost:
+            self.blight -= cost
+            print(f"{self.name} spends Blight to summon a terrifying avatar of The Omen to assault {target.name}!")
+            # In-game logic would create a temporary AI-controlled creature.
+        else:
+            print(f"{self.name} does not have enough Blight to summon an avatar.")
+
+    def voidblight_zone(self):
+        """
+        An ultimate ability that corrupts a large area of the battlefield.
+        Enemies within the area take continuous damage and are weakened.
+        """
+        cost = 90
+        if self.blight >= cost:
+            self.blight -= cost
+            print(f"{self.name} unleashes her full power, creating a large Voidblight Zone on the ground!")
+            print("...Enemies inside are weakened and slowly consumed by decay!")
+            # ... logic to create a persistent damaging and debuffing area of effect (AoE) ...
+        else:
+            print(f"{self.name} lacks the Blight to create a Voidblight Zone.")
+class Cirrus(Character):
+    """
+    Represents Cirrus, the Dragon King of Mîlēhîgh.wørld.
+    A powerful and enigmatic ruler, he acts as a mentor and a central figure in the world's power struggles.
+    """
+    def __init__(self, name="Cirrus the Dragon King", x=0, y=0):
+        # Starts in his Humanoid form
+        super().__init__(name, x, y, health=250, state="Humanoid")
+
+        self.fathers_id = None # Would be set to Cyrus's unique ID
+        self.max_sovereignty = 100
+        self.sovereignty = 0
+
+    @property
+    def form(self):
+        """A property to get his current form from the state."""
+        return self.state
+
+    def __str__(self):
+        """String representation of Cirrus's status."""
+        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
+                f"Sovereignty: {self.sovereignty}/{self.max_sovereignty} | "
+                f"Form: {self.form}")
+
+    def update(self):
+        """
+        An update method that could be called each game tick.
+        Used here to passively generate Sovereignty.
+        """
+        # Passively gains Sovereignty over time, representing his authority.
+        sovereignty_gain = 0.5
+        self.sovereignty = min(self.max_sovereignty, self.sovereignty + sovereignty_gain)
+        super().update() # Call parent update if it exists
+
+    def assume_dragon_form(self):
+        """
+        Transforms Cirrus into his true dragon form, consuming all Sovereignty.
+        """
+        if self.sovereignty >= self.max_sovereignty:
+            self.sovereignty = 0
+            self.state = "Dragon"
+            print(f"{self.name} unleashes his true power, transforming into a magnificent dragon!")
+            # In a real game, this would change his character model, stats, and abilities.
+        else:
+            print(f"{self.name} has not accumulated enough Sovereignty to transform.")
+
+    def revert_to_humanoid_form(self):
+        """
+        Reverts Cirrus back to his humanoid form.
+        """
+        if self.form == "Dragon":
+            self.state = "Humanoid"
+            print(f"{self.name} returns to his humanoid form.")
+
+    def kings_decree(self, target):
+        """
+        A commanding ability that marks a target, with different effects based on form.
+        """
+        if self.form == "Humanoid":
+            print(f"{self.name}, in his kingly form, issues a decree against {target.name}, marking them as a priority target!")
+            # In-game logic: apply a "vulnerability" debuff to the target.
+        elif self.form == "Dragon":
+            print(f"{self.name}, in his dragon form, roars a challenge at {target.name}, terrifying them!")
+            # In-game logic: apply a "fear" or "defense reduction" debuff.
+
+    def draconic_breath(self, enemies_in_path):
+        """
+        A powerful breath attack, primarily used in Dragon form.
+        """
+        if self.form == "Dragon":
+            print(f"{self.name} unleashes a torrent of dragon fire!")
+            for enemy in enemies_in_path:
+                print(f"...The fire engulfs {enemy.name}!")
+                # ... logic to apply heavy fire damage ...
+        else:
+            print(f"{self.name} cannot use his full draconic breath in humanoid form.")
+
 
 def run_character_demonstration():
     """
@@ -926,6 +1080,93 @@ def run_character_demonstration():
     print("\n--- Demonstration Complete ---")
 
 
+def run_delilah_demonstration():
+    """
+    A function to demonstrate the unique abilities of Delilah the Desolate.
+    """
+    print("\n--- Character Demonstration: Delilah the Desolate ---")
+
+    # --- 1. Create Delilah and an Enemy ---
+    delilah = DelilahTheDesolate(x=0, y=0)
+    enemy = Enemy(name="Void Spawn", x=10, y=0, health=200)
+
+    print("\n--- Initial State ---")
+    print(delilah)
+    print(enemy)
+
+    # --- 2. Showcase Abilities ---
+    print("\n--- Turn 1: Delilah generates Blight ---")
+    delilah.touch_of_decay(enemy)
+    print(delilah)
+
+    print("\n--- Turn 2: Delilah attempts to use an ability without enough Blight ---")
+    delilah.summon_omen_avatar(enemy)
+    print(delilah)
+
+    print("\n--- Turn 3: Delilah generates more Blight ---")
+    # In a real scenario, this would happen over time or through other actions.
+    delilah.blight = 70
+    print(f"(Delilah's Blight is now {delilah.blight})")
+    delilah.summon_omen_avatar(enemy)
+    print(delilah)
+
+    print("\n--- Turn 4: Delilah uses her ultimate ability ---")
+    delilah.blight = 100
+    print(f"(Delilah's Blight is now {delilah.blight})")
+    delilah.voidblight_zone()
+    print(delilah)
+
+
+    print("\n--- Demonstration Complete ---")
+def run_cirrus_demonstration():
+    """
+    A function to demonstrate the unique abilities of Cirrus.
+    """
+    print("\n--- Cirrus Demonstration ---")
+
+    # --- 1. Create Cirrus and an Enemy ---
+    cirrus = Cirrus(x=0, y=0)
+    enemy1 = Enemy(name="Rebel Captain", x=10, y=0, health=150)
+    enemy2 = Enemy(name="Renegade Knight", x=12, y=0, health=180)
+    enemies = [enemy1, enemy2]
+
+    print("\n--- Initial State ---")
+    print(cirrus)
+    print(enemy1)
+    print(enemy2)
+
+    # --- 2. Showcase Humanoid Abilities ---
+    print("\n--- Turn 1: Cirrus asserts his authority ---")
+    cirrus.kings_decree(enemy1)
+    cirrus.draconic_breath(enemies) # Should fail in this form
+
+    # --- 3. Build Sovereignty ---
+    print("\n--- Building Sovereignty... ---")
+    # Simulate time passing to build up his resource
+    for _ in range(200):
+        cirrus.update()
+    print(cirrus)
+
+    # --- 4. Transform and Unleash Dragon Form ---
+    print("\n--- Turn 2: Cirrus transforms! ---")
+    cirrus.assume_dragon_form()
+    print(cirrus)
+
+    # --- 5. Showcase Dragon Abilities ---
+    print("\n--- Turn 3: Cirrus uses his dragon abilities ---")
+    cirrus.kings_decree(enemy2)
+    cirrus.draconic_breath(enemies)
+
+    # --- 6. Revert to Humanoid Form ---
+    print("\n--- Turn 4: The Dragon King returns to his mortal guise ---")
+    cirrus.revert_to_humanoid_form()
+    print(cirrus)
+
+    print("\n--- Cirrus Demonstration Complete ---")
+
+
 if __name__ == "__main__":
     # run_game() # You can comment this out to only run the character demo
-    run_character_demonstration()
+    # run_character_demonstration()
+    run_delilah_demonstration()
+    run_cirrus_demonstration()
