@@ -870,6 +870,60 @@ class Cyrus(Enemy):
                  target.take_damage(200)
         else:
             print(f"{self.name} has not gathered enough power for the Onalym Purge.")
+
+
+class Era(Enemy):
+    """
+    Represents Era, the personification of the corrupted Void.
+    She is a powerful and chaotic entity manipulated by Lucent, and her destiny
+    is intertwined with Sky.ix.
+    """
+    def __init__(self, name="Era, the Corrupted Void", x=0, y=0):
+        # As a personified force, her health is immense.
+        super().__init__(name=name, x=x, y=y, health=500)
+        self.max_health = 500
+
+        self.manipulator_id = None # Would be set to Lucent's unique ID
+        self.destiny_id = None     # Would be set to Sky.ix's unique ID
+        self.battlefield_corruption = 0.0
+
+    def __str__(self):
+        """String representation of Era's status."""
+        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
+                f"Corruption: {self.battlefield_corruption:.0f}%")
+
+    def chaotic_outburst(self, target):
+        """
+        Lashes out with raw chaotic energy from the Void, increasing corruption.
+        """
+        self.battlefield_corruption += 10
+        print(f"{self.name} unleashes a blast of pure chaos at {target.name}!")
+        # In-game logic would deal unpredictable damage.
+        damage = random.randint(20, 60)
+        target.take_damage(damage)
+
+    def spread_the_void(self):
+        """
+        Corrupts a section of the battlefield, creating a permanent hazardous zone.
+        """
+        self.battlefield_corruption += 25
+        print(f"{self.name}'s presence deepens, spreading the Void's corruption across the ground.")
+        # Logic to create a persistent AoE that debuffs heroes.
+
+    def inevitable_collapse(self, all_enemies):
+        """
+        An ultimate ability where the Void attempts to consume everything. Damage
+        is amplified by the level of BattlefieldCorruption.
+        """
+        print(f"{self.name} channels the full, unmaking power of the Void!")
+        # Corruption empowers the attack. A value of 100% might double the damage.
+        corruption_multiplier = 1 + (self.battlefield_corruption / 100.0)
+        base_damage = 80
+        total_damage = int(base_damage * corruption_multiplier)
+
+        print(f"...The battlefield corruption amplifies the attack to {total_damage} damage!")
+        for enemy in all_enemies:
+            enemy.take_damage(total_damage)
 class Aeron(Player):
     """
     Represents Aeron, a noble warrior of Aethelgard and one of the Ɲōvəmîŋāđ.
@@ -1420,6 +1474,42 @@ def run_cyrus_demonstration():
     print("\n--- Cyrus Demonstration Complete ---")
 
 
+def run_era_demonstration():
+    """
+    A function to demonstrate the abilities of the new antagonist, Era.
+    """
+    print("\n--- Era Demonstration ---")
+
+    # --- 1. Create Era and a Player to fight ---
+    era = Era(x=10, y=0)
+    hero = Player(name="Hero", x=0, y=0)
+    # Give the hero more health to survive the demonstration
+    hero.health = 400
+    hero.max_health = 400
+    all_heroes = [hero]
+
+    print("\n--- Initial State ---")
+    print(era)
+    print(hero)
+
+    # --- 2. Showcase Era's Abilities ---
+    print("\n--- Turn 1: Era starts spreading corruption ---")
+    era.spread_the_void()
+    print(era)
+
+    print("\n--- Turn 2: Era attacks with chaotic energy ---")
+    era.chaotic_outburst(hero)
+    print(era)
+    print(hero)
+
+    print("\n--- Turn 3: Era unleashes her ultimate ability ---")
+    era.inevitable_collapse(all_heroes)
+    print(era)
+    print(hero)
+
+    print("\n--- Era Demonstration Complete ---")
+
+
 if __name__ == "__main__":
     # run_game() # You can comment this out to only run the character demo
     # run_character_demonstration()
@@ -1427,3 +1517,4 @@ if __name__ == "__main__":
     run_aeron_demonstration()
     run_delilah_demonstration()
     run_cirrus_demonstration()
+    run_era_demonstration()

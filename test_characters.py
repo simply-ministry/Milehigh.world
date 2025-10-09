@@ -1,6 +1,5 @@
 import unittest
-from game import Skyix, Anastasia, Micah, Player, Enemy, Zaia
-from game import Skyix, Anastasia, Micah, Player, Enemy, DelilahTheDesolate
+from game import Skyix, Anastasia, Micah, Player, Enemy, Zaia, DelilahTheDesolate
 
 class TestNewCharacters(unittest.TestCase):
 
@@ -9,7 +8,6 @@ class TestNewCharacters(unittest.TestCase):
         self.skyix = Skyix()
         self.anastasia = Anastasia()
         self.micah = Micah()
-        self.delilah = DelilahTheDesolate()
         self.ally = Player(name="Ally")
         self.enemy = Enemy(name="Test Enemy")
 
@@ -155,7 +153,13 @@ class TestZaia(unittest.TestCase):
         self.zaia.exploit_weakness(self.enemy)
         self.assertEqual(self.zaia.momentum, 40)
         self.assertEqual(self.enemy.health, initial_enemy_health)
-    # --- Delilah Tests ---
+
+# --- Delilah Tests ---
+class TestDelilah(unittest.TestCase):
+    def setUp(self):
+        """Set up test fixtures before each test method."""
+        self.delilah = DelilahTheDesolate()
+        self.enemy = Enemy(name="Test Enemy")
 
     def test_delilah_initialization(self):
         """Test that Delilah initializes with the correct stats."""
