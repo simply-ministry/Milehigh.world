@@ -4,6 +4,17 @@ using System.Linq;
 using UnityEngine;
 
 /// <summary>
+/// Manages the state and flow of a turn-based combat encounter.
+/// </summary>
+public class CombatManager : MonoBehaviour
+{
+    public static CombatManager Instance { get; private set; }
+
+    private List<Character> combatants = new List<Character>();
+    private int currentTurnIndex = 0;
+    private bool isCombatActive = false;
+
+    void Awake()
 /// Manages the state and flow of a turn-based combat encounter, and provides
 /// centralized damage calculation logic. This class is a singleton.
 /// </summary>
@@ -24,11 +35,12 @@ public class CombatManager : MonoBehaviour
     /// </summary>
     public enum DamageFormula
     {
-        Linear,
-        RatioBased,
-        PercentageReduction,
-        Additive,
-        Exponential
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
     }
 
     void Awake()
@@ -148,6 +160,30 @@ public class CombatManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Starts a new combat encounter.
+    /// </summary>
+    /// <param name="playerParty">List of player-controlled characters.</param>
+    /// <param name="enemyParty">List of AI-controlled characters.</param>
+    public void StartCombat(List<Character> playerParty, List<Character> enemyParty)
+    {
+        if (isCombatActive) return;
+
+        combatants.Clear();
+        combatants.AddRange(playerParty);
+        combatants.AddRange(enemyParty);
+
+        // Simple turn order: sort by a 'speed' stat if it exists, otherwise default order.
+        // combatants = combatants.OrderByDescending(c => c.speed).ToList();
+
+        currentTurnIndex = 0;
+        isCombatActive = true;
+        Debug.Log("===== COMBAT STARTED =====");
+        StartCoroutine(CombatLoop());
+    }
+
+    private IEnumerator CombatLoop()
+    {
+        while (isCombatActive)
     /// Calculates the final damage of an attack. This is a static utility function
     /// that can be called from anywhere without needing an instance of CombatManager.
     /// </summary>
@@ -163,40 +199,60 @@ public class CombatManager : MonoBehaviour
         int baseDamage = 0;
         switch (formula)
         {
-            case DamageFormula.Linear:
-                baseDamage = attackPower - defense;
-                break;
-            case DamageFormula.RatioBased:
-                baseDamage = (defense > 0) ? (attackPower * attackPower) / defense : attackPower;
-                break;
-            case DamageFormula.PercentageReduction:
-                float reduction = (float)defense / (defense + 100);
-                baseDamage = Mathf.RoundToInt(attackPower * (1 - reduction));
-                break;
-            case DamageFormula.Additive:
-                const int c = 50;
-                baseDamage = Mathf.RoundToInt(c * (float)attackPower / (c + defense));
-                break;
-            case DamageFormula.Exponential:
-                baseDamage = Mathf.RoundToInt(Mathf.Pow(1.1f, attackPower - defense));
-                break;
+            Character currentCharacter = combatants[currentTurnIndex];
+
+            if (currentCharacter.isAlive)
+            {
+                Debug.Log($"--- {currentCharacter.characterName}'s Turn ---");
+
+                // If this is a player character, wait for player input.
+                // If it's an AI, execute its turn.
+                // For now, we'll just log the turn and advance.
+                // A full implementation would involve a state machine to wait for actions.
+                yield return new WaitForSeconds(1f); // Placeholder for action duration
+            }
+
+            // Check for victory/defeat conditions
+            if (CheckForEndOfCombat())
+            {
+                EndCombat();
+                yield break; // Exit the loop
+            }
+
+            // Advance to the next turn
+            currentTurnIndex = (currentTurnIndex + 1) % combatants.Count;
         }
+    }
 
-        // Ensure base damage is non-negative before applying multipliers
-        baseDamage = Mathf.Max(0, baseDamage);
+    /// <summary>
+    /// Checks if the combat has ended (i.e., one party has been defeated).
+    /// </summary>
+    /// <returns>True if combat should end, false otherwise.</returns>
+    private bool CheckForEndOfCombat()
+    {
+        // Example logic:
+        bool playersAlive = combatants.Any(c => c.isPlayer && c.isAlive);
+        bool enemiesAlive = combatants.Any(c => !c.isPlayer && c.isAlive);
 
-        // 3. Apply critical hit multiplier
-        float damageAfterCrit = baseDamage * critModifier;
-        if (isCrit) Debug.Log("Critical Hit!");
+        return !playersAlive || !enemiesAlive;
+    }
 
-        // 4. Apply specific resistance to the ability's damage type
-        int resistance = defender.GetResistanceValue(ability.damageType);
-        float finalDamage = damageAfterCrit - resistance;
-
-        // 5. Apply custom damage multiplier for special abilities
-        finalDamage *= customMultiplier;
-
-        // 6. Return final damage, ensuring it's at least 0
-        return Mathf.Max(0, Mathf.RoundToInt(finalDamage));
+    /// <summary>
+    /// Cleans up and ends the current combat encounter.
+    /// </summary>
+    private void EndCombat()
+    {
+        isCombatActive = false;
+        bool playersWon = combatants.Any(c => c.isPlayer && c.isAlive);
+        if (playersWon)
+        {
+            Debug.Log("===== COMBAT ENDED: VICTORY! =====");
+        }
+        else
+        {
+            Debug.Log("===== COMBAT ENDED: DEFEAT! =====");
+        }
+        // Here you would typically transition back to the main game state,
+        // award XP, drops, etc.
     }
 }
