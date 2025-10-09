@@ -65,16 +65,21 @@ class GameObject:
 
     def take_damage(self, damage):
         """
-        Reduces the object's health after factoring in defense.
+        Reduces the object's health after factoring in defense from stats and equipment.
         Args:
             damage (int): The amount of incoming damage.
         """
-        current_defense = self.defense
+        total_defense = self.defense
+        # Check if the object has an equipment manager
+        if hasattr(self, 'equipment'):
+            equipped_stats = self.equipment.get_total_stats()
+            total_defense += equipped_stats["defense"]
+
         if 'armor_break' in self.status_effects:
             print(f"{self.name} is armor broken! Defense is negated.")
-            current_defense = 0
+            total_defense = 0
 
-        actual_damage = max(0, damage - current_defense)
+        actual_damage = max(0, damage - total_defense)
         self.health -= actual_damage
         if actual_damage > 0:
             print(f"{self.name} takes {actual_damage} damage.")
@@ -157,7 +162,6 @@ class Player(GameObject):
     """
     def __init__(self, name="Player", x=0, y=0, z=0):
         super().__init__(name=name, x=x, y=y, z=z, health=100, speed=5)
-        self.weapon = None
         self.inventory = []
         self.level = 1
         self.experience = 0
@@ -168,6 +172,8 @@ class Player(GameObject):
         self.strength = 10
         self.dexterity = 10
         self.intelligence = 10
+        # --- NEW: Equipment Manager ---
+        self.equipment = Equipment(owner=self)
 
     def attack(self, target):
         """
@@ -190,17 +196,13 @@ class Player(GameObject):
         crit_chance = 5 + self.dexterity / 2
         is_critical = random.uniform(0, 100) < crit_chance
 
-        # --- Damage Calculation (based on strength) ---
-        if self.weapon:
-            base_damage = self.weapon.damage
-            strength_bonus = self.strength // 2
-            total_damage = base_damage + strength_bonus
-            attack_source = self.weapon.name
-        else:
-            base_damage = 2  # Low base damage for bare hands
-            strength_bonus = self.strength // 2
-            total_damage = base_damage + strength_bonus
-            attack_source = "bare hands"
+        # --- Damage Calculation (based on strength and equipment) ---
+        equipped_stats = self.equipment.get_total_stats()
+        weapon_damage = equipped_stats["damage"]
+        strength_bonus = self.strength // 2
+        total_damage = weapon_damage + strength_bonus
+
+        attack_source = self.equipment.slots["weapon"].name if self.equipment.slots["weapon"] else "bare hands"
 
         if is_critical:
             total_damage *= 2  # Double damage on a critical hit
@@ -210,17 +212,18 @@ class Player(GameObject):
 
         target.take_damage(total_damage)
 
-    def equip_weapon(self, weapon):
-        """
-        Equips a weapon.
-        Args:
-            weapon (Weapon): The weapon to equip.
-        """
-        if isinstance(weapon, Weapon):
-            self.weapon = weapon
-            print(f"{self.name} equipped {weapon.name}.")
+    def equip_item(self, item_name):
+        """Finds an item in inventory and equips it."""
+        item_to_equip = None
+        for item in self.inventory:
+            if item.name.lower() == item_name.lower():
+                item_to_equip = item
+                break
+
+        if item_to_equip:
+            self.equipment.equip(item_to_equip)
         else:
-            print(f"{self.name} cannot equip {weapon.name}.  It is not a weapon.")
+            print(f"'{item_name}' not found in inventory.")
 
     def update(self, delta_time):
         """
@@ -616,74 +619,110 @@ class Enemy(GameObject):
             if self.distance_to(player) < 1:  # Attack range
                 self.attack(player)
 
-class Weapon(GameObject):
-    """
-    Represents a weapon.
-    """
-    def __init__(self, name="Weapon", x=0, y=0, z=0, damage=10, weapon_type="Melee"):
-        super().__init__(name=name, x=x, y=y, z=z, visible=False, solid=False)  # Weapons are not solid by default.
-        self.damage = damage
-        self.weapon_type = weapon_type # e.g., "Melee", "Ranged", "Magic"
+# --- Item System ---
 
-class Consumable(GameObject):
-    """
-    Represents a consumable item.
-    """
-    def __init__(self, name="Consumable", x=0, y=0, z=0, effect="None"):
+class Item(GameObject):
+    """Base class for all items (weapons, consumables, armor, etc.)."""
+    def __init__(self, name, description, x=0, y=0, z=0):
+        # Items are not visible or solid by default, as they are usually in an inventory.
         super().__init__(name=name, x=x, y=y, z=z, visible=False, solid=False)
+        self.description = description
+
+    def __str__(self):
+        return f"{self.name}: {self.description}"
+
+class Weapon(Item):
+    """Represents a weapon that can be equipped."""
+    def __init__(self, name, description, damage, weapon_type="Melee"):
+        super().__init__(name, description)
+        self.damage = damage
+        self.weapon_type = weapon_type
+
+    def __str__(self):
+        return f"{self.name} (Weapon, {self.damage} DMG): {self.description}"
+
+class Consumable(Item):
+    """Represents a consumable item that can be used for an effect."""
+    def __init__(self, name, description, effect="None"):
+        super().__init__(name, description)
         self.effect = effect
         self.quantity = 1
 
     def use(self, target):
-        """
-        Applies the consumable's effect to the target.  Must be overridden.
-        Args:
-            target (GameObject): The target of the consumable's effect.
-        """
-        print(f"{self.name} used on {target.name}.  Effect: {self.effect}") # default
+        """Applies the consumable's effect to the target."""
+        print(f"Using {self.name} on {target.name}.")
 
 class HealthPotion(Consumable):
-    def __init__(self, name="Health Potion", x=0, y=0, z=0, amount=20):
-        super().__init__(name=name, x=x, y=y, z=z, effect=f"Heals {amount} HP")
+    """A potion that restores health."""
+    def __init__(self, name="Health Potion", description="A potion that restores 20 HP.", amount=20):
+        super().__init__(name, description, effect=f"Heals {amount} HP")
         self.amount = amount
 
     def use(self, target):
         """Heals the target."""
-        if isinstance(target, GameObject):
-            target.heal(self.amount)
-            print(f"{target.name} healed for {self.amount} HP.")
-        else:
-            print(f"{self.name} cannot be used on {target}.")
+        super().use(target)
+        target.heal(self.amount)
+        print(f"{target.name} restored {self.amount} HP.")
 
 class ManaPotion(Consumable):
-    def __init__(self, name="Mana Potion", x=0, y=0, z=0, amount=30):
-        super().__init__(name=name, x=x, y=y, z=z, effect=f"Restores {amount} Mana")
+    """A potion that restores mana."""
+    def __init__(self, name="Mana Potion", description="A potion that restores 30 Mana.", amount=30):
+        super().__init__(name, description, effect=f"Restores {amount} Mana")
         self.amount = amount
 
     def use(self, target):
-        """Restore mana of the target.  Assumes target has a mana attribute."""
-        if isinstance(target, GameObject):
-            if hasattr(target, 'mana'):
-                target.mana += self.amount
-                print(f"{target.name} restored for {self.amount} mana.")
-            else:
-                print(f"{target.name} does not have mana.")
+        """Restores mana to the target."""
+        super().use(target)
+        if hasattr(target, 'mana'):
+            target.mana = min(target.max_mana, target.mana + self.amount)
+            print(f"{target.name} restored {self.amount} Mana.")
         else:
-            print(f"{self.name} cannot be used on {target}.")
+            print(f"{target.name} has no mana to restore.")
 
-class Interactable(GameObject):
-    """
-    Represents an object in the world that the player can examine for information.
-    """
-    def __init__(self, name, x, y, description, symbol='?'):
-        super().__init__(name=name, x=x, y=y)
-        self.description = description
-        self.symbol = symbol # The character that will represent it on the map
-        self.is_alive = True # To make it drawable in the current draw logic
+class Armor(Item):
+    """A type of item that can be equipped to provide defense."""
+    def __init__(self, name, description, defense):
+        super().__init__(name, description)
+        self.defense = defense
 
-    def examine(self):
-        """Returns the description of the object when examined."""
-        return self.description
+    def __str__(self):
+        return f"{self.name} (Armor, +{self.defense} DEF): {self.description}"
+
+class Equipment:
+    """Manages a character's equipped items in different slots."""
+    def __init__(self, owner):
+        self.owner = owner
+        self.slots = {
+            "weapon": None,
+            "shield": None,
+            "armor": None
+        }
+
+    def equip(self, item):
+        """Equips an item into the appropriate slot."""
+        if isinstance(item, Weapon):
+            self.slots["weapon"] = item
+            print(f"{self.owner.name} equips the {item.name}.")
+        elif isinstance(item, Armor):
+            # For simplicity, we'll assume any armor goes in the 'armor' slot.
+            # A more complex system could have slots for head, chest, legs, etc.
+            self.slots["armor"] = item
+            print(f"{self.owner.name} equips the {item.name}.")
+        # We can create a 'Shield' class later if needed.
+        else:
+            print(f"'{item.name}' is not an equippable item.")
+
+    def get_total_stats(self):
+        """Calculates the total stat bonuses from all equipped items."""
+        total_damage = self.slots["weapon"].damage if self.slots["weapon"] else 0
+        total_defense = self.slots["armor"].defense if self.slots["armor"] else 0
+        return {"damage": total_damage, "defense": total_defense}
+
+    def display(self):
+        print(f"--- {self.owner.name}'s Equipment ---")
+        for slot, item in self.slots.items():
+            print(f"- {slot.capitalize()}: {'Empty' if not item else item.name}")
+        print("--------------------")
 
 class Aeron(Player):
     pass
@@ -752,8 +791,7 @@ class Game:
         if not player or player.health <= 0:
             return
 
-        command = input("Action: ").lower().strip()
-        command = input(f"What will {player.name} do? (attack, use [item], examine, status, quit): ").lower().strip()
+        command = input(f"What will {player.name} do? (attack, equip [item], use [item], examine, status, quit): ").lower().strip()
         parts = command.split()
         action = parts[0]
 
@@ -806,6 +844,10 @@ class Game:
                 else:
                     self.log_message("There is no one to attack.")
 
+        elif action == "equip" and len(parts) > 1:
+            item_name = " ".join(parts[1:])
+            player.equip_item(item_name)
+
         elif action == "use" and len(parts) > 1:
             item_name = " ".join(parts[1:])
             player.use_item(item_name)
@@ -828,7 +870,7 @@ class Game:
                      self.log_message(f"{obj.name} - HP: {obj.health}")
 
         else:
-            self.log_message("Invalid command. Try: move [w/a/s/d], examine [object], attack [target], use [item], status, quit")
+            self.log_message("Invalid command. Try: move [w/a/s/d], examine [object], attack [target], use [item], equip [item], status, quit")
 
 
     def update(self, delta_time):
@@ -1022,6 +1064,8 @@ class AethelgardBattle(SceneManager):
 
         # Give player items
         player.pickup_item(Weapon("Valiant Sword", "A blade that shines with honor.", 25))
+        player.pickup_item(Armor("Aethelgard Plate", "Sturdy plate armor of a royal knight.", 15))
+
         # A simple quest system could be added to the Player class later
         # player.journal.add_quest(Quest("The Sibling Rivalry", "Defeat Kane.", [{'type': 'defeat', 'target': 'Kane', 'current': 0, 'required': 1}]))
 
@@ -1039,6 +1083,7 @@ class AethelgardBattle(SceneManager):
         self.scene.add_object(enemy)
         self.scene.add_object(ancient_statue)
         self.game.log_message("Aethelgard stands silent. Your brother, Kane, awaits.")
+        self.game.log_message("You feel the weight of the Aethelgard Plate. Type 'equip Aethelgard Plate' to wear it.")
 
     def update(self):
         """Handles the AI and checks for victory/defeat conditions."""
