@@ -47,6 +47,13 @@ public class CombatManager : MonoBehaviour
         currentTurnIndex = 0;
         isCombatActive = true;
         Debug.Log("===== COMBAT STARTED =====");
+
+        // Initialize the combat UI
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.InitializeCombatUI(playerParty, enemyParty);
+        }
+
         StartCoroutine(CombatLoop());
     }
 
@@ -66,6 +73,13 @@ public class CombatManager : MonoBehaviour
                 if (currentCharacter.CompareTag("Player"))
                 {
                     isPlayerTurn = true;
+
+                    // Display action buttons for the current player
+                    if (UIManager.Instance != null)
+                    {
+                        UIManager.Instance.DisplayPlayerActions(currentCharacter);
+                    }
+
                     // The Combat Loop will now wait here until the player has made a move.
                     // The PlayerAction() method will set isPlayerTurn to false.
                     yield return new WaitUntil(() => !isPlayerTurn);
