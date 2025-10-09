@@ -26,8 +26,9 @@ public static class CombatManager
     /// <param name="defender">The character receiving the attack.</param>
     /// <param name="ability">The ability being used.</param>
     /// <param name="formula">The core damage formula to apply.</param>
+    /// <param name="customMultiplier">A custom multiplier to apply to the final damage, for special abilities.</param>
     /// <returns>The final calculated damage amount.</returns>
-    public static int CalculateDamage(Character attacker, Character defender, Ability ability, DamageFormula formula = DamageFormula.Linear)
+    public static int CalculateDamage(Character attacker, Character defender, Ability ability, DamageFormula formula = DamageFormula.Linear, float customMultiplier = 1.0f)
     {
         // 1. Determine base power and check for critical hits
         bool isCrit = Random.value < ability.critChance;
@@ -69,7 +70,10 @@ public static class CombatManager
         int resistance = defender.GetResistanceValue(ability.damageType);
         float finalDamage = damageAfterCrit - resistance;
 
-        // 5. Return final damage, ensuring it's at least 0
+        // 5. Apply custom damage multiplier for special abilities
+        finalDamage *= customMultiplier;
+
+        // 6. Return final damage, ensuring it's at least 0
         return Mathf.Max(0, Mathf.RoundToInt(finalDamage));
     }
 }

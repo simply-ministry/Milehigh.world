@@ -132,10 +132,11 @@ public class Character : MonoBehaviour
     /// <param name="attacker">The character initiating the attack.</param>
     /// <param name="ability">The ability used in the attack.</param>
     /// <param name="formula">The damage formula to use.</param>
-    public virtual void TakeDamage(Character attacker, Ability ability, CombatManager.DamageFormula formula = CombatManager.DamageFormula.Linear)
+    /// <param name="customMultiplier">A custom multiplier to apply to the final damage.</param>
+    public virtual void TakeDamage(Character attacker, Ability ability, CombatManager.DamageFormula formula = CombatManager.DamageFormula.Linear, float customMultiplier = 1.0f)
     {
         // Calculate final damage using the centralized CombatManager
-        int damageTaken = CombatManager.CalculateDamage(attacker, this, ability, formula);
+        int damageTaken = CombatManager.CalculateDamage(attacker, this, ability, formula, customMultiplier);
 
         // Apply damage to health
         currentHealth = Mathf.Max(currentHealth - damageTaken, 0);
