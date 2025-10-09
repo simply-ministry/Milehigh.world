@@ -811,6 +811,78 @@ class Micah(Player):
             print(f"{self.name} lacks the Fortitude for an Earthen Smash.")
 
 
+class Zaia(Player):
+    """
+    Represents Zaia, a swift and lethal member of the Ɲōvəmîŋāđ.
+    She operates as a Rogue/Assassin, specializing in stealth, mobility, and high-precision strikes.
+    """
+    def __init__(self, name="Zaia", x=0, y=0, z=0):
+        super().__init__(name, x, y, z)
+        self.health = 130
+        self.max_health = 130
+        self.aeron_companion_id = None # Would be set to Aeron's unique ID
+        self.max_momentum = 100
+        self.momentum = 0
+        self.is_stealthed = False
+
+    def __str__(self):
+        """String representation of Zaia's status."""
+        stealth_status = "Active" if self.is_stealthed else "Inactive"
+        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
+                f"Momentum: {self.momentum}/{self.max_momentum} | "
+                f"Stealth: {stealth_status}")
+
+    def swift_strike(self, target):
+        """
+        A basic, quick attack that generates Momentum.
+        """
+        damage = 15
+        target.take_damage(damage)
+        momentum_gained = 15
+        self.momentum = min(self.max_momentum, self.momentum + momentum_gained)
+        print(f"{self.name} strikes {target.name} with blinding speed for {damage} damage! (+{momentum_gained} Momentum)")
+
+    def shadow_vanish(self):
+        """
+        Enters a stealth mode, making Zaia invisible to enemies.
+        """
+        cost = 30
+        if self.momentum >= cost:
+            self.momentum -= cost
+            self.is_stealthed = True
+            print(f"{self.name} spends {cost} Momentum to vanish into the shadows.")
+            # In-game logic would make her untargetable by most enemies.
+        else:
+            print(f"{self.name} lacks the Momentum to vanish.")
+
+    def exploit_weakness(self, target):
+        """
+        A high-damage, precision attack that consumes Momentum and breaks stealth for a bonus.
+        """
+        cost = 50
+        if self.momentum >= cost:
+            self.momentum -= cost
+            print(f"{self.name} analyzes {target.name} and strikes at a vital point!")
+
+            if self.is_stealthed:
+                self.is_stealthed = False # Attacking breaks stealth
+                damage = 120
+                print(f"...The attack from the shadows is a devastating critical hit for {damage} damage!")
+                target.take_damage(damage) # High bonus damage
+            else:
+                damage = 60
+                print(f"...The attack deals {damage} damage.")
+                target.take_damage(damage) # Standard high damage
+        else:
+            print(f"{self.name} does not have enough Momentum to exploit a weakness.")
+
+    def evasive_dash(self):
+        """
+        An evasive maneuver for repositioning and avoiding damage.
+        Likely has a cooldown rather than a resource cost.
+        """
+        print(f"{self.name} performs a nimble dash, evading incoming attacks.")
+        # In-game logic would move her character quickly and grant brief invulnerability.
 class DelilahTheDesolate(Player):
     """
     Represents Delilah the Desolate, the embodiment of The Omen and an agent of the Void.
@@ -985,6 +1057,25 @@ def run_character_demonstration():
     skyix.cast_spell("void_tech", enemy)
     print(skyix)
     print(enemy)
+
+    print("\n--- Turn 5: Zaia enters the fray ---")
+    zaia = Zaia(x=0, y=1)
+    print(zaia)
+    zaia.swift_strike(enemy)
+    zaia.swift_strike(enemy)
+    zaia.swift_strike(enemy)
+    zaia.swift_strike(enemy)
+    zaia.swift_strike(enemy)
+    zaia.swift_strike(enemy)
+    print(zaia)
+
+    print("\n--- Turn 6: Zaia uses her Momentum ---")
+    zaia.shadow_vanish()
+    print(zaia)
+    zaia.exploit_weakness(enemy)
+    print(zaia)
+    print(enemy)
+
 
     print("\n--- Demonstration Complete ---")
 
