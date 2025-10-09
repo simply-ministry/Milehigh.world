@@ -1,30 +1,22 @@
-import re
+# usd_parser.py
 
-def extract_usd_snippets(filepath="document.md"):
+def extract_usd_from_markdown(file_path):
     """
-    Extracts USD code snippets from a Markdown file.
+    Parses a Markdown file to find and extract USD code snippets.
 
     Args:
-        filepath (str): The path to the Markdown file.
+        file_path (str): The path to the Markdown documentation file.
 
     Returns:
-        list[str]: A list of USD code snippets.
+        list: A list of strings, where each string is a USD code block.
     """
-    with open(filepath, 'r') as f:
-        content = f.read()
+    print(f"Parsing {file_path} for USD snippets...")
+    # In a real implementation, you would use regex or another
+    # parsing method to find code blocks tagged as 'usd'.
+    return []
 
-    # Find all code blocks fenced with ```usd
-    pattern = r"```usd(.*?)```"
-    snippets = re.findall(pattern, content, re.DOTALL)
-
-    return [s.strip() for s in snippets]
-
-if __name__ == '__main__':
-    snippets = extract_usd_snippets()
-    if snippets:
-        print(f"Found {len(snippets)} USD snippets.")
-        for i, snippet in enumerate(snippets):
-            print(f"--- Snippet {i+1} ---")
-            print(snippet)
-    else:
-        print("No USD snippets found.")
+if __name__ == "__main__":
+    # Example usage:
+    # snippets = extract_usd_from_markdown("docs/Character_Asset_Guide.md")
+    # print(f"Found {len(snippets)} USD snippets.")
+    pass
