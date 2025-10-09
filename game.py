@@ -491,6 +491,8 @@ class Character(GameObject):
         self.max_mana = 100
         self.is_asleep = False
         self.sleep_duration = 0
+        self.equipped_weapon = None
+        self.base_attack_damage = 5
 
     def pickup_item(self, item):
         self.inventory.add_item(item)
@@ -543,6 +545,31 @@ class Character(GameObject):
             if self.sleep_duration <= 0:
                 self.is_asleep = False
                 print(f"{self.name} woke up.")
+
+    def equip_weapon(self, weapon_name):
+        """Equips a weapon from the inventory."""
+        for item in self.inventory.items:
+            if item.name == weapon_name and isinstance(item, Weapon):
+                self.equipped_weapon = item
+                print(f"{self.name} equips the {item.name}.")
+                return
+        print(f"'{weapon_name}' not found or is not a weapon.")
+
+    def attack(self, target):
+        """Attacks another character."""
+        if not isinstance(target, Character):
+            print(f"{self.name} can only attack characters.")
+            return
+
+        damage = self.base_attack_damage
+        attack_message = f"{self.name} attacks {target.name} with their bare hands"
+
+        if self.equipped_weapon:
+            damage += self.equipped_weapon.damage
+            attack_message = f"{self.name} strikes {target.name} with the {self.equipped_weapon.name}"
+
+        print(f"{attack_message} for {damage} damage!")
+        target.take_damage(damage)
 
 
 class NPC(Character):
@@ -675,10 +702,10 @@ class Game:
 
     def handle_input(self):
         """Handles player input from the command line."""
-        if self.player_character.is_asleep:
+        if not self.player_character or self.player_character.is_asleep:
             return
 
-        command = input("Action (move w/a/s/d, look, talk [target], get, inv, use [item], cast [spell] on [target], quit): ").lower().strip()
+        command = input("Action (move w/a/s/d, look, talk [target], get, inv, use/equip [item], attack [target], cast [spell] on [target], quit): ").lower().strip()
         parts = command.split()
         action = parts[0] if parts else ""
 
@@ -716,8 +743,24 @@ class Game:
             self.player_character.inventory.list_items()
             input("Press Enter to continue...")
         elif action == "use" and len(parts) > 1:
-            item_name = " ".join(parts[1:])
-            self.player_character.use_item(item_name)
+            self.player_character.use_item(" ".join(parts[1:]))
+        elif action == "equip" and len(parts) > 1:
+            self.player_character.equip_weapon(" ".join(parts[1:]))
+        elif action == "attack" and len(parts) > 1:
+            target_name = " ".join(parts[1:])
+            target = None
+            for obj in self.game_objects:
+                if obj.name.lower() == target_name.lower() and obj != self.player_character:
+                    target = obj
+                    break
+            if target:
+                distance = abs(self.player_character.x - target.x) + abs(self.player_character.y - target.y)
+                if distance <= 1: # Melee range
+                    self.player_character.attack(target)
+                else:
+                    self.message_log.append(f"{target.name} is too far away.")
+            else:
+                self.message_log.append(f"Target '{target_name}' not found.")
         elif action == "talk" and len(parts) > 1:
             target_name = " ".join(parts[1:])
             target = next((obj for obj in self.game_objects if obj.name.lower() == target_name.lower()), None)
@@ -759,7 +802,7 @@ class Game:
 
 # --- Main Execution Block ---
 
-if __name__ == "__main__":
+def run_game():
     game = Game()
 
     player_zaia = Zaia(name="Zaia", x=5, y=5)
@@ -783,3 +826,38 @@ if __name__ == "__main__":
 
     print("Game world initialized. Type 'quit' to exit.")
     game.start()
+
+def run_combat_demonstration():
+    """Demonstrates the new combat system."""
+    game = Game()
+
+    # Create player and an enemy
+    player_aeron = Aeron(name="Aeron", x=5, y=5)
+    enemy_kane = Kane(name="Kane", x=6, y=5, health=150) # Give Kane more health for the demo
+
+    # Create and give Aeron a weapon
+    valiant_sword = Weapon("Valiant Sword", "A blade that shines with honor.", 25)
+    player_aeron.pickup_item(valiant_sword)
+
+    # Setup the game
+    game.set_player_character(player_aeron)
+    game.add_object(enemy_kane)
+
+    # --- Manual Combat Simulation ---
+    print("--- COMBAT SIMULATION ---")
+    print(player_aeron)
+    print(enemy_kane)
+
+    # Aeron equips his weapon and attacks his brother
+    player_aeron.equip_weapon("Valiant Sword")
+    player_aeron.attack(enemy_kane)
+
+    print(f"\n{enemy_kane.name} Health: {enemy_kane.health}")
+    print("--- SIMULATION END ---\n")
+
+    # To play interactively, uncomment the line below
+    # game.start()
+
+if __name__ == "__main__":
+    # run_game() # Keep the original game function available
+    run_combat_demonstration()
