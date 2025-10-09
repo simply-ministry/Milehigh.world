@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 /// <summary>
 /// A data structure to associate a DamageType with a resistance value.
@@ -13,10 +14,25 @@ public class DamageTypeResistance
     public int resistanceValue;
 }
 
+/// <summary>
+/// Defines the possible animation states for a character.
+/// </summary>
+public enum AnimationState
+{
+    Idle,
+    Walk,
+    Attack,
+    Die
+}
+
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(AdvancedPhysics))]
 public class Character : MonoBehaviour
 {
+    /// <summary>
+    /// A Unique Identifier for each character instance, useful for tracking relationships.
+    /// </summary>
+    public Guid CharacterId { get; private set; } = Guid.NewGuid();
     public string characterName;
     public int maxHealth = 100;
     public int currentHealth;
@@ -32,10 +48,15 @@ public class Character : MonoBehaviour
     public List<Ability> abilities = new List<Ability>();
     private Dictionary<DamageType, int> _resistanceMap;
 
+    protected Animator animator;
+    protected Rigidbody rb;
+
 
     protected virtual void Awake()
     {
         currentHealth = maxHealth;
+        animator = GetComponent<Animator>();
+        rb = GetComponent<Rigidbody>();
 
         // Initialize resistance map for O(1) lookup
         _resistanceMap = new Dictionary<DamageType, int>();
@@ -45,6 +66,32 @@ public class Character : MonoBehaviour
             {
                 _resistanceMap.Add(res.damageType, res.resistanceValue);
             }
+        }
+    }
+
+    protected virtual void Update()
+    {
+        // Basic movement check to switch between Idle and Walk
+        if (rb.velocity.magnitude > 0.1f)
+        {
+            SetAnimationState(AnimationState.Walk);
+        }
+        else
+        {
+            SetAnimationState(AnimationState.Idle);
+        }
+    }
+
+    /// <summary>
+    /// Sets the character's animation state.
+    /// </summary>
+    /// <param name="state">The animation state to set.</param>
+    public void SetAnimationState(AnimationState state)
+    {
+        if (animator != null)
+        {
+            // Using an integer parameter "State" in the Animator to control states.
+            animator.SetInteger("State", (int)state);
         }
     }
 
@@ -74,6 +121,7 @@ public class Character : MonoBehaviour
             return; // Exit the method if the character doesn't have the ability
         }
 
+        SetAnimationState(AnimationState.Attack);
         Debug.Log($"{characterName} uses {ability.abilityName} on {target.characterName}!");
         target.TakeDamage(this, ability, formula);
     }
@@ -108,7 +156,9 @@ public class Character : MonoBehaviour
     protected virtual void Die()
     {
         Debug.Log($"{characterName} has been defeated!");
+        SetAnimationState(AnimationState.Die);
         // In a real game, you might disable the GameObject, play a death animation, etc.
+        // Disabling the object is deferred to the animation event.
         gameObject.SetActive(false);
     }
 
