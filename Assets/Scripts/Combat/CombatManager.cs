@@ -17,6 +17,8 @@ public class CombatManager : MonoBehaviour
     // A new variable to check if the Combat Manager is waiting for player input
     private bool isPlayerTurn = false;
 
+    private bool isPlayerTurn = false;
+
     void Awake()
     void Awake()
 /// Manages the state and flow of a turn-based combat encounter, and provides
@@ -82,7 +84,7 @@ public class CombatManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Starts a new combat encounter with the given parties.
+    /// Starts a new combat encounter.
     /// </summary>
     /// <param name="playerParty">List of player-controlled characters.</param>
     /// <param name="enemyParty">List of AI-controlled characters.</param>
@@ -93,7 +95,6 @@ public class CombatManager : MonoBehaviour
         combatants.Clear();
         combatants.AddRange(playerParty);
         combatants.AddRange(enemyParty);
-        // Optional: Sort combatants by a speed or initiative stat here
 
         currentTurnIndex = 0;
         isCombatActive = true;
@@ -101,9 +102,6 @@ public class CombatManager : MonoBehaviour
         StartCoroutine(CombatLoop());
     }
 
-    /// <summary>
-    /// The main loop that processes turns until combat ends.
-    /// </summary>
     private IEnumerator CombatLoop()
     {
         while (isCombatActive)
@@ -117,60 +115,48 @@ public class CombatManager : MonoBehaviour
                 if (currentCharacter.CompareTag("Player"))
                 {
                     isPlayerTurn = true;
-                    // Wait here until the player performs an action
+                    // The Combat Loop will now wait until the player has made a move
                     yield return new WaitUntil(() => !isPlayerTurn);
                 }
-                else // AI's turn
+                else // This is an AI's turn
                 {
-                    // Placeholder for AI logic. In a real game, this would call an AIController.
-                    Debug.Log($"{currentCharacter.characterName} is thinking...");
-                    yield return new WaitForSeconds(1f); // Simulate AI thinking time
+                    // This assumes you have an AIController attached to your enemy prefabs
+                    var aiController = currentCharacter.GetComponent<AIController>();
+                    if (aiController != null)
+                    {
+                        aiController.TakeTurn();
+                    }
+                    yield return new WaitForSeconds(1f); // Wait a moment after the AI's move
                 }
             }
 
             if (CheckForEndOfCombat())
             {
                 EndCombat();
-                yield break; // Exit the coroutine
+                yield break;
             }
 
-            // Move to the next combatant
             currentTurnIndex = (currentTurnIndex + 1) % combatants.Count;
         }
     }
 
-    /// <summary>
-    /// Called by UI or player input handlers to perform an action.
-    /// </summary>
-    /// <param name="player">The player character performing the action.</param>
-    /// <param name="target">The target of the action.</param>
-    /// <param name="ability">The ability to use.</param>
+    // This new public method will be called by the UI Buttons
     public void PlayerAction(Character player, Character target, Ability ability)
     {
         if (!isPlayerTurn || player != combatants[currentTurnIndex]) return;
 
-        Debug.Log($"{player.characterName} uses {ability.abilityName} on {target.characterName}.");
-        player.PerformAttack(target, ability); // Assumes PerformAttack handles damage calculation
-        isPlayerTurn = false; // Signal that the player's turn is over
+        ability.Use(player, target);
+        isPlayerTurn = false; // The player's turn is now over
     }
 
-    /// <summary>
-    /// Checks if the combat should end (one side is defeated).
-    /// </summary>
     private bool CheckForEndOfCombat()
     {
         bool allPlayersDefeated = combatants.Where(c => c.CompareTag("Player")).All(c => !c.isAlive);
         bool allEnemiesDefeated = combatants.Where(c => c.CompareTag("Enemy")).All(c => !c.isAlive);
 
-        if (allPlayersDefeated) Debug.Log("All players have been defeated. GAME OVER.");
-        if (allEnemiesDefeated) Debug.Log("All enemies have been defeated. VICTORY!");
-
         return allPlayersDefeated || allEnemiesDefeated;
     }
 
-    /// <summary>
-    /// Cleans up and marks combat as inactive.
-    /// </summary>
     private void EndCombat()
     {
         isCombatActive = false;
