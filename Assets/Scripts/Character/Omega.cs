@@ -1,13 +1,24 @@
 using UnityEngine;
+using System.Collections;
 
 /// <summary>
-/// Represents the character Omega.one, an ancient and powerful being.
+/// Represents the character Omega.one, an ancient and powerful being that balances celestial and void energies.
+/// This class implements its unique abilities, such as environmental scanning and power channeling.
 /// </summary>
 public class Omega : Character
 {
+    /// <summary>
+    /// The time when the last environment scan was performed.
+    /// </summary>
     private float lastScanTime;
+    /// <summary>
+    /// The cooldown period in seconds between environment scans.
+    /// </summary>
     private float scanCooldown = 5f; // Scan every 5 seconds
 
+    /// <summary>
+    /// Initializes Omega.one's specific attributes, setting its name and base stats.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();
@@ -17,6 +28,9 @@ public class Omega : Character
         defense = 60;
     }
 
+    /// <summary>
+    /// Called every frame. Manages the cooldown for the environment scan.
+    /// </summary>
     void Update()
     {
         if (Time.time - lastScanTime > scanCooldown)
@@ -28,11 +42,11 @@ public class Omega : Character
 
     /// <summary>
     /// Scans the environment for energy signatures and other anomalies.
+    /// In a real game, this could detect nearby enemies or interactive objects.
     /// </summary>
     private void ScanEnvironment()
     {
         // Simple functional implementation: log the scan action.
-        // In a real game, this could detect nearby enemies or objects.
         Debug.Log($"{characterName} performs a wide-area energy scan. No immediate threats detected.");
     }
 
@@ -55,8 +69,9 @@ public class Omega : Character
     }
 
     /// <summary>
-    /// Temporarily boosts attack power.
+    /// A coroutine that temporarily boosts attack power for a set duration.
     /// </summary>
+    /// <returns>An IEnumerator to be used by StartCoroutine.</returns>
     private IEnumerator VoidPowerBoost()
     {
         int originalAttack = attack;

@@ -11,7 +11,13 @@ public class GameEntity : MonoBehaviour
     [SerializeField] private int health = 100;
 
     // Public properties provide controlled, read-only access to the entity's state from other scripts.
+    /// <summary>
+    /// Gets the name of the entity.
+    /// </summary>
     public string Name => entityName;
+    /// <summary>
+    /// Gets the current health of the entity.
+    /// </summary>
     public int Health => health;
 
     /// <summary>

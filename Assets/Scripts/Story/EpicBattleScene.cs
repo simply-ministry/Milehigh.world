@@ -1,30 +1,82 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Manages the narrative sequence for an epic battle scene in the ruins of Āɲč̣ịəŋṭ^Łīɲč̣.
+/// This script controls a choreographed sequence of dialogue and actions between heroes and villains.
+/// </summary>
 public class EpicBattleScene : MonoBehaviour
 {
     // === VILLAINS ===
+    /// <summary>
+    /// Reference to the Nafaerius character GameObject.
+    /// </summary>
     public GameObject nafaerius;
+    /// <summary>
+    /// Reference to the Cyrus character GameObject.
+    /// </summary>
     public GameObject cyrus;
+    /// <summary>
+    /// Reference to the Lucent character GameObject.
+    /// </summary>
     public GameObject lucent;
-    public GameObject era; // Corrupted Void
+    /// <summary>
+    /// Reference to the Era (Corrupted Void) character GameObject.
+    /// </summary>
+    public GameObject era;
+    /// <summary>
+    /// Reference to the Delilah character GameObject.
+    /// </summary>
     public GameObject delilah;
+    /// <summary>
+    /// Reference to The Omen character GameObject.
+    /// </summary>
     public GameObject theOmen;
+    /// <summary>
+    /// Reference to the Kane character GameObject.
+    /// </summary>
     public GameObject kane;
 
     // === HEROES (Ɲōvəmîŋāđ) ===
+    /// <summary>
+    /// Reference to the Anastasia character GameObject.
+    /// </summary>
     public GameObject anastasia;
+    /// <summary>
+    /// Reference to the Reverie character GameObject.
+    /// </summary>
     public GameObject reverie;
+    /// <summary>
+    /// Reference to the Aeron character GameObject.
+    /// </summary>
     public GameObject aeron;
+    /// <summary>
+    /// Reference to the Zaia character GameObject.
+    /// </summary>
     public GameObject zaia;
+    /// <summary>
+    /// Reference to the Micah character GameObject.
+    /// </summary>
     public GameObject micah;
+    /// <summary>
+    /// Reference to the Kael character GameObject.
+    /// </summary>
     public GameObject kael;
 
-    // Dialogue System
+    /// <summary>
+    /// A delegate defining the signature for dialogue actions.
+    /// </summary>
+    /// <param name="text">The line of dialogue to be displayed.</param>
     public delegate void DialogueAction(string text);
+    /// <summary>
+    /// An event that is fired to display a line of dialogue.
+    /// A UI manager should subscribe to this event to show the text to the player.
+    /// </summary>
     public static event DialogueAction OnDialogue;
 
+    /// <summary>
+    /// Called when the script instance is being loaded. Starts the scene sequence.
+    /// </summary>
     void Start()
     {
         // In a real implementation, we would find or instantiate these GameObjects.
@@ -32,6 +84,9 @@ public class EpicBattleScene : MonoBehaviour
         BeginScene();
     }
 
+    /// <summary>
+    /// Initiates the main scene coroutine.
+    /// </summary>
     void BeginScene()
     {
         // Initial staging: position characters, set animations, etc.
@@ -39,6 +94,11 @@ public class EpicBattleScene : MonoBehaviour
         StartCoroutine(SceneSequence());
     }
 
+    /// <summary>
+    /// Coroutine that controls the step-by-step flow of the battle scene,
+    /// including dialogue and descriptions of character actions.
+    /// </summary>
+    /// <returns>An IEnumerator to be used by StartCoroutine.</returns>
     IEnumerator SceneSequence()
     {
         ShowDialogue("In the shattered ruins of Āɲč̣ịəŋṭ^Łīɲč̣, the air crackles with a palpable tension.");
@@ -98,6 +158,11 @@ public class EpicBattleScene : MonoBehaviour
         EndScene();
     }
 
+    /// <summary>
+    /// Fires the OnDialogue event to display a line of text.
+    /// If no UI manager is subscribed, it logs the text to the console as a fallback.
+    /// </summary>
+    /// <param name="text">The dialogue text to show.</param>
     void ShowDialogue(string text)
     {
         if (OnDialogue != null)
@@ -110,6 +175,9 @@ public class EpicBattleScene : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Marks the end of the scene and logs a completion message.
+    /// </summary>
     void EndScene()
     {
         Debug.Log("The battle has been joined. The fate of Mîlēhîgh.wørld hangs in the balance.");

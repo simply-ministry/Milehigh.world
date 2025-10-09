@@ -1,10 +1,15 @@
 using UnityEngine;
 
 /// <summary>
-/// Kai the Prophet (The Tactical Seer)
+/// Represents Kai the Prophet, one of the Ɲōvəmîŋāđ.
+/// Kai is a tactical seer whose abilities focus on gathering information,
+/// revealing enemy weaknesses, and providing support to his allies.
 /// </summary>
 public class Kai : Novamina
 {
+    /// <summary>
+    /// Initializes Kai's specific attributes, setting his name and archetype.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();
@@ -21,6 +26,9 @@ public class Kai : Novamina
     // Support:
     // - "Insightful Aura": Enhances allies.
 
+    /// <summary>
+    /// Called every frame, this method will contain Kai's gameplay logic.
+    /// </summary>
     void Update()
     {
         // Gameplay logic for Kai

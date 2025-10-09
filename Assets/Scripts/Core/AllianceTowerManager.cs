@@ -1,14 +1,25 @@
 using UnityEngine;
 
+/// <summary>
+/// Manages key interactions and programmatic setup for the Alliance Tower scene.
+/// This class is responsible for spawning characters and handling events like teleporting and dialogue.
+/// </summary>
 public class AllianceTowerManager : MonoBehaviour
 {
+    /// <summary>
+    /// Called when the script instance is being loaded.
+    /// Ensures that essential characters, like the Mascot, are created in the scene.
+    /// </summary>
     void Start()
     {
         // Programmatically create the Mascot GameObject to ensure it exists in the scene.
         CreateMascot();
     }
 
-    // Creates the Mascot character in the game world.
+    /// <summary>
+    /// Creates and configures the Mascot character in the game world.
+    /// This method sets up the Mascot's components and initial position.
+    /// </summary>
     private void CreateMascot()
     {
         // 1. Create a new GameObject named "Mascot"
@@ -26,18 +37,29 @@ public class AllianceTowerManager : MonoBehaviour
         Debug.Log("Mascot character has been spawned in the world.");
     }
 
+    /// <summary>
+    /// Placeholder method for activating a teleporter.
+    /// </summary>
     public void UseTeleporter()
     {
         Debug.Log("Teleporter activated!");
         // Future teleporter logic will go here.
     }
 
+    /// <summary>
+    /// Placeholder method for triggering dialogue with an NPC.
+    /// </summary>
+    /// <param name="npcName">The name of the NPC to start a conversation with.</param>
+    /// <param name="dialogue">The line of dialogue to be displayed.</param>
     public void TriggerNPCDialogue(string npcName, string dialogue)
     {
         Debug.Log($"Started dialogue with {npcName}: {dialogue}");
         // Future dialogue system logic will go here.
     }
 
+    /// <summary>
+    /// Placeholder method for activating a launchpad.
+    /// </summary>
     public void UseLaunchpad()
     {
         Debug.Log("Launchpad activated!");
