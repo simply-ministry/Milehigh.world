@@ -453,6 +453,107 @@ class Anastasia(Player):
         self.lucid_dream_timer = 0
 
 
+# --- (Continuing from the previous Python classes) ---
+import random # Import the random library for her ultimate ability
+
+class Reverie(Player):
+    """
+    Represents Reverie, a powerful and unpredictable Mage/Controller.
+    She builds a unique resource, Enigma, by casting spells, which she then
+    unleashes in a powerful, random ultimate attack.
+    """
+
+    def __init__(self, name="Reverie", x=0, y=0, z=0):
+        # Initialize the parent Player class with Reverie's stats
+        super().__init__(name, x, y, z)
+        self.health = 110
+        self.max_health = 110
+        self.mana = 150   # Standard mana pool for her basic spells
+        self.max_mana = 150
+
+        # Reverie's unique resource
+        self.enigma = 0
+        self.max_enigma = 100
+
+        # Her elemental spells build Enigma
+        self.spells = {}
+        self.spells["fire_blast"] = {"cost": 30, "damage": 25}
+        self.spells["ice_shard"] = {"cost": 20, "damage": 15}
+        self.spells["lightning_jolt"] = {"cost": 25, "damage": 20}
+
+    def cast_spell(self, spell_name, target):
+        """
+        Casts one of her elemental spells.
+        This consumes mana, deals damage to the target, and builds Enigma.
+        """
+        if spell_name in self.spells:
+            spell = self.spells[spell_name]
+            if self.mana >= spell["cost"]:
+                self.mana -= spell["cost"]
+                target.take_damage(spell["damage"])
+
+                # Casting a spell builds Enigma, proportional to mana cost
+                enigma_gain = spell["cost"] // 2
+                self.enigma = min(self.max_enigma, self.enigma + enigma_gain)
+
+                print(f"{self.name} casts {spell_name} on {target.name}, dealing {spell['damage']} damage.")
+                print(f"{self.name} gains {enigma_gain} Enigma. (Total: {self.enigma}/{self.max_enigma})")
+                return True
+            else:
+                print(f"{self.name} does not have enough mana for {spell_name}.")
+                return False
+        else:
+            # This is a bit of a hack to reuse the parent's cast_spell method.
+            # In a real refactor, we would make the spell system more robust.
+            super().cast_spell(spell_name, target)
+            return False
+
+    def chaos_unleashed(self, target):
+        """
+        Unleashes her ultimate ability when Enigma is at max.
+        Consumes all Enigma for a powerful, random effect.
+        """
+        if self.enigma >= self.max_enigma:
+            print(f"{self.name} unleashes CHAOS UNLEASHED!")
+            self.enigma = 0  # Reset Enigma after use
+
+            # Determine the random, powerful effect
+            possible_effects = [
+                "massive_damage",
+                "full_heal_and_mana",
+                "double_damage_debuff",
+                "mana_drain"
+            ]
+            effect = random.choice(possible_effects)
+
+            if effect == "massive_damage":
+                damage = random.randint(100, 200)
+                print(f"A torrent of pure chaotic energy strikes {target.name} for {damage} damage!")
+                target.take_damage(damage)
+            elif effect == "full_heal_and_mana":
+                print(f"The chaotic energy surges inward, restoring {self.name} to full power!")
+                self.health = self.max_health
+                self.mana = self.max_mana
+            elif effect == "double_damage_debuff":
+                print(f"The chaotic energy latches onto {target.name}, making them vulnerable.")
+                # The take_damage method already checks for and applies this effect
+                if "vulnerable" in target.status_effects:
+                    target.status_effects["vulnerable"]["duration"] += 2
+                else:
+                    target.status_effects["vulnerable"] = {"duration": 2}
+            elif effect == "mana_drain":
+                drained_mana = 0
+                if hasattr(target, 'mana'):
+                    drained_mana = target.mana
+                    target.mana = 0
+                print(f"{self.name} drains all of {target.name}'s {drained_mana} mana!")
+                self.mana = min(self.max_mana, self.mana + drained_mana)
+
+            return True
+        else:
+            print(f"{self.name} needs more Enigma to use Chaos Unleashed. ({self.enigma}/{self.max_enigma})")
+            return False
+
 class Enemy(GameObject):
     """
     Represents an enemy character.
