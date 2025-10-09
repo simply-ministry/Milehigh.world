@@ -956,6 +956,76 @@ class Aeron(Player):
             target.take_damage(150)
         else:
             print(f"{self.name} lacks the Resolve for this attack.")
+
+# We assume the Character and GameObject classes from the previous steps exist.
+import math
+
+class Nyxar(Character):
+    """
+    Represents Nyxar, the ruler of The Shadow Dominion and the original invader
+    responsible for the fragmentation of Mîlēhîgh.wørld. He is a primordial force
+    of darkness, seeking to extend his control over all realities.
+    """
+    def __init__(self, name="Nyxar, Ruler of The Shadow Dominion", x=0, y=0):
+        # As the ultimate antagonist, his power level is immense.
+        super().__init__(name, x, y, health=1000)
+
+        self.realm = "The Shadow Dominion"
+        self.max_dominion = 100
+        self.dominion = 0
+        self.tethered_enemies = [] # Keep track of who is tethered
+
+    def __str__(self):
+        """String representation of Nyxar's status."""
+        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
+                f"Dominion: {self.dominion}/{self.max_dominion}")
+
+    def update(self):
+        """
+        An update method called each game tick.
+        Used here to passively generate Dominion based on tethered enemies.
+        """
+        # His Dominion grows for each enemy currently ensnared.
+        dominion_gain = 5 * len(self.tethered_enemies)
+        self.dominion = min(self.max_dominion, self.dominion + dominion_gain)
+        super().update()
+
+    def shadow_tether(self, target):
+        """
+        Tethers a target with living shadows, slowing them and dealing damage over time.
+        Each tethered enemy increases Dominion generation.
+        """
+        print(f"{self.name} extends a tendril of living shadow, tethering {target.name}!")
+        if target not in self.tethered_enemies:
+            self.tethered_enemies.append(target)
+        # In-game logic would apply a "slow" and "damage-over-time" debuff.
+
+    def create_umbral_clone(self, target):
+        """
+        Consumes Dominion to create a perfect clone of an enemy out of shadow.
+        """
+        cost = 60
+        if self.dominion >= cost:
+            self.dominion -= cost
+            print(f"{self.name} spends Dominion to weave a perfect shadow clone of {target.name}!")
+            # In-game logic to spawn a temporary, hostile copy of the target character.
+        else:
+            print(f"{self.name} lacks the Dominion to create a clone.")
+
+    def worldless_chasm(self):
+        """
+        The ultimate ability. Plunges the battlefield into absolute darkness,
+        blinding enemies and empowering Nyxar.
+        """
+        cost = 100
+        if self.dominion >= cost:
+            self.dominion = 0
+            print(f"{self.name} unleashes his ultimate power, plunging the world into a Worldless Chasm!")
+            print("...All light is extinguished, and only the shadows remain!")
+            # In-game logic for a powerful, battlefield-wide debuff that severely hinders heroes
+            # while providing a massive buff to Nyxar for a limited time.
+        else:
+            print(f"{self.name} has not established enough Dominion to end the world.")
 class Zaia(Player):
     """
     Represents Zaia, a swift and lethal member of the Ɲōvəmîŋāđ.
@@ -1420,6 +1490,53 @@ def run_cyrus_demonstration():
     print("\n--- Cyrus Demonstration Complete ---")
 
 
+def run_nyxar_demonstration():
+    """
+    A function to demonstrate the abilities of the antagonist, Nyxar.
+    """
+    print("\n--- Nyxar Demonstration ---")
+
+    # --- 1. Create Nyxar and some heroes to fight ---
+    nyxar = Nyxar(x=0, y=0)
+    hero1 = Player(name="Aeron", x=10, y=5)
+    hero2 = Player(name="Zaia", x=8, y=-5)
+
+    print("\n--- Initial State ---")
+    print(nyxar)
+    print(hero1)
+    print(hero2)
+
+    # --- 2. Showcase Nyxar's Abilities ---
+    print("\n--- Turn 1: Nyxar begins to dominate the field ---")
+    nyxar.shadow_tether(hero1)
+    print(f"(Nyxar's tethered enemies: {[e.name for e in nyxar.tethered_enemies]})")
+    nyxar.update() # Simulate a game tick to generate Dominion
+    print(nyxar)
+
+    print("\n--- Turn 2: Nyxar extends his influence ---")
+    nyxar.shadow_tether(hero2)
+    print(f"(Nyxar's tethered enemies: {[e.name for e in nyxar.tethered_enemies]})")
+
+    print("\n...Time passes, Nyxar's dominion grows...")
+    for _ in range(5): # Simulate a few more ticks
+        nyxar.update()
+    print(nyxar)
+
+
+    print("\n--- Turn 3: Nyxar creates a clone ---")
+    nyxar.create_umbral_clone(hero1)
+    print(nyxar)
+
+    print("\n--- Turn 4: Nyxar gathers his full power ---")
+    # Manually set dominion to max for the ultimate
+    nyxar.dominion = 100
+    print(nyxar)
+    nyxar.worldless_chasm()
+    print(nyxar)
+
+    print("\n--- Nyxar Demonstration Complete ---")
+
+
 if __name__ == "__main__":
     # run_game() # You can comment this out to only run the character demo
     # run_character_demonstration()
@@ -1427,3 +1544,4 @@ if __name__ == "__main__":
     run_aeron_demonstration()
     run_delilah_demonstration()
     run_cirrus_demonstration()
+    run_nyxar_demonstration()

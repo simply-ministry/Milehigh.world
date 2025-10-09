@@ -1,6 +1,5 @@
 import unittest
-from game import Skyix, Anastasia, Micah, Player, Enemy, Zaia
-from game import Skyix, Anastasia, Micah, Player, Enemy, DelilahTheDesolate
+from game import Skyix, Anastasia, Micah, Player, Enemy, Zaia, DelilahTheDesolate, Nyxar
 
 class TestNewCharacters(unittest.TestCase):
 
@@ -96,6 +95,48 @@ class TestNewCharacters(unittest.TestCase):
         self.assertLess(self.enemy.health, initial_enemy_health)
         self.assertLess(self.micah.fortitude, 50)
 
+    # --- Delilah Tests ---
+
+    def test_delilah_initialization(self):
+        """Test that Delilah initializes with the correct stats."""
+        self.assertEqual(self.delilah.health, 160)
+        self.assertEqual(self.delilah.blight, 25)
+        self.assertEqual(self.delilah.max_blight, 100)
+
+    def test_touch_of_decay_generates_blight(self):
+        """Test that touch_of_decay increases blight."""
+        initial_blight = self.delilah.blight
+        self.delilah.touch_of_decay(self.enemy)
+        self.assertEqual(self.delilah.blight, initial_blight + 5)
+
+    def test_summon_omen_avatar_success(self):
+        """Test that summon_omen_avatar can be used with sufficient blight."""
+        self.delilah.blight = 70
+        initial_blight = self.delilah.blight
+        self.delilah.summon_omen_avatar(self.enemy)
+        self.assertEqual(self.delilah.blight, initial_blight - 60)
+
+    def test_summon_omen_avatar_insufficient_blight(self):
+        """Test that summon_omen_avatar cannot be used without enough blight."""
+        self.delilah.blight = 50
+        initial_blight = self.delilah.blight
+        self.delilah.summon_omen_avatar(self.enemy)
+        self.assertEqual(self.delilah.blight, initial_blight)
+
+    def test_voidblight_zone_success(self):
+        """Test that voidblight_zone can be used with sufficient blight."""
+        self.delilah.blight = 95
+        initial_blight = self.delilah.blight
+        self.delilah.voidblight_zone()
+        self.assertEqual(self.delilah.blight, initial_blight - 90)
+
+    def test_voidblight_zone_insufficient_blight(self):
+        """Test that voidblight_zone cannot be used without enough blight."""
+        self.delilah.blight = 80
+        initial_blight = self.delilah.blight
+        self.delilah.voidblight_zone()
+        self.assertEqual(self.delilah.blight, initial_blight)
+
 # --- Zaia Tests ---
 class TestZaia(unittest.TestCase):
     def setUp(self):
@@ -155,47 +196,56 @@ class TestZaia(unittest.TestCase):
         self.zaia.exploit_weakness(self.enemy)
         self.assertEqual(self.zaia.momentum, 40)
         self.assertEqual(self.enemy.health, initial_enemy_health)
-    # --- Delilah Tests ---
 
-    def test_delilah_initialization(self):
-        """Test that Delilah initializes with the correct stats."""
-        self.assertEqual(self.delilah.health, 160)
-        self.assertEqual(self.delilah.blight, 25)
-        self.assertEqual(self.delilah.max_blight, 100)
+class TestNyxar(unittest.TestCase):
+    def setUp(self):
+        """Set up test fixtures before each test method."""
+        self.nyxar = Nyxar()
+        self.enemy = Enemy(name="Test Enemy")
 
-    def test_touch_of_decay_generates_blight(self):
-        """Test that touch_of_decay increases blight."""
-        initial_blight = self.delilah.blight
-        self.delilah.touch_of_decay(self.enemy)
-        self.assertEqual(self.delilah.blight, initial_blight + 5)
+    def test_nyxar_initialization(self):
+        """Test that Nyxar initializes with the correct stats."""
+        self.assertEqual(self.nyxar.health, 1000)
+        self.assertEqual(self.nyxar.dominion, 0)
+        self.assertEqual(self.nyxar.max_dominion, 100)
 
-    def test_summon_omen_avatar_success(self):
-        """Test that summon_omen_avatar can be used with sufficient blight."""
-        self.delilah.blight = 70
-        initial_blight = self.delilah.blight
-        self.delilah.summon_omen_avatar(self.enemy)
-        self.assertEqual(self.delilah.blight, initial_blight - 60)
+    def test_shadow_tether(self):
+        """Test that shadow_tether adds a target to tethered_enemies."""
+        self.nyxar.shadow_tether(self.enemy)
+        self.assertIn(self.enemy, self.nyxar.tethered_enemies)
 
-    def test_summon_omen_avatar_insufficient_blight(self):
-        """Test that summon_omen_avatar cannot be used without enough blight."""
-        self.delilah.blight = 50
-        initial_blight = self.delilah.blight
-        self.delilah.summon_omen_avatar(self.enemy)
-        self.assertEqual(self.delilah.blight, initial_blight)
+    def test_update_generates_dominion(self):
+        """Test that update generates dominion based on tethered enemies."""
+        self.nyxar.shadow_tether(self.enemy)
+        self.nyxar.update()
+        self.assertEqual(self.nyxar.dominion, 5)
 
-    def test_voidblight_zone_success(self):
-        """Test that voidblight_zone can be used with sufficient blight."""
-        self.delilah.blight = 95
-        initial_blight = self.delilah.blight
-        self.delilah.voidblight_zone()
-        self.assertEqual(self.delilah.blight, initial_blight - 90)
+    def test_create_umbral_clone_success(self):
+        """Test that create_umbral_clone works with enough dominion."""
+        self.nyxar.dominion = 70
+        initial_dominion = self.nyxar.dominion
+        self.nyxar.create_umbral_clone(self.enemy)
+        self.assertEqual(self.nyxar.dominion, initial_dominion - 60)
 
-    def test_voidblight_zone_insufficient_blight(self):
-        """Test that voidblight_zone cannot be used without enough blight."""
-        self.delilah.blight = 80
-        initial_blight = self.delilah.blight
-        self.delilah.voidblight_zone()
-        self.assertEqual(self.delilah.blight, initial_blight)
+    def test_create_umbral_clone_insufficient_dominion(self):
+        """Test that create_umbral_clone fails without enough dominion."""
+        self.nyxar.dominion = 50
+        initial_dominion = self.nyxar.dominion
+        self.nyxar.create_umbral_clone(self.enemy)
+        self.assertEqual(self.nyxar.dominion, initial_dominion)
+
+    def test_worldless_chasm_success(self):
+        """Test that worldless_chasm works with enough dominion."""
+        self.nyxar.dominion = 100
+        self.nyxar.worldless_chasm()
+        self.assertEqual(self.nyxar.dominion, 0)
+
+    def test_worldless_chasm_insufficient_dominion(self):
+        """Test that worldless_chasm fails without enough dominion."""
+        self.nyxar.dominion = 90
+        initial_dominion = self.nyxar.dominion
+        self.nyxar.worldless_chasm()
+        self.assertEqual(self.nyxar.dominion, initial_dominion)
 
 if __name__ == '__main__':
     unittest.main()
