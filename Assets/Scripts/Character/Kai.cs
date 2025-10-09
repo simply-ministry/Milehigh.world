@@ -5,32 +5,19 @@ using UnityEngine;
 /// Kai is a tactical seer whose abilities focus on gathering information,
 /// revealing enemy weaknesses, and providing support to his allies.
 /// </summary>
-public class Kai : Novamina
+public class Kai : Character
 {
-    /// <summary>
-    /// Initializes Kai's specific attributes, setting his name and archetype.
-    /// </summary>
-    protected override void Awake()
+    // Placeholder for Kai's unique abilities.
+    // In a full implementation, these methods would contain logic
+    // to reveal information to the player or apply buffs.
+
+    public void PropheticGlimpse(Character enemy)
     {
-        base.Awake();
-        characterName = "Kai the Prophet";
-        Archetype = "Support / Information Gatherer / Tactical Seer";
+        Debug.Log($"{characterName} uses Prophetic Glimpse on {enemy.characterName}, revealing a weakness!");
     }
 
-    // --- Key Abilities from GDD ---
-
-    // Tactical Seer:
-    // - "Prophetic Glimpse": Reveals enemy weaknesses or optimal paths.
-    // - "Truth of Lîŋq": Illuminates hidden elements in the environment.
-
-    // Support:
-    // - "Insightful Aura": Enhances allies.
-
-    /// <summary>
-    /// Called every frame, this method will contain Kai's gameplay logic.
-    /// </summary>
-    void Update()
+    public void TruthOfLinq()
     {
-        // Gameplay logic for Kai
+        Debug.Log($"{characterName} reveals the Truth of Lîŋq, illuminating hidden paths.");
     }
 }
