@@ -8,7 +8,7 @@ public class Character : MonoBehaviour
     [Header("Core Attributes")]
     public string characterName = "Character";
     public float maxHealth = 100f;
-    public float currentHealth;
+    public float health;
     public float maxMana = 100f;
     public float mana;
     public bool isAlive = true;
@@ -20,7 +20,7 @@ public class Character : MonoBehaviour
 
     void Awake()
     {
-        currentHealth = maxHealth;
+        health = maxHealth;
         mana = maxMana;
     }
 
@@ -32,13 +32,13 @@ public class Character : MonoBehaviour
         if (!isAlive) return;
 
         float damageTaken = Mathf.Max(1f, amount - defense);
-        currentHealth -= damageTaken;
+        health -= damageTaken;
 
         Debug.Log($"{characterName} takes {damageTaken} damage.");
 
-        if (currentHealth <= 0)
+        if (health <= 0)
         {
-            currentHealth = 0;
+            health = 0;
             Die();
         }
     }
@@ -49,7 +49,7 @@ public class Character : MonoBehaviour
     public void Heal(float amount)
     {
         if (!isAlive) return;
-        currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
+        health = Mathf.Min(maxHealth, health + amount);
         Debug.Log($"{characterName} heals for {amount}.");
     }
 

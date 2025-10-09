@@ -10,6 +10,9 @@ public class ActionButton : MonoBehaviour
 
     private Ability assignedAbility;
     private Character caster;
+
+    // In a real game, a more robust targeting system would set this.
+    // For now, we can have a simple "TargetingManager" or similar.
     private Character currentTarget;
 
     public void Initialize(Ability ability, Character caster)
@@ -21,14 +24,20 @@ public class ActionButton : MonoBehaviour
         GetComponent<Button>().onClick.AddListener(OnButtonClick);
     }
 
-    // This would be called by a targeting system when the player selects an enemy
-    public void SetTarget(Character target)
-    {
-        currentTarget = target;
-    }
-
     private void OnButtonClick()
     {
+        // For now, let's assume a simple targeting system.
+        // A full implementation would let the player click on an enemy.
+        // Find the first alive enemy to target.
+        foreach (var enemy in FindObjectsOfType<Character>())
+        {
+            if (enemy.CompareTag("Enemy") && enemy.isAlive)
+            {
+                currentTarget = enemy;
+                break;
+            }
+        }
+
         if (caster != null && currentTarget != null && assignedAbility != null)
         {
             Debug.Log($"UI: Player chose to use '{assignedAbility.abilityName}' on '{currentTarget.characterName}'.");
@@ -36,7 +45,7 @@ public class ActionButton : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("UI: Action cannot be performed. Caster, target, or ability is missing.");
+            Debug.LogWarning("UI: Action could not be performed. Caster, target, or ability is missing.");
         }
     }
 }
