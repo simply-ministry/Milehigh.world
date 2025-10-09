@@ -1,32 +1,14 @@
 # Milehigh.World: Into the Void
 
-## 1. Overview
+This repository contains the source code and assets for the science-fantasy RPG, "Milehigh.World: Into the Void." The project is being developed in Unity, with supplementary Python scripts for managing the asset pipeline.
 
-**Milehigh.World: Into the Void** is a prototype for a Sci-Fi Action RPG developed on the Unity platform, designed for the Meta Quest. This repository contains all source code, design documents, and utilities related to the project.
+## 🎮 Project Overview
 
-The game features a rich narrative, a diverse cast of characters known as the Ɲōvəmîŋāđ, and a unique, server-authoritative architecture.
+"Milehigh.World: Into the Void" is a narrative-driven RPG set in a fragmented universe known as The Verse. The story follows the Ɲōvəmîŋāđ, ten chosen individuals destined to fulfill or prevent a prophecy that will determine the fate of their world. The game blends advanced technology with mystical forces, featuring a diverse cast of characters and a deep, branching narrative.
 
-## 2. Table of Contents
+## 📂 Repository Structure
 
-- [Overview](#1-overview)
-- [Core Concepts](#3-core-concepts)
-- [Repository Structure](#4-repository-structure)
-- [Setup and Installation](#5-setup-and-installation)
-- [How to Run](#6-how-to-run)
-- [Documentation](#7-documentation)
-
-## 3. Core Concepts
-
-This project is built on several key technical and design pillars:
-
-- **Engine**: The project is developed in **Unity 2022.3.20f1** with C# as the primary scripting language.
-- **Server-Authoritative Architecture**: As outlined in `SECURITY.md`, the game is designed with a server-first security model. The `ServerCombatManager.cs` script is a reference implementation of this, where the server is the source of truth for all combat validation to prevent cheating.
-- **Modular Interaction System**: Player interactions are handled by a flexible system consisting of an `Interactor.cs` script on the player and an abstract `Interactable.cs` base class. This allows for easy creation of new interactable objects like NPCs, teleporters, and launchpads. The `AllianceTowerManager.cs` serves as a central hub for managing these interactions in a scene.
-- **USD-Based Asset Pipeline**: The project utilizes a unique pipeline for defining and importing 3D assets. USD (Universal Scene Description) code snippets are embedded within Markdown documents (like `document.md`), which are then parsed by a Python script (`usd_parser.py`) and can be loaded into Unity at runtime, as demonstrated in `UsdImportExample.cs`.
-
-## 4. Repository Structure
-
-The repository is organized as follows:
+This repository is organized to maintain a clean and scalable workflow between the Unity project and external tools.
 
 ```
 .
@@ -37,7 +19,7 @@ The repository is organized as follows:
 │   │   ├── Core/           # C# scripts for core systems (interaction, scene management).
 │   │   ├── Physics/        # C# scripts for custom physics (collisions, water effects).
 │   │   └── Story/          # C# scripts for managing narrative cutscenes.
-│   └── ...                 # Other standard Unity asset folders (Scenes, Prefabs, etc.).
+│   └── ...               # Other standard Unity asset folders (Scenes, Prefabs, etc.).
 ├── docs/                   # All design and technical documentation.
 ├── .gitignore
 ├── README.md               # This file.
@@ -46,62 +28,45 @@ The repository is organized as follows:
 └── usd_parser.py           # Python script to extract USD snippets from Markdown.
 ```
 
-## 5. Setup and Installation
+### Key Directories:
+
+* **`Assets/Scripts/`**: Contains all C# source code for the Unity project, organized by system.
+* **`docs/`**: A directory for all Game Design Documents (GDDs), technical specifications, and narrative outlines.
+* **Root Directory**: Contains Python scripts for asset validation, project configuration files, and this README.
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- **Unity Hub** with **Unity 2022.3.20f1** installed.
-- **Python 3.x**
-- **Git**
+* **Unity Hub** and a compatible **Unity Editor** version (e.g., 2022.3 LTS or later).
+* **Python 3.8+** for running utility scripts.
+* **Git** for version control.
 
-### Steps
+### Installation
 
 1.  **Clone the repository:**
     ```bash
-    git clone <repository_url>
-    cd <repository_directory>
+    git clone [https://github.com/your-username/milehigh.world.git](https://github.com/your-username/milehigh.world.git)
+    cd milehigh.world
     ```
-
 2.  **Set up the Python environment:**
-    It is recommended to use a virtual environment.
     ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
     pip install -r requirements.txt
     ```
+3.  **Open the project in Unity:**
+    * Open Unity Hub.
+    * Click "Add" or "Open."
+    * Navigate to the cloned repository folder and select it.
+    * The project will open in the Unity Editor, ready for development.
 
-3.  **Open the Unity Project:**
-    - Open Unity Hub.
-    - Click "Open" -> "Add project from disk".
-    - Navigate to the cloned repository's root directory and select it.
-    - The project will now be available in your Unity Hub project list.
+## 🛠️ Asset Pipeline
 
-## 6. How to Run
+This project uses a custom Python-based pipeline for validating **Universal Scene Description (USD)** assets.
 
-### Running the Game in the Editor
+* `usd_parser.py`: This script is used to parse and extract USD data snippets from design documents.
+* `test_usd_validation.py`: This script contains unit tests to ensure that USD assets meet the project's technical requirements before being imported into Unity.
 
-1.  Open the project in Unity.
-2.  In the `Project` window, navigate to the `Assets/Scenes` directory.
-3.  Double-click on a scene file (e.g., a test scene or main menu) to open it.
-4.  Press the **Play** button at the top of the editor to run the scene.
-
-### Running the Python Scripts
-
-Ensure your Python virtual environment is activated.
-
--   **To run the USD parser:**
-    ```bash
-    python usd_parser.py
-    ```
--   **To run the Python unit tests:**
-    ```bash
-    python -m unittest discover
-    ```
-
-## 7. Documentation
-
-The primary design document for the game is the **Game Design Document (GDD)**. It provides a comprehensive overview of the game's concept, mechanics, narrative, and technical specifications.
-
-- [**Read the full Game Design Document here](./docs/GDD.md)**
-
-Additional technical and design documents can also be found in the `/docs` directory. The source code itself is now fully documented with XML and Google-style docstrings.
+To run the validation tests, use the following command:
+```bash
+python test_usd_validation.py
+```
