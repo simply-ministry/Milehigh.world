@@ -1,9 +1,9 @@
-using System.Collections;
+using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 
 /// <summary>
+/// Provides centralized damage calculation logic. This class is a singleton.
 /// Manages the state and flow of a turn-based combat encounter.
 /// </summary>
 public class CombatManager : MonoBehaviour
@@ -29,48 +29,15 @@ public class CombatManager : MonoBehaviour
     // --- Singleton Instance ---
     public static CombatManager Instance { get; private set; }
 
-    // --- State Management ---
-    private List<Character> combatants = new List<Character>();
-    private int currentTurnIndex = 0;
-    private bool isCombatActive = false;
-    private bool isPlayerTurn = false;
-
     // --- Damage Calculation ---
     /// <summary>
     /// Defines the various formulas that can be used for damage calculation.
     /// </summary>
     public enum DamageFormula
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
-    }
-
-    /// <summary>
-    /// Starts a new combat encounter.
-    /// </summary>
-    /// <param name="playerParty">List of player-controlled characters.</param>
-    /// <param name="enemyParty">List of AI-controlled characters.</param>
-    public void StartCombat(List<Character> playerParty, List<Character> enemyParty)
-    {
-        if (isCombatActive) return;
-
-        combatants.Clear();
-        combatants.AddRange(playerParty);
-        combatants.AddRange(enemyParty);
-
-        currentTurnIndex = 0;
-        isCombatActive = true;
-        Debug.Log("===== COMBAT STARTED =====");
-        StartCoroutine(CombatLoop());
-    }
-
-    private IEnumerator CombatLoop()
-    {
-        while (isCombatActive)
+        Linear,
+        RatioBased,
+        PercentageReduction
     }
 
     void Awake()
@@ -213,119 +180,30 @@ public class CombatManager : MonoBehaviour
         int baseDamage = 0;
         switch (formula)
         {
-            Character currentCharacter = combatants[currentTurnIndex];
-
-            if (currentCharacter.isAlive)
-            {
-                Debug.Log($"--- {currentCharacter.characterName}'s Turn ---");
-
-                if (currentCharacter.CompareTag("Player"))
-                {
-                    isPlayerTurn = true;
-                    // The Combat Loop will now wait until the player has made a move
-                    yield return new WaitUntil(() => !isPlayerTurn);
-                }
-                else // This is an AI's turn
-                {
-                    // This assumes you have an AIController attached to your enemy prefabs
-                    var aiController = currentCharacter.GetComponent<AIController>();
-                    if (aiController != null)
-                    {
-                        aiController.TakeTurn();
-                    }
-                    yield return new WaitForSeconds(1f); // Wait a moment after the AI's move
-                }
-            }
-
-            if (CheckForEndOfCombat())
-            {
-                EndCombat();
-                yield break;
-            }
-
-            currentTurnIndex = (currentTurnIndex + 1) % combatants.Count;
+            case DamageFormula.Linear:
+                baseDamage = attacker.attack + attackPower;
+                break;
+            case DamageFormula.RatioBased:
+                baseDamage = Mathf.RoundToInt((float)(attacker.attack + attackPower) / (1 + (float)defense / 50));
+                break;
+            case DamageFormula.PercentageReduction:
+                 float reduction = (float)defense / (defense + 100);
+                 baseDamage = Mathf.RoundToInt((attacker.attack + attackPower) * (1 - reduction));
+                break;
         }
-    }
 
-    // This new public method will be called by the UI Buttons
-    public void PlayerAction(Character player, Character target, Ability ability)
-    {
-        if (!isPlayerTurn || player != combatants[currentTurnIndex]) return;
+        // 3. Apply critical hit and custom multipliers
+        int finalDamage = Mathf.RoundToInt(baseDamage * critModifier * customMultiplier);
 
-        ability.Use(player, target);
-        isPlayerTurn = false; // The player's turn is now over
-    }
-
-    private bool CheckForEndOfCombat()
-    {
-        bool allPlayersDefeated = combatants.Where(c => c.CompareTag("Player")).All(c => !c.isAlive);
-        bool allEnemiesDefeated = combatants.Where(c => c.CompareTag("Enemy")).All(c => !c.isAlive);
-
-        return allPlayersDefeated || allEnemiesDefeated;
-    }
-
-    private void EndCombat()
-    {
-        isCombatActive = false;
-        Debug.Log("===== COMBAT ENDED =====");
-    }
-
-    /// <summary>
-    /// Gets a list of all combatants.
-    /// </summary>
-    /// <returns>A new list containing all characters currently in combat.</returns>
-    public List<Character> GetCombatants()
-    {
-        return combatants.ToList();
-
-                // If this is a player character, wait for player input.
-                // If it's an AI, execute its turn.
-                // For now, we'll just log the turn and advance.
-                // A full implementation would involve a state machine to wait for actions.
-                yield return new WaitForSeconds(1f); // Placeholder for action duration
-            }
-
-            // Check for victory/defeat conditions
-            if (CheckForEndOfCombat())
-            {
-                EndCombat();
-                yield break; // Exit the loop
-            }
-
-            // Advance to the next turn
-            currentTurnIndex = (currentTurnIndex + 1) % combatants.Count;
-        }
-    }
-
-    /// <summary>
-    /// Checks if the combat has ended (i.e., one party has been defeated).
-    /// </summary>
-    /// <returns>True if combat should end, false otherwise.</returns>
-    private bool CheckForEndOfCombat()
-    {
-        // Example logic:
-        bool playersAlive = combatants.Any(c => c.isPlayer && c.isAlive);
-        bool enemiesAlive = combatants.Any(c => !c.isPlayer && c.isAlive);
-
-        return !playersAlive || !enemiesAlive;
-    }
-
-    /// <summary>
-    /// Cleans up and ends the current combat encounter.
-    /// </summary>
-    private void EndCombat()
-    {
-        isCombatActive = false;
-        bool playersWon = combatants.Any(c => c.isPlayer && c.isAlive);
-        if (playersWon)
+        if (isCrit)
         {
-            Debug.Log("===== COMBAT ENDED: VICTORY! =====");
+            Debug.Log("CRITICAL HIT!");
         }
-        else
-        {
-            Debug.Log("===== COMBAT ENDED: DEFEAT! =====");
-        }
-        // Here you would typically transition back to the main game state,
-        // award XP, drops, etc.
+
+        return finalDamage;
     }
+
+    // The old turn-based logic has been removed.
+    // The manager can be expanded with methods to check for combat state,
+    // like checking if all enemies or players are defeated.
 }

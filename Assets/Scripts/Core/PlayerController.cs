@@ -16,6 +16,7 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         // Don't process input if the game is paused or in a cutscene
+        // if (GameManager.Instance.GetCurrentState() != GameManager.GameState.Playing) return;
         if (GameManager.Instance.GetCurrentState() != GameManager.GameState.Playing) return;
 
         // --- Real-Time Movement ---
