@@ -1,5 +1,5 @@
 import unittest
-from game import Skyix, Anastasia, Micah, Player, Enemy
+from game import Skyix, Anastasia, Micah, Player, Enemy, Zaia
 
 class TestNewCharacters(unittest.TestCase):
 
@@ -93,6 +93,66 @@ class TestNewCharacters(unittest.TestCase):
         self.micah.earthen_smash(self.enemy)
         self.assertLess(self.enemy.health, initial_enemy_health)
         self.assertLess(self.micah.fortitude, 50)
+
+# --- Zaia Tests ---
+class TestZaia(unittest.TestCase):
+    def setUp(self):
+        """Set up test fixtures before each test method."""
+        self.zaia = Zaia()
+        self.enemy = Enemy(name="Test Enemy")
+
+    def test_zaia_initialization(self):
+        """Test that Zaia initializes with the correct stats."""
+        self.assertEqual(self.zaia.health, 130)
+        self.assertEqual(self.zaia.momentum, 0)
+        self.assertEqual(self.zaia.is_stealthed, False)
+
+    def test_swift_strike_generates_momentum(self):
+        """Test that swift_strike deals damage and generates momentum."""
+        initial_enemy_health = self.enemy.health
+        self.zaia.swift_strike(self.enemy)
+        self.assertEqual(self.zaia.momentum, 15)
+        self.assertLess(self.enemy.health, initial_enemy_health)
+
+    def test_shadow_vanish_success_and_failure(self):
+        """Test that shadow_vanish activates stealth and consumes momentum."""
+        # Failure case
+        self.zaia.momentum = 20
+        self.zaia.shadow_vanish()
+        self.assertEqual(self.zaia.is_stealthed, False)
+
+        # Success case
+        self.zaia.momentum = 40
+        self.zaia.shadow_vanish()
+        self.assertEqual(self.zaia.is_stealthed, True)
+        self.assertEqual(self.zaia.momentum, 10)
+
+    def test_exploit_weakness_damage_and_stealth_break(self):
+        """Test that exploit_weakness deals correct damage and breaks stealth."""
+        # Unstealthed case
+        self.zaia.momentum = 60
+        initial_enemy_health = self.enemy.health
+        self.zaia.exploit_weakness(self.enemy)
+        self.assertEqual(self.zaia.momentum, 10)
+        self.assertEqual(self.enemy.health, initial_enemy_health - 60)
+        self.assertEqual(self.zaia.is_stealthed, False)
+
+        # Stealthed case
+        self.zaia.momentum = 60
+        self.zaia.is_stealthed = True
+        initial_enemy_health = self.enemy.health
+        self.zaia.exploit_weakness(self.enemy)
+        self.assertEqual(self.zaia.momentum, 10)
+        self.assertEqual(self.enemy.health, initial_enemy_health - 120)
+        self.assertEqual(self.zaia.is_stealthed, False)
+
+    def test_exploit_weakness_insufficient_momentum(self):
+        """Test that exploit_weakness fails without enough momentum."""
+        self.zaia.momentum = 40
+        initial_enemy_health = self.enemy.health
+        self.zaia.exploit_weakness(self.enemy)
+        self.assertEqual(self.zaia.momentum, 40)
+        self.assertEqual(self.enemy.health, initial_enemy_health)
 
 if __name__ == '__main__':
     unittest.main()
