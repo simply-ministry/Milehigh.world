@@ -9,6 +9,7 @@ class TestNewCharacters(unittest.TestCase):
         self.skyix = Skyix()
         self.anastasia = Anastasia()
         self.micah = Micah()
+        self.delilah = DelilahTheDesolate()
         self.ally = Player(name="Ally")
         self.enemy = Enemy(name="Test Enemy")
 

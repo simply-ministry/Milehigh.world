@@ -2,6 +2,84 @@ import time
 import random
 import math
 
+class Item:
+    """Base class for all items in the game."""
+    def __init__(self, name, description):
+        self.name = name
+        self.description = description
+
+    def __str__(self):
+        return f"{self.name}: {self.description}"
+
+class Weapon(Item):
+    """A type of item that can be equipped to deal damage."""
+    def __init__(self, name, description, damage):
+        super().__init__(name, description)
+        self.damage = damage
+
+    def __str__(self):
+        return f"{self.name} (Weapon, +{self.damage} DMG): {self.description}"
+
+class Consumable(Item):
+    """A type of item that can be used once for an effect."""
+    def __init__(self, name, description, effect, value):
+        super().__init__(name, description)
+        self.effect = effect  # e.g., "heal", "restore_mana"
+        self.value = value
+
+    def __str__(self):
+        return f"{self.name} (Consumable, {self.effect} +{self.value}): {self.description}"
+
+    def use(self, character):
+        """Applies the consumable's effect to a character."""
+        print(f"{character.name} uses {self.name}!")
+        if self.effect == "heal":
+            character.heal(self.value)
+        elif self.effect == "restore_mana":
+            if hasattr(character, 'mana'):
+                character.mana += self.value
+                if character.mana > character.max_mana:
+                    character.mana = character.max_mana
+                print(f"{character.name} restored {self.value} mana.")
+            else:
+                print(f"{character.name} does not have mana.")
+        else:
+            print(f"The {self.name} has no effect.")
+
+class Inventory:
+    """Manages a character's items."""
+    def __init__(self, capacity=20):
+        self.items = []
+        self.capacity = capacity
+
+    def add_item(self, item):
+        """Adds an item to the inventory if there is space."""
+        if len(self.items) < self.capacity:
+            self.items.append(item)
+            print(f"{item.name} was added to the inventory.")
+            return True
+        else:
+            print("Inventory is full!")
+            return False
+
+    def remove_item(self, item_name):
+        """Removes an item from the inventory by name."""
+        for item in self.items:
+            if item.name == item_name:
+                self.items.remove(item)
+                print(f"{item.name} was removed from the inventory.")
+                return
+        print(f"'{item_name}' not found in inventory.")
+
+    def list_items(self):
+        """Prints a list of all items in the inventory."""
+        if not self.items:
+            print("Inventory is empty.")
+            return
+        print("--- Inventory ---")
+        for item in self.items:
+            print(f"- {item}")
+        print("-----------------")
 # --- Base Classes ---
 
 class GameObject:
@@ -38,6 +116,203 @@ class GameObject:
         print(f"{self.name} heals for {amount} HP.")
 
     def die(self):
+        """
+        Handles the object's death.  This can be overridden in subclasses.
+        """
+        self.visible = False
+        self.solid = False
+        print(f"{self.name} has died.")
+
+    def update_status_effects(self, delta_time):
+        """Updates status effects, applying their effects and decrementing timers."""
+        # Using list() to create a copy, allowing modification during iteration
+        for effect, duration in list(self.status_effects.items()):
+            # Decrement timer
+            new_duration = duration - delta_time
+            if new_duration > 0:
+                self.status_effects[effect] = new_duration
+            else:
+                del self.status_effects[effect]
+                print(f"{self.name}'s {effect} has worn off.")
+                continue # Skip to next effect once it's removed
+
+            # Apply passive effects
+            if effect == 'psychic_damage':
+                dot_damage = 5 * delta_time # 5 damage per second
+                print(f"{self.name} is taking psychic damage.")
+                self.take_damage(dot_damage)
+
+    def update(self, delta_time):
+        """
+        Updates the object's state.  This method is called every frame.
+        This is meant to be overridden in subclasses.
+        Args:
+           delta_time: Time since the last frame in seconds.
+        """
+        pass
+
+    def draw(self):
+        """
+        Draws the object.  This method is called every frame.
+        This is meant to be overridden in subclasses, using a graphics library.
+        """
+        if self.visible:
+            print(f"Drawing {self.name} at ({self.x}, {self.y}, {self.z})") # Basic drawing for now.
+
+class Player(GameObject):
+    """
+    Represents the player character.
+    """
+    def __init__(self, name="Player", x=0, y=0, z=0):
+        super().__init__(name=name, x=x, y=y, z=z, health=100, speed=5)
+        self.weapon = None
+        self.inventory = Inventory()
+        self.level = 1
+        self.experience = 0
+        self.max_health = 100
+        self.mana = 100
+        self.max_mana = 100
+        self.mana_regeneration_rate = 1.5  # Mana per second
+
+    def update(self, delta_time):
+        """
+        Updates the player's state, including mana regeneration.
+        """
+        super().update(delta_time)
+        self.update_status_effects(delta_time)
+        self.mana += self.mana_regeneration_rate * delta_time
+        if self.mana > self.max_mana:
+            self.mana = self.max_mana
+
+    def attack(self, target):
+        """
+        Attacks another GameObject, with damage influenced by strength and dexterity.
+
+        Args:
+            target (GameObject): The target to attack.
+        """
+        # --- Critical Hit/Miss Logic (based on dexterity) ---
+        miss_chance = max(0, 5 - self.dexterity / 4)
+        if random.uniform(0, 100) < miss_chance:
+            print(f"{self.name}'s attack missed {target.name}!")
+            return
+
+        crit_chance = 5 + self.dexterity / 2
+        is_critical = random.uniform(0, 100) < crit_chance
+
+        # --- Damage Calculation (based on strength) ---
+        if self.weapon:
+            base_damage = self.weapon.damage
+            strength_bonus = self.strength // 2
+            total_damage = base_damage + strength_bonus
+            attack_source = self.weapon.name
+        else:
+            base_damage = 2  # Low base damage for bare hands
+            strength_bonus = self.strength // 2
+            total_damage = base_damage + strength_bonus
+            attack_source = "bare hands"
+
+        if is_critical:
+            total_damage *= 2  # Double damage on a critical hit
+            print(f"CRITICAL HIT! {self.name} attacks {target.name} with {attack_source} for {total_damage} damage.")
+        else:
+            print(f"{self.name} attacks {target.name} with {attack_source} for {total_damage} damage.")
+
+        target.take_damage(total_damage)
+
+    def equip_weapon(self, weapon):
+        """
+        Equips a weapon.
+
+        Args:
+            weapon (Weapon): The weapon to equip.
+        """
+        if isinstance(weapon, Weapon):
+            self.weapon = weapon
+            print(f"{self.name} equipped {weapon.name}.")
+        else:
+            print(f"{self.name} cannot equip {weapon.name}. It is not a weapon.")
+
+    def pickup_item(self, item):
+        """
+        Adds an item to the player's inventory.
+        """
+        self.inventory.add_item(item)
+
+    def use_item(self, item_name):
+        """
+        Uses a consumable item from the inventory.
+        """
+        for item in self.inventory.items:
+            if item.name == item_name:
+                if isinstance(item, Consumable):
+                    item.use(self)
+                    self.inventory.remove_item(item_name)
+                    return True
+                else:
+                    print(f"{self.name} cannot use {item.name}.")
+                    return False
+        print(f"'{item_name}' not found in inventory.")
+        return False
+
+    def gain_experience(self, amount):
+        """
+        Gains experience points.
+
+        Args:
+            amount (int): The amount of experience to gain.
+        """
+        self.experience += amount
+        print(f"{self.name} gained {amount} experience.")
+        self.check_level_up()
+
+    def check_level_up(self):
+        """
+        Checks if the player has enough experience to level up.
+        """
+        # Example leveling curve: 100 * level * level
+        required_experience = 100 * self.level * self.level
+        if self.experience >= required_experience:
+            self.level += 1
+            self.max_health += 10
+            self.health = self.max_health # Fully heal on level up.
+            self.speed *= 1.1 # Increase speed by 10%
+            print(f"{self.name} leveled up to level {self.level}!")
+
+    def cast_spell(self, spell_name, target):
+        """Casts a spell, with power influenced by intelligence."""
+        if spell_name == "fireball":
+            mana_cost = 20
+            if self.mana >= mana_cost:
+                self.mana -= mana_cost
+                spell_damage = 15 + int(self.intelligence * 1.5)
+                print(f"{self.name} casts Fireball on {target.name} for {spell_damage} damage!")
+                target.take_damage(spell_damage)
+            else:
+                print(f"{self.name} does not have enough mana to cast Fireball!")
+        elif spell_name == "heal":
+            mana_cost = 10
+            if self.mana >= mana_cost:
+                self.mana -= mana_cost
+                heal_amount = 10 + self.intelligence
+                self.heal(heal_amount)
+                print(f"{self.name} casts Heal and recovers {heal_amount} HP.")
+            else:
+                print(f"{self.name} does not have enough mana to cast Heal!")
+        else:
+            print(f"{self.name} does not know the spell {spell_name}.")
+
+
+class Character(Player):
+    """
+    An intermediary class for specialized characters.
+    It allows for setting health and state during initialization.
+    """
+    def __init__(self, name, x=0, y=0, z=0, health=100, state=None):
+        super().__init__(name, x, y, z)
+        self.health = health
+        self.max_health = health
+        self.state = state
         """Handles the object's death."""
         print(f"{self.name} has been defeated.")
 
@@ -53,6 +328,22 @@ class Item:
         self.description = description
     def __str__(self):
         return f"{self.name}: {self.description}"
+
+        if self.distance_to(player) < self.aggro_range:
+            current_speed = self.speed
+            if 'slow' in self.status_effects:
+                print(f"{self.name} is slowed!")
+                current_speed /= 2
+            # Move towards the player
+            dx = player.x - self.x
+            dy = player.y - self.y
+            dz = player.z - self.z
+            distance = self.distance_to(player)
+            if distance > 0:
+              self.move(dx / distance * current_speed * delta_time, dy / distance * current_speed * delta_time, dz/distance * current_speed * delta_time)
+            # Attack the player if close enough.
+            if self.distance_to(player) < 1:  # Attack range
+                self.attack(player)
 
 class Weapon(Item):
     """A type of item that can be equipped to deal damage."""
@@ -124,6 +415,69 @@ class Inventory:
             print(f"- {item}")
         print("-----------------")
 
+        time.sleep(0.01)
+
+def run_game():
+    """
+    Main function to set up and run a demonstration of the game.
+    """
+    game = Game()
+
+    # --- 1. Create Player and Set Attributes ---
+    player = Player(name="Hero", x=0, y=0, z=0)
+    player.strength = 15
+    player.dexterity = 12
+    player.intelligence = 18
+    player.defense = 5
+    game.add_object(player)
+    print(f"A {player.name} has appeared! Str: {player.strength}, Dex: {player.dexterity}, Int: {player.intelligence}, Def: {player.defense}")
+
+    # --- 2. Create Enemies ---
+    enemy1 = Enemy(name="Goblin", x=5, y=5, z=0, type="Goblin")
+    enemy1.defense = 2
+    game.add_object(enemy1)
+
+    enemy2 = Enemy(name="Orc", x=-5, y=-5, z=0, type="Orc")
+    enemy2.attack_damage = 15
+    enemy2.defense = 8
+    game.add_object(enemy2)
+    print(f"Enemies have spawned: A {enemy1.name} and an {enemy2.name}!")
+
+    # --- 3. Create and Distribute Items ---
+    sword = Weapon(name="Greatsword", description="A heavy, two-handed sword.", damage=18)
+    health_potion = Consumable(name="Health Potion", description="Restores 40 HP.", effect="heal", value=40)
+
+    # Player finds the items
+    player.pickup_item(sword)
+    player.equip_weapon(sword)
+    player.pickup_item(health_potion)
+    player.inventory.list_items()
+
+    # --- 4. Demonstrate Initial Actions ---
+    print("\n--- Initial Actions ---")
+    print(f"Initial state: Player HP: {player.health}, Mana: {player.mana}")
+
+    # Use a potion
+    player.use_item("Health Potion")
+    player.inventory.list_items()
+
+    # Cast a powerful spell, influenced by high intelligence
+    player.cast_spell("fireball", enemy1)
+
+    # A powerful physical attack, influenced by strength
+    player.attack(enemy2)
+
+    print(f"\n--- Starting Game Loop ---")
+    print("Watch as the hero and enemies fight to the death! Mana will regenerate over time.\n")
+
+    # --- 5. Start the Game ---
+    game.start()
+
+class Skyix(Player):
+    """
+    Represents the character Sky.ix, the Bionic Goddess.
+    Inherits from the Player class, adding unique Void-based mechanics.
+    """
 # --- Character Classes ---
 
 class Character(GameObject):
