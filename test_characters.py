@@ -9,6 +9,7 @@ from game import (
     DelilahTheDesolate,
     BachirimBase,
 )
+from game import Skyix, Anastasia, Micah, Player, Enemy, Zaia, DelilahTheDesolate, Nyxar
 from game import Skyix, Anastasia, Micah, Player, Enemy, Zaia, DelilahTheDesolate
 
 
@@ -213,6 +214,56 @@ class TestBachirimBase(unittest.TestCase):
         """Set up test fixtures before each test method."""
         self.bachirim = BachirimBase(name="Test Bachirim")
         self.enemy = Enemy(name="Test Enemy")
+
+class TestNyxar(unittest.TestCase):
+    def setUp(self):
+        """Set up test fixtures before each test method."""
+        self.nyxar = Nyxar()
+        self.enemy = Enemy(name="Test Enemy")
+
+    def test_nyxar_initialization(self):
+        """Test that Nyxar initializes with the correct stats."""
+        self.assertEqual(self.nyxar.health, 1000)
+        self.assertEqual(self.nyxar.dominion, 0)
+        self.assertEqual(self.nyxar.max_dominion, 100)
+
+    def test_shadow_tether(self):
+        """Test that shadow_tether adds a target to tethered_enemies."""
+        self.nyxar.shadow_tether(self.enemy)
+        self.assertIn(self.enemy, self.nyxar.tethered_enemies)
+
+    def test_update_generates_dominion(self):
+        """Test that update generates dominion based on tethered enemies."""
+        self.nyxar.shadow_tether(self.enemy)
+        self.nyxar.update()
+        self.assertEqual(self.nyxar.dominion, 5)
+
+    def test_create_umbral_clone_success(self):
+        """Test that create_umbral_clone works with enough dominion."""
+        self.nyxar.dominion = 70
+        initial_dominion = self.nyxar.dominion
+        self.nyxar.create_umbral_clone(self.enemy)
+        self.assertEqual(self.nyxar.dominion, initial_dominion - 60)
+
+    def test_create_umbral_clone_insufficient_dominion(self):
+        """Test that create_umbral_clone fails without enough dominion."""
+        self.nyxar.dominion = 50
+        initial_dominion = self.nyxar.dominion
+        self.nyxar.create_umbral_clone(self.enemy)
+        self.assertEqual(self.nyxar.dominion, initial_dominion)
+
+    def test_worldless_chasm_success(self):
+        """Test that worldless_chasm works with enough dominion."""
+        self.nyxar.dominion = 100
+        self.nyxar.worldless_chasm()
+        self.assertEqual(self.nyxar.dominion, 0)
+
+    def test_worldless_chasm_insufficient_dominion(self):
+        """Test that worldless_chasm fails without enough dominion."""
+        self.nyxar.dominion = 90
+        initial_dominion = self.nyxar.dominion
+        self.nyxar.worldless_chasm()
+        self.assertEqual(self.nyxar.dominion, initial_dominion)
 
 # --- Delilah Tests ---
 class TestDelilah(unittest.TestCase):
