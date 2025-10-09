@@ -870,6 +870,60 @@ class Cyrus(Enemy):
                  target.take_damage(200)
         else:
             print(f"{self.name} has not gathered enough power for the Onalym Purge.")
+
+
+class Era(Enemy):
+    """
+    Represents Era, the personification of the corrupted Void.
+    She is a powerful and chaotic entity manipulated by Lucent, and her destiny
+    is intertwined with Sky.ix.
+    """
+    def __init__(self, name="Era, the Corrupted Void", x=0, y=0):
+        # As a personified force, her health is immense.
+        super().__init__(name=name, x=x, y=y, health=500)
+        self.max_health = 500
+
+        self.manipulator_id = None # Would be set to Lucent's unique ID
+        self.destiny_id = None     # Would be set to Sky.ix's unique ID
+        self.battlefield_corruption = 0.0
+
+    def __str__(self):
+        """String representation of Era's status."""
+        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
+                f"Corruption: {self.battlefield_corruption:.0f}%")
+
+    def chaotic_outburst(self, target):
+        """
+        Lashes out with raw chaotic energy from the Void, increasing corruption.
+        """
+        self.battlefield_corruption += 10
+        print(f"{self.name} unleashes a blast of pure chaos at {target.name}!")
+        # In-game logic would deal unpredictable damage.
+        damage = random.randint(20, 60)
+        target.take_damage(damage)
+
+    def spread_the_void(self):
+        """
+        Corrupts a section of the battlefield, creating a permanent hazardous zone.
+        """
+        self.battlefield_corruption += 25
+        print(f"{self.name}'s presence deepens, spreading the Void's corruption across the ground.")
+        # Logic to create a persistent AoE that debuffs heroes.
+
+    def inevitable_collapse(self, all_enemies):
+        """
+        An ultimate ability where the Void attempts to consume everything. Damage
+        is amplified by the level of BattlefieldCorruption.
+        """
+        print(f"{self.name} channels the full, unmaking power of the Void!")
+        # Corruption empowers the attack. A value of 100% might double the damage.
+        corruption_multiplier = 1 + (self.battlefield_corruption / 100.0)
+        base_damage = 80
+        total_damage = int(base_damage * corruption_multiplier)
+
+        print(f"...The battlefield corruption amplifies the attack to {total_damage} damage!")
+        for enemy in all_enemies:
+            enemy.take_damage(total_damage)
 class Aeron(Player):
     """
     Represents Aeron, a noble warrior of Aethelgard and one of the Ɲōvəmîŋāđ.
@@ -1232,6 +1286,85 @@ class Cirrus(Character):
             print(f"{self.name} cannot use his full draconic breath in humanoid form.")
 
 
+class OmegaOne(Character):
+    """
+    Represents Omega.one, a powerful entity created by Sky.ix.
+    Its allegiance is ambiguous, and its actions are guided by a cold, inscrutable logic.
+    """
+    def __init__(self, name="Omega.one", x=0, y=0):
+        # Default directive is to protect its creator
+        super().__init__(name, x, y, health=180, state="Guardian")
+        self.max_health = 180
+        self.creator_id = None # Would be set to Sky.ix's unique ID
+        self.max_processing_power = 100
+        self.processing_power = self.max_processing_power
+
+    @property
+    def directive(self):
+        """A property to get its current directive from the state."""
+        return self.state
+
+    def __str__(self):
+        """String representation of Omega.one's status."""
+        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
+                f"Processing Power: {self.processing_power:.0f}/{self.max_processing_power} | "
+                f"Directive: {self.directive}")
+
+    def update(self):
+        """
+        An update method that could be called each game tick.
+        Used here to passively regenerate Processing Power.
+        """
+        power_regen = 1.0 # Regenerates steadily over time
+        self.processing_power = min(self.max_processing_power, self.processing_power + power_regen)
+        super().update()
+
+    def switch_directive(self, new_directive):
+        """
+        Changes Omega.one's operational directive to adapt to new combat situations.
+        Valid directives: Guardian, Analysis, Annihilation
+        """
+        self.state = new_directive
+        print(f"{self.name} switches operational parameters. New directive: {self.directive}.")
+
+    def energy_lance(self, target):
+        """
+        A precise energy beam attack whose effect changes based on the current directive.
+        """
+        cost = 25
+        if self.processing_power >= cost:
+            self.processing_power -= cost
+            print(f"{self.name} fires a concentrated energy lance at {target.name}.")
+
+            if self.directive == "Guardian":
+                print("...Residual energy forms a protective barrier around its creator.")
+                # In a real implementation, this would find the creator and apply a shield.
+                # For now, we'll just print a message.
+                pass
+            elif self.directive == "Analysis":
+                print(f"...Target analysis complete. {target.name} is now vulnerable to follow-up attacks.")
+                # In a real implementation, this would apply a defense-down debuff.
+                if hasattr(target, 'defense'):
+                    target.defense -= 10
+            elif self.directive == "Annihilation":
+                print("...The lance burns with extreme intensity, causing massive damage.")
+                target.take_damage(60)
+        else:
+            print(f"{self.name} has insufficient processing power.")
+
+    def system_overload(self, enemies_in_range):
+        """
+        A high-risk, high-reward ultimate that overloads its systems for a massive AoE blast.
+        """
+        health_cost = self.max_health * 0.30 # Costs 30% of its max health
+        self.take_damage(health_cost)
+
+        print(f"{self.name} diverts all power, initiating a system overload! It sacrifices {health_cost:.0f} health.")
+        for enemy in enemies_in_range:
+            print(f"...A massive energy pulse radiates outwards, striking {enemy.name}!")
+            enemy.take_damage(150)
+
+
 def run_character_demonstration():
     """
     A new function to demonstrate the unique abilities of the new characters.
@@ -1535,6 +1668,76 @@ def run_nyxar_demonstration():
     print(nyxar)
 
     print("\n--- Nyxar Demonstration Complete ---")
+def run_era_demonstration():
+    """
+    A function to demonstrate the abilities of the new antagonist, Era.
+    """
+    print("\n--- Era Demonstration ---")
+
+    # --- 1. Create Era and a Player to fight ---
+    era = Era(x=10, y=0)
+    hero = Player(name="Hero", x=0, y=0)
+    # Give the hero more health to survive the demonstration
+    hero.health = 400
+    hero.max_health = 400
+    all_heroes = [hero]
+
+    print("\n--- Initial State ---")
+    print(era)
+    print(hero)
+
+    # --- 2. Showcase Era's Abilities ---
+    print("\n--- Turn 1: Era starts spreading corruption ---")
+    era.spread_the_void()
+    print(era)
+
+    print("\n--- Turn 2: Era attacks with chaotic energy ---")
+    era.chaotic_outburst(hero)
+    print(era)
+    print(hero)
+
+    print("\n--- Turn 3: Era unleashes her ultimate ability ---")
+    era.inevitable_collapse(all_heroes)
+    print(era)
+    print(hero)
+
+    print("\n--- Era Demonstration Complete ---")
+def run_omega_one_demonstration():
+    """
+    A function to demonstrate the unique abilities of Omega.one.
+    """
+    print("\n--- Character Demonstration: Omega.one ---")
+
+    # --- 1. Create Omega.one and an Enemy ---
+    omega_one = OmegaOne(x=0, y=0)
+    enemy1 = Enemy(name="Drone Target", x=10, y=0, health=200)
+    enemy2 = Enemy(name="Collateral Target", x=12, y=0, health=200)
+    enemies = [enemy1, enemy2]
+
+    print("\n--- Initial State ---")
+    print(omega_one)
+    print(enemy1)
+    print(enemy2)
+
+
+    # --- 2. Showcase Abilities ---
+    print("\n--- Turn 1: Omega.one uses Energy Lance in its default 'Guardian' directive ---")
+    omega_one.energy_lance(enemy1)
+    print(omega_one)
+
+    print("\n--- Turn 2: Omega.one switches directive and attacks again ---")
+    omega_one.switch_directive("Annihilation")
+    omega_one.energy_lance(enemy1)
+    print(omega_one)
+    print(enemy1)
+
+    print("\n--- Turn 3: Omega.one uses its ultimate ability ---")
+    omega_one.system_overload(enemies)
+    print(omega_one)
+    print(enemy1)
+    print(enemy2)
+
+    print("\n--- Omega.one Demonstration Complete ---")
 
 
 if __name__ == "__main__":
@@ -1545,3 +1748,5 @@ if __name__ == "__main__":
     run_delilah_demonstration()
     run_cirrus_demonstration()
     run_nyxar_demonstration()
+    run_era_demonstration()
+    run_omega_one_demonstration()
