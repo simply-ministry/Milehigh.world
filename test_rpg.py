@@ -28,7 +28,7 @@ class TestRpgInteraction(unittest.TestCase):
         self.game.handle_input(self.scene_manager)
 
         # The description of the statue in AethelgardBattle
-        expected_description = "The statue depicts a forgotten king. A faint inscription reads: 'Only the worthy may pass.'"
+        expected_description = "Ancient Statue: The statue depicts a forgotten king. A faint inscription reads: 'Only the worthy may pass.'"
 
         # Check that log_message was called with the correct description
         self.game.log_message.assert_called_once_with(expected_description)
