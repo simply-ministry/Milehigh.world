@@ -14,6 +14,7 @@ public class CombatManager : MonoBehaviour
 
     // --- Combat State ---
     private List<Character> combatants = new List<Character>();
+    private List<Character> playerPartyCache = new List<Character>(); // Cache for post-combat cleanup
     private int currentTurnIndex = 0;
     private bool isCombatActive = false;
     private bool isPlayerTurn = false;
@@ -37,6 +38,9 @@ public class CombatManager : MonoBehaviour
     {
         if (isCombatActive) return;
 
+        playerPartyCache.Clear();
+        playerPartyCache.AddRange(playerParty);
+
         combatants.Clear();
         combatants.AddRange(playerParty);
         combatants.AddRange(enemyParty);
@@ -47,6 +51,20 @@ public class CombatManager : MonoBehaviour
         currentTurnIndex = 0;
         isCombatActive = true;
         Debug.Log("===== COMBAT STARTED =====");
+
+        // Setup the player's targeting system
+        foreach (var player in playerParty)
+        {
+            var targetingSystem = player.GetComponent<TargetingSystem>();
+            if (targetingSystem != null)
+            {
+                targetingSystem.ClearTargets();
+                foreach (var enemy in enemyParty)
+                {
+                    targetingSystem.AddTarget(enemy);
+                }
+            }
+        }
 
         // Initialize the combat UI
         if (UIManager.Instance != null)
@@ -96,6 +114,16 @@ public class CombatManager : MonoBehaviour
                 }
             }
 
+            // After a turn, check if any character's health dropped to zero.
+            // We iterate backwards because we might remove items from the list.
+            for (int i = combatants.Count - 1; i >= 0; i--)
+            {
+                if (!combatants[i].isAlive)
+                {
+                    HandleCharacterDeath(combatants[i]);
+                }
+            }
+
             if (CheckForEndOfCombat())
             {
                 EndCombat();
@@ -103,7 +131,12 @@ public class CombatManager : MonoBehaviour
             }
 
             // Move to the next combatant in the turn order.
-            currentTurnIndex = (currentTurnIndex + 1) % combatants.Count;
+            // We need to ensure the index is valid after potential removals.
+            currentTurnIndex++;
+            if (currentTurnIndex >= combatants.Count)
+            {
+                currentTurnIndex = 0;
+            }
         }
     }
 
@@ -144,7 +177,54 @@ public class CombatManager : MonoBehaviour
     {
         isCombatActive = false;
         Debug.Log("===== COMBAT ENDED =====");
+
+        // Clear targets from the player's targeting system using the cached party list
+        foreach (var player in playerPartyCache)
+        {
+            if (player != null) // The player's GameObject might have been destroyed
+            {
+                var targetingSystem = player.GetComponent<TargetingSystem>();
+                if (targetingSystem != null)
+                {
+                    targetingSystem.ClearTargets();
+                }
+            }
+        }
+        playerPartyCache.Clear(); // Clean up the cache
         // Here you could add logic for awarding XP, loot, or loading a game over screen.
+    }
+
+    /// <summary>
+    /// Handles the removal of a defeated character from combat.
+    /// </summary>
+    private void HandleCharacterDeath(Character deadCharacter)
+    {
+        Debug.Log($"{deadCharacter.characterName} has been defeated.");
+
+        // Remove the character from every player's targeting system.
+        var playerParty = combatants.Where(c => c.CompareTag("Player"));
+        foreach (var player in playerParty)
+        {
+            var targetingSystem = player.GetComponent<TargetingSystem>();
+            if (targetingSystem != null)
+            {
+                targetingSystem.RemoveTarget(deadCharacter);
+            }
+        }
+
+        // Remove from the main combatant list.
+        // This needs to be done carefully to not mess up the turn order index.
+        int deadCharacterIndex = combatants.IndexOf(deadCharacter);
+        if (deadCharacterIndex != -1)
+        {
+            combatants.RemoveAt(deadCharacterIndex);
+            // If the dead character was earlier in the turn order than the current one,
+            // we need to decrement the index to not skip the next person's turn.
+            if (deadCharacterIndex < currentTurnIndex)
+            {
+                currentTurnIndex--;
+            }
+        }
     }
 
     /// <summary>
