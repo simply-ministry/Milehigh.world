@@ -21,7 +21,7 @@ public class PlayerController : MonoBehaviour
 
     [Header("Targeting")]
     [Tooltip("The currently selected target for abilities.")]
-    private Character currentTarget;
+    public Character CurrentTarget { get; private set; }
 
     // Component references
     private CharacterController characterController;
@@ -113,8 +113,8 @@ public class PlayerController : MonoBehaviour
                     Character targetCharacter = hit.collider.GetComponent<Character>();
                     if (targetCharacter != null)
                     {
-                        currentTarget = targetCharacter;
-                        Debug.Log($"Target set to: {currentTarget.characterName}");
+                        CurrentTarget = targetCharacter;
+                        Debug.Log($"Target set to: {CurrentTarget.characterName}");
                     }
                 }
             }
@@ -129,10 +129,10 @@ public class PlayerController : MonoBehaviour
         // Basic attack with left-click
         if (Input.GetMouseButtonDown(0))
         {
-            if (currentTarget != null && abilitySystem.abilities.Count > 0)
+            if (CurrentTarget != null && abilitySystem.abilities.Count > 0)
             {
                 // Use the first ability as the "basic attack"
-                CombatManager.Instance.PlayerAction(character, currentTarget, abilitySystem.abilities[0]);
+                CombatManager.Instance.PlayerAction(character, CurrentTarget, abilitySystem.abilities[0]);
             }
             else
             {
@@ -158,7 +158,7 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void TryUseAbility(int abilityIndex)
     {
-        if (currentTarget == null)
+        if (CurrentTarget == null)
         {
             Debug.Log("No target selected to use ability on.");
             return;
@@ -169,6 +169,6 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        CombatManager.Instance.PlayerAction(character, currentTarget, abilitySystem.abilities[abilityIndex]);
+        CombatManager.Instance.PlayerAction(character, CurrentTarget, abilitySystem.abilities[abilityIndex]);
     }
 }

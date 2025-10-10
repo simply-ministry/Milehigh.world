@@ -11,10 +11,6 @@ public class ActionButton : MonoBehaviour
     private Ability assignedAbility;
     private Character caster;
 
-    // In a real game, a more robust targeting system would set this.
-    // For now, we can have a simple "TargetingManager" or similar.
-    private Character currentTarget;
-
     public void Initialize(Ability ability, Character caster)
     {
         assignedAbility = ability;
@@ -26,26 +22,31 @@ public class ActionButton : MonoBehaviour
 
     private void OnButtonClick()
     {
-        // For now, let's assume a simple targeting system.
-        // A full implementation would let the player click on an enemy.
-        // Find the first alive enemy to target.
-        foreach (var enemy in FindObjectsOfType<Character>())
+        // Find the PlayerController in the scene to get the player's selected target.
+        PlayerController playerController = FindObjectOfType<PlayerController>();
+        if (playerController == null)
         {
-            if (enemy.CompareTag("Enemy") && enemy.isAlive)
-            {
-                currentTarget = enemy;
-                break;
-            }
+            Debug.LogError("ActionButton: Could not find PlayerController in the scene!");
+            return;
         }
 
-        if (caster != null && currentTarget != null && assignedAbility != null)
+        Character currentTarget = playerController.CurrentTarget;
+
+        if (currentTarget == null)
+        {
+            Debug.LogWarning("No target selected. Right-click on an enemy to select a target before using an ability.");
+            return;
+        }
+
+        if (caster != null && assignedAbility != null)
         {
             Debug.Log($"UI: Player chose to use '{assignedAbility.abilityName}' on '{currentTarget.characterName}'.");
             CombatManager.Instance.PlayerAction(caster, currentTarget, assignedAbility);
         }
         else
         {
-            Debug.LogWarning("UI: Action could not be performed. Caster, target, or ability is missing.");
+            // This case should be less likely now, but good to keep for debugging.
+            Debug.LogWarning("UI: Action could not be performed. Caster or ability is missing.");
         }
     }
 }
