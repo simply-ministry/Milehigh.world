@@ -26,3 +26,12 @@
 
 # Crashlytics generated folder
 /[Cc]rashlytics/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3

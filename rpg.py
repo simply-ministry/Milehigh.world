@@ -1,10 +1,22 @@
+import json
+import math
+import database # Import the new database module
+
 # --- 1. ALL CORE CLASSES (PASTED FROM PREVIOUS STEPS) ---
 # (Includes GameObject, Character, Item, etc.)
 # ... (For brevity, imagine all previously defined core classes are here) ...
 
+# --- Helper to provide class definitions to the database module ---
+def get_class_by_name(class_name):
+    """Returns a class object from the global scope by its string name."""
+    return globals().get(class_name)
+
+# Inject this function into the database module
+database.set_class_loader(get_class_by_name)
+
 class GameObject:
     """The base class for all objects in the game world."""
-    def __init__(self, name="Object", symbol='?', x=0, y=0, state=None):
+    def __init__(self, name="Object", symbol='?', x=0, y=0, z=0, state=None, health=100, speed=1, visible=True, solid=True, defense=0):
         self.name = name
         self.symbol = symbol
         self.x = x
@@ -76,6 +88,7 @@ class GameObject:
     def update(self, scene_manager):
         """Placeholder for object-specific logic that runs each turn."""
         pass
+
 
 class Item(GameObject):
     """Represents items that can be picked up or used."""
@@ -666,8 +679,22 @@ class DialogueNode:
     def __init__(self, text, character_name="Narrator", options=None):
         self.text = text
         self.character_name = character_name
-        # Options is a dictionary: {"Player choice text": "next_node_key"}
         self.options = options if options else {}
+
+    def to_dict(self):
+        return {
+            "text": self.text,
+            "character_name": self.character_name,
+            "options": self.options,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            text=data.get("text"),
+            character_name=data.get("character_name", "Narrator"),
+            options=data.get("options"),
+        )
 
 class DialogueManager:
     """Controls the flow of a single conversation."""
@@ -676,15 +703,12 @@ class DialogueManager:
         self.current_node_key = start_node_key
 
     def add_node(self, key, node):
-        """Adds a dialogue node to the conversation tree."""
         self.nodes[key] = node
 
     def get_current_node(self):
-        """Returns the current dialogue node."""
         return self.nodes.get(self.current_node_key)
 
     def select_option(self, choice_index):
-        """Moves to the next node based on the player's choice."""
         node = self.get_current_node()
         if node and node.options:
             option_keys = list(node.options.values())
@@ -693,6 +717,22 @@ class DialogueManager:
                 return True
         return False
 
+    def to_dict(self):
+        # This is kept ONLY for serializing dialogue to the database, not for general save/load.
+        return {
+            "nodes": {key: node.to_dict() for key, node in self.nodes.items()},
+            "current_node_key": self.current_node_key,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        # This is kept ONLY for deserializing dialogue from the database.
+        manager = cls(start_node_key=data.get("current_node_key", "start"))
+        nodes_data = data.get("nodes", {})
+        for key, node_data in nodes_data.items():
+            manager.add_node(key, DialogueNode.from_dict(node_data))
+        return manager
+
 # --- 3. UPDATING THE CHARACTER AND GAME ENGINE ---
 
 class Character(GameObject):
@@ -700,17 +740,16 @@ class Character(GameObject):
         super().__init__(name, 'C', x, y, state)
         self.health = health
         self.max_health = health
-        # --- NEW ---
-        self.dialogue = None # A character can hold a conversation tree
+        self.dialogue = None
 
 class Anastasia(Character):
-    def __init__(self, name="Anastasia", x=0, y=0):
-        super().__init__(name, x, y, health=120)
+    def __init__(self, name="Anastasia", x=0, y=0, health=120, state=None):
+        super().__init__(name=name, x=x, y=y, health=health, state=state)
         self.symbol = '@'
 
 class Reverie(Character):
-    def __init__(self, name="Reverie", x=0, y=0):
-        super().__init__(name, x, y, health=100)
+    def __init__(self, name="Reverie", x=0, y=0, health=100, state=None):
+        super().__init__(name=name, x=x, y=y, health=health, state=state)
         self.symbol = 'R'
 
 class Scene:
@@ -742,7 +781,6 @@ class Game:
         self.message_log = []
         self.turn_taken = False
         self.game_over = False
-        # --- NEW ---
         self.in_conversation = False
         self.dialogue_manager = None
 
@@ -752,20 +790,17 @@ class Game:
             self.message_log.pop(0)
 
     def handle_input(self, scene_manager):
-        """UPDATED to handle dialogue choices and the 'talk' command."""
+        """Handles player input and game commands."""
+        player = scene_manager.scene.player_character
         if self.in_conversation:
-            # Handle dialogue input
             choice = input("Choose an option (number): ")
             if choice.isdigit() and self.dialogue_manager.select_option(int(choice) - 1):
-                # Valid choice made, continue conversation
                 pass
             else:
                 self.log_message("Invalid choice.")
-            # In conversation, every input is a turn
             self.turn_taken = True
             return
 
-        command = input(f"What will {player.name} do? (attack, equip [item], use [item], examine, status, quit): ").lower().strip()
         command = input("Action: ").lower().strip()
         parts = command.split()
         action = parts[0] if parts else ""
@@ -773,17 +808,16 @@ class Game:
         if action == "move" and len(parts) > 1:
             direction = parts[1]
             dx, dy = 0, 0
-            if direction == "up": dy = -1
-            elif direction == "down": dy = 1
-            elif direction == "left": dx = -1
-            elif direction == "right": dx = 1
+            if direction in ["w", "up"]: dy = -1
+            elif direction in ["s", "down"]: dy = 1
+            elif direction in ["a", "left"]: dx = -1
+            elif direction in ["d", "right"]: dx = 1
 
-            player = scene_manager.scene.player_character
             new_x, new_y = player.x + dx, player.y + dy
 
             if 0 <= new_x < self.width and 0 <= new_y < self.height:
                 target = scene_manager.scene.get_object_at(new_x, new_y)
-                if not target:
+                if not target or not getattr(target, 'solid', False):
                     player.x = new_x
                     player.y = new_y
                     self.turn_taken = True
@@ -792,66 +826,87 @@ class Game:
             else:
                 self.log_message("You can't move off the map.")
 
-        elif action == "examine" and len(parts) > 1:
-            target_name = " ".join(parts[1:])
-            target = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Interactable) and obj.name.lower() == target_name.lower()), None)
-            if target:
-                self.log_message(f"{target.name}: {target.on_examine()}")
+        elif action == "examine":
+            target_name = " ".join(parts[1:]) if len(parts) > 1 else None
+            found_something = False
+            if target_name:
+                # Examine a specific object by name
+                target = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Interactable) and obj.name.lower() == target_name.lower()), None)
+                if target:
+                    self.log_message(f"{target.name}: {target.on_examine()}")
+                    found_something = True
+                else:
+                    self.log_message(f"There is no '{target_name}' to examine.")
             else:
-                self.log_message(f"There is no '{target_name}' to examine.")
+                # Examine nearby objects
+                for obj in scene_manager.scene.game_objects:
+                    if isinstance(obj, Interactable) and player.distance_to(obj) < 1.5:
+                        self.log_message(f"{obj.name}: {obj.on_examine()}")
+                        found_something = True
+                        break # Only examine one nearby thing
+                if not found_something:
+                    self.log_message("There is nothing nearby to examine.")
             self.turn_taken = True
 
         elif action == "talk" and len(parts) > 1:
             target_name = " ".join(parts[1:])
             target = next((obj for obj in scene_manager.scene.game_objects if obj.name.lower() == target_name.lower()), None)
             if target and isinstance(target, Character) and target.dialogue:
-                distance = abs(scene_manager.scene.player_character.x - target.x) + abs(scene_manager.scene.player_character.y - target.y)
-                if distance <= 2: # A slightly larger range for talking
+                if player.distance_to(target) <= 2:
                     self.start_conversation(target.dialogue)
                 else:
                     self.log_message(f"You are too far away to talk to {target.name}.")
             else:
-                # Simple attack (for single-enemy scenes)
-                target = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Enemy) and obj.health > 0), None)
-                if target:
-                    player.attack(target)
-                else:
-                    self.log_message("There is no one to attack.")
+                self.log_message(f"'{target_name}' has nothing to say or isn't here.")
+            self.turn_taken = True
+
+        elif action == "attack" and len(parts) > 1:
+            target_name = " ".join(parts[1:])
+            target = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Enemy) and obj.name.lower() == target_name.lower() and obj.health > 0), None)
+            if target:
+                player.attack(target)
+            else:
+                self.log_message(f"There is no one to attack named '{target_name}'.")
+            self.turn_taken = True
 
         elif action == "equip" and len(parts) > 1:
             item_name = " ".join(parts[1:])
             player.equip_item(item_name)
+            self.turn_taken = True
 
         elif action == "use" and len(parts) > 1:
             item_name = " ".join(parts[1:])
             player.use_item(item_name)
-
-        elif action == "examine":
-            found_something = False
-            for obj in scene_manager.scene.game_objects:
-                if isinstance(obj, Interactable) and player.distance_to(obj) < 1.5:
-                    self.log_message(obj.examine())
-                    found_something = True
-                    break
-            if not found_something:
-                self.log_message("There is nothing nearby to examine.")
+            self.turn_taken = True
 
         elif action == "status":
             self.log_message(f"{player.name} - HP: {player.health}/{player.max_health}, Mana: {int(player.mana)}/{player.max_mana}")
-            # Making status more general
             for obj in scene_manager.scene.game_objects:
                 if isinstance(obj, Enemy) and obj.health > 0:
                      self.log_message(f"{obj.name} - HP: {obj.health}")
+            self.turn_taken = False # Does not consume a turn
 
-        else:
-            self.log_message("Invalid command. Try: move [w/a/s/d], examine [object], attack [target], use [item], equip [item], status, quit")
+        elif action == "save":
+            save_name = parts[1] if len(parts) > 1 else "quicksave"
+            database.save_game(save_name, scene_manager)
+            self.log_message(f"Game saved to slot: {save_name}")
+            self.turn_taken = False
 
-                self.log_message(f"'{target_name}' has nothing to say or isn't here.")
+        elif action == "load":
+            save_name = parts[1] if len(parts) > 1 else "quicksave"
+            new_manager = database.load_game(save_name)
+            if new_manager:
+                scene_manager.game = new_manager.game
+                scene_manager.scene = new_manager.scene
+                self.log_message(f"Game loaded from slot: {save_name}")
+            else:
+                self.log_message(f"Failed to load game from slot: {save_name}")
             self.turn_taken = True
+
         elif action == "quit":
             self.game_over = True
         else:
-            self.log_message("Unknown command. Try: move [up|down|left|right], talk [name], examine [name], quit")
+            self.log_message("Unknown command. Try: move [w/a/s/d], talk [name], examine [name], attack [name], equip [item], use [item], status, save/load, quit")
 
 
     def start_conversation(self, dialogue_manager):
@@ -911,11 +966,12 @@ class Game:
 
 class SceneManager:
     """Base class for controlling scenes, events, and game logic."""
-    def __init__(self, scene, game):
+    def __init__(self, scene, game, setup_scene=True):
         self.scene = scene
         self.game = game
         self.is_running = True
-        self.setup()
+        if setup_scene:
+            self.setup()
 
     def setup(self):
         """Initializes the scene with objects, characters, etc."""
@@ -934,6 +990,18 @@ class SceneManager:
             self.game.turn_taken = False
             while not self.game.turn_taken and not self.game.game_over:
                 self.game.handle_input(self)
+
+class Aeron(Player):
+    """A placeholder class for the character Aeron."""
+    def __init__(self, name="Aeron", x=0, y=0, z=0):
+        super().__init__(name, x, y, z)
+        self.symbol = '@'
+
+class Kane(Enemy):
+    """A placeholder class for the enemy Kane."""
+    def __init__(self, name="Kane", x=0, y=0, z=0, type="Boss"):
+        super().__init__(name, x, y, z, type)
+        self.symbol = 'K'
 
 class AethelgardBattle(SceneManager):
     """A specific scene manager for the Aeron vs. Kane fight."""
@@ -969,14 +1037,16 @@ class AethelgardBattle(SceneManager):
         self.scene.add_object(ancient_statue)
         self.game.log_message("Aethelgard stands silent. Your brother, Kane, awaits.")
         self.game.log_message("You feel the weight of the Aethelgard Plate. Type 'equip Aethelgard Plate' to wear it.")
-            if self.game.turn_taken:
-                # AI turn logic would go here
-                for obj in self.scene.game_objects:
-                    obj.update(self)
+        if self.game.turn_taken:
+            # AI turn logic would go here
+            for obj in self.scene.game_objects:
+                obj.update(self)
 
-            self.update() # Check for scene-specific win/loss conditions
+        self.update() # Check for scene-specific win/loss conditions
 
-# --- 4. SCRIPTING THE ANASTASIA & REVERIE DIALOGUE ---
+# --- Dialogue and Scene Setup ---
+
+# --- 5. SCRIPTING THE ANASTASIA & REVERIE DIALOGUE ---
 
 class FirstMeetingScene(SceneManager):
     """A scene where Anastasia and Reverie meet for the first time."""
@@ -1006,15 +1076,32 @@ class FirstMeetingScene(SceneManager):
         self.scene.add_object(npc)
         self.game.log_message("You approach a skeptical-looking woman leaning against a monolith.")
 
-# --- 5. RUNNING THE DIALOGUE SCENE ---
+# --- 6. RUNNING THE DIALOGUE SCENE ---
 if __name__ == "__main__":
-    game_engine = Game()
-    meeting_scene = Scene("Monolith Clearing")
-    meeting_manager = FirstMeetingScene(meeting_scene, game_engine)
-    # To play, uncomment below
-    # meeting_manager.run()
-    print("First Meeting scene is ready.")
-    print("Uncomment 'meeting_manager.run()' to play.")
-    print("\n--- HOW TO PLAY ---")
-    print("Example Commands:")
-    print("  talk Reverie")
+    # Initialize the database first
+    database.init_db()
+
+    # --- Game Start ---
+    # Check for a command-line argument to load a game
+    import sys
+    if len(sys.argv) > 2 and sys.argv[1] == 'load':
+        save_name = sys.argv[2]
+        print(f"Attempting to load game from slot: {save_name}")
+        meeting_manager = database.load_game(save_name)
+        if not meeting_manager:
+            print(f"Could not load '{save_name}'. Starting a new game.")
+            # Fallback to new game if load fails
+            game_engine = Game()
+            meeting_scene = Scene("Monolith Clearing")
+            meeting_manager = FirstMeetingScene(meeting_scene, game_engine)
+    else:
+        # Start a new game by default
+        print("Starting a new game.")
+        game_engine = Game()
+        meeting_scene = Scene("Monolith Clearing")
+        meeting_manager = FirstMeetingScene(meeting_scene, game_engine)
+
+
+    if meeting_manager:
+        meeting_manager.run()
+        print("Game over.")
