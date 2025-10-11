@@ -1,4 +1,5 @@
 import json
+import math
 
 # --- 1. ALL CORE CLASSES (PASTED FROM PREVIOUS STEPS) ---
 # (Includes GameObject, Character, Item, etc.)
@@ -6,7 +7,7 @@ import json
 
 class GameObject:
     """The base class for all objects in the game world."""
-    def __init__(self, name="Object", symbol='?', x=0, y=0, state=None):
+    def __init__(self, name="Object", symbol='?', x=0, y=0, z=0, health=0, speed=0, visible=True, solid=True, defense=0, state=None):
         self.name = name
         self.symbol = symbol
         self.x = x
@@ -19,6 +20,8 @@ class GameObject:
         self.defense = defense
         self.attributes = {}  # Dictionary for storing additional attributes.
         self.status_effects = {}  # e.g., {'sleep': 6, 'slow': 8}
+        self.resistances = {} # e.g., {'fire': 0.5, 'ice': 1.5}
+        self.state = state
 
     def __repr__(self):
         """
@@ -51,33 +54,91 @@ class GameObject:
         self.y += dy
         self.z += dz
 
-    def take_damage(self, damage):
+    def take_damage(self, damage, damage_type="physical"):
         """
-        Reduces the object's health after factoring in defense from stats and equipment.
+        Reduces the object's health after factoring in defense and resistances.
         Args:
             damage (int): The amount of incoming damage.
+            damage_type (str): The type of damage (e.g., 'physical', 'fire', 'ice').
         """
-        total_defense = self.defense
-        # Check if the object has an equipment manager
-        if hasattr(self, 'equipment'):
-            equipped_stats = self.equipment.get_total_stats()
-            total_defense += equipped_stats["defense"]
+        # Apply vulnerability
+        if 'vulnerable' in self.status_effects:
+            potency = self.status_effects['vulnerable'].get('potency', 1)
+            damage *= potency
+            print(f"{self.name} is vulnerable! Damage is multiplied by {potency}!")
 
-        if 'armor_break' in self.status_effects:
-            print(f"{self.name} is armor broken! Defense is negated.")
-            total_defense = 0
+        # Apply resistances
+        resistance_multiplier = self.resistances.get(damage_type, 1.0)
+        modified_damage = damage * resistance_multiplier
 
-        actual_damage = max(0, damage - total_defense)
+        # Apply defense only to physical damage
+        total_defense = 0
+        if damage_type == "physical":
+            total_defense = self.defense
+            if hasattr(self, 'equipment'):
+                equipped_stats = self.equipment.get_total_stats()
+                total_defense += equipped_stats.get("defense", 0)
+
+            if 'armor_break' in self.status_effects:
+                print(f"{self.name} is armor broken! Defense is negated.")
+                total_defense = 0
+
+        actual_damage = max(0, modified_damage - total_defense)
         self.health -= actual_damage
+
         if actual_damage > 0:
-            print(f"{self.name} takes {actual_damage} damage.")
+            print(f"{self.name} takes {int(actual_damage)} {damage_type} damage.")
         else:
-            print(f"{self.name}'s defense holds strong!")
-        self.state = state # e.g., 'normal', 'hostile', 'dead'
+            if resistance_multiplier < 1.0:
+                print(f"{self.name} resists the {damage_type} damage!")
+            else:
+                print(f"{self.name}'s defense holds strong against the {damage_type} attack!")
+
+        # self.state = state # This line was causing an error, state is not defined here
+
+    def apply_status_effect(self, effect_name, duration, potency=0):
+        """
+        Applies a status effect to the object.
+        If the effect already exists, it refreshes the duration.
+        Args:
+            effect_name (str): The name of the effect (e.g., 'poison', 'slow').
+            duration (int): The duration of the effect in turns.
+            potency (int): The strength of the effect (e.g., damage per turn).
+        """
+        print(f"{self.name} is now affected by {effect_name}.")
+        self.status_effects[effect_name] = {"duration": duration, "potency": potency}
+
+    def update_status_effects(self):
+        """
+        Updates all active status effects. Called each turn.
+        Handles duration countdowns and applies ongoing effects.
+        """
+        if not hasattr(self, 'status_effects'):
+            return
+
+        effects_to_remove = []
+        # Create a copy of items to iterate over, allowing modification of the original dict
+        for effect, data in list(self.status_effects.items()):
+            # Apply ongoing damage/healing effects
+            if effect == 'psychic_damage' and 'psychic_damage' in self.status_effects: # From Anastasia's ability
+                damage = data.get('potency', 2) # Defaulting to 2 damage per turn
+                self.health -= damage
+                print(f"{self.name} takes {damage} damage from psychic energies.")
+
+            # Countdown duration
+            data['duration'] -= 1
+            if data['duration'] <= 0:
+                effects_to_remove.append(effect)
+
+        # Remove expired effects
+        for effect in effects_to_remove:
+            if effect in self.status_effects:
+                del self.status_effects[effect]
+                print(f"{self.name} is no longer affected by {effect}.")
 
     def update(self, scene_manager):
         """Placeholder for object-specific logic that runs each turn."""
-        pass
+        self.update_status_effects()
 
     def to_dict(self):
         """Serializes the object to a dictionary."""
@@ -153,14 +214,25 @@ class Player(GameObject):
         self.level = 1
         self.experience = 0
         self.max_health = 100
-        self.mana = 100
-        self.max_mana = 100
-        self.mana_regeneration_rate = 1.5  # Mana per second
+        self.resources = {"mana": {"current": 100, "max": 100, "regen_rate": 1.5}}
         self.strength = 10
         self.dexterity = 10
         self.intelligence = 10
         # --- NEW: Equipment Manager ---
         self.equipment = Equipment(owner=self)
+        self.abilities = {
+            "fireball": Fireball(),
+            "poison_cloud": PoisonCloud(),
+        }
+
+    def use_ability(self, ability_name, target):
+        """Uses a known ability on a target."""
+        ability_name = ability_name.lower().replace(" ", "_")
+        if ability_name in self.abilities:
+            ability = self.abilities[ability_name]
+            ability.use(self, target)
+        else:
+            print(f"{self.name} does not know the ability {ability_name}.")
 
     def attack(self, target):
         """
@@ -214,13 +286,13 @@ class Player(GameObject):
 
     def update(self, delta_time):
         """
-        Updates the player's state, including mana regeneration.
+        Updates the player's state, including resource regeneration.
         """
-        super().update(delta_time)
-        self.update_status_effects(delta_time)
-        self.mana += self.mana_regeneration_rate * delta_time
-        if self.mana > self.max_mana:
-            self.mana = self.max_mana
+        super().update(self)
+        # Regenerate all resources
+        for res, values in self.resources.items():
+            new_value = values["current"] + values.get("regen_rate", 0) * delta_time
+            values["current"] = min(new_value, values["max"])
 
     def pickup_item(self, item):
         """
@@ -287,29 +359,6 @@ class Player(GameObject):
             self.speed *= 1.1 # Increase speed by 10%
             print(f"{self.name} leveled up to level {self.level}!")
 
-    def cast_spell(self, spell_name, target):
-        """Casts a spell, with power influenced by intelligence."""
-        if spell_name == "fireball":
-            mana_cost = 20
-            if self.mana >= mana_cost:
-                self.mana -= mana_cost
-                spell_damage = 15 + int(self.intelligence * 1.5)
-                print(f"{self.name} casts Fireball on {target.name} for {spell_damage} damage!")
-                target.take_damage(spell_damage)
-            else:
-                print(f"{self.name} does not have enough mana to cast Fireball!")
-        elif spell_name == "heal":
-            mana_cost = 10
-            if self.mana >= mana_cost:
-                self.mana -= mana_cost
-                heal_amount = 10 + self.intelligence
-                self.heal(heal_amount)
-                print(f"{self.name} casts Heal and recovers {heal_amount} HP.")
-            else:
-                print(f"{self.name} does not have enough mana to cast Heal!")
-        else:
-            print(f"{self.name} does not know the spell {spell_name}.")
-
 # --- Anastasia's Class Implementation ---
 
 class Anastasia(Player):
@@ -319,14 +368,10 @@ class Anastasia(Player):
     """
     def __init__(self, name="Anastasia", x=0, y=0, z=0):
         super().__init__(name=name, x=x, y=y, z=z)
-        self.mana = 150
-        self.max_mana = 150
         self.health = 100
         self.max_health = 100
-
-        # Unique Mechanic: The Dream Weave
-        self.max_dream_weave = 100
-        self.dream_weave = 0
+        self.resources["mana"] = {"current": 150, "max": 150, "regen_rate": 1.5}
+        self.resources["dream_weave"] = {"current": 0, "max": 100, "regen_rate": 0.5}
 
         # Lucid Dream State
         self.is_lucid_dream_active = False
@@ -351,17 +396,17 @@ class Anastasia(Player):
     def build_dream_weave(self, amount):
         """Increases the Dream Weave meter."""
         if not self.is_lucid_dream_active:
-            self.dream_weave += amount
-            if self.dream_weave > self.max_dream_weave:
-                self.dream_weave = self.max_dream_weave
+            dream_weave = self.resources["dream_weave"]
+            dream_weave["current"] = min(dream_weave["current"] + amount, dream_weave["max"])
 
     def activate_lucid_dream(self):
         """Activates the Lucid Dream state if the meter is full."""
-        if self.dream_weave >= self.max_dream_weave:
+        dream_weave = self.resources["dream_weave"]
+        if dream_weave["current"] >= dream_weave["max"]:
             print("\n** Anastasia activates LUCID DREAM! The battlefield warps! **\n")
             self.is_lucid_dream_active = True
             self.lucid_dream_timer = self.lucid_dream_duration
-            self.dream_weave = 0
+            dream_weave["current"] = 0
             return True
         else:
             print("Dream Weave is not full yet!")
@@ -370,69 +415,67 @@ class Anastasia(Player):
     # --- ABILITIES ---
 
     def lulling_whisper(self, targets):
-        """Puts target(s) to sleep."""
+        """Puts target(s) to sleep using the new status effect system."""
         cost = 20
-        if self.mana < cost:
+        mana = self.resources["mana"]
+        if mana["current"] < cost:
             print("Not enough mana!")
             return
 
-        self.mana -= cost
+        mana["current"] -= cost
         print(f"{self.name} uses Lulling Whisper.")
 
         if self.is_lucid_dream_active:
             print("The whisper becomes a wave, affecting all targets!")
             for target in targets:
-                target.status_effects['sleep'] = 6
-                print(f"{target.name} has fallen asleep.")
+                target.apply_status_effect('sleep', 6)
         else:
             if targets:
-                target = targets[0] # Affect only the first target
-                target.status_effects['sleep'] = 6
-                print(f"{target.name} has fallen asleep.")
+                target = targets[0]
+                target.apply_status_effect('sleep', 6)
 
         self.build_dream_weave(15)
 
     def phantasmal_grasp(self, target):
         """Slows a target and deals minor damage over time."""
         cost = 25
-        if self.mana < cost:
+        mana = self.resources["mana"]
+        if mana["current"] < cost:
             print("Not enough mana!")
             return
 
-        self.mana -= cost
+        mana["current"] -= cost
         print(f"{self.name} uses Phantasmal Grasp on {target.name}.")
 
-        target.status_effects['slow'] = 8
-        target.status_effects['psychic_damage'] = 8 # Represents the DoT effect
-        print(f"{target.name} is slowed by shadowy tendrils.")
-
+        duration = 8
         if self.is_lucid_dream_active:
             print("The grasp erupts from the target, slowing nearby enemies!")
-            # In a real game, you'd find nearby enemies. Here we just simulate it.
-            target.status_effects['slow'] += 4
+            duration += 4 # In a real game, you'd find nearby enemies.
+
+        target.apply_status_effect('slow', duration)
+        target.apply_status_effect('psychic_damage', duration, potency=2) # 2 damage per turn
 
         self.build_dream_weave(15)
 
     def fleeting_vision(self, allies):
         """Grants evasion and speed to an ally or the whole party."""
         cost = 30
-        if self.mana < cost:
+        mana = self.resources["mana"]
+        if mana["current"] < cost:
             print("Not enough mana!")
             return
 
-        self.mana -= cost
+        mana["current"] -= cost
         print(f"{self.name} uses Fleeting Vision.")
 
         if self.is_lucid_dream_active:
             print("The vision is shared with the entire party!")
             for ally in allies:
-                ally.status_effects['evasion'] = 5
-                print(f"{ally.name} is granted enhanced evasion!")
+                ally.apply_status_effect('evasion', 5)
         else:
             if allies:
-                ally = allies[0] # Affect only the first ally
-                ally.status_effects['evasion'] = 5
-                print(f"{ally.name} is granted enhanced evasion!")
+                ally = allies[0]
+                ally.apply_status_effect('evasion', 5)
 
     def oneiric_collapse(self, enemies, allies):
         """Ultimate Ability: Pulls the battlefield into the Dreamscape."""
@@ -444,13 +487,11 @@ class Anastasia(Player):
         print("The area is pulled into the Dreamscape!")
 
         for enemy in enemies:
-            enemy.status_effects['confusion'] = 10
-            enemy.status_effects['armor_break'] = 10
-            print(f"{enemy.name} is confused and vulnerable!")
+            enemy.apply_status_effect('confusion', 10)
+            enemy.apply_status_effect('armor_break', 10)
 
         for ally in allies:
-            ally.status_effects['empowered'] = 10 # Simulate faster cooldowns
-            print(f"{ally.name} feels empowered by the dream!")
+            ally.apply_status_effect('empowered', 10)
 
         self.is_lucid_dream_active = False
         self.lucid_dream_timer = 0
@@ -471,54 +512,18 @@ class Reverie(Player):
         super().__init__(name, x, y, z)
         self.health = 110
         self.max_health = 110
-        self.mana = 150   # Standard mana pool for her basic spells
-        self.max_mana = 150
-
-        # Reverie's unique resource
-        self.enigma = 0
-        self.max_enigma = 100
-
-        # Her elemental spells build Enigma
-        self.spells = {}
-        self.spells["fire_blast"] = {"cost": 30, "damage": 25}
-        self.spells["ice_shard"] = {"cost": 20, "damage": 15}
-        self.spells["lightning_jolt"] = {"cost": 25, "damage": 20}
-
-    def cast_spell(self, spell_name, target):
-        """
-        Casts one of her elemental spells.
-        This consumes mana, deals damage to the target, and builds Enigma.
-        """
-        if spell_name in self.spells:
-            spell = self.spells[spell_name]
-            if self.mana >= spell["cost"]:
-                self.mana -= spell["cost"]
-                target.take_damage(spell["damage"])
-
-                # Casting a spell builds Enigma, proportional to mana cost
-                enigma_gain = spell["cost"] // 2
-                self.enigma = min(self.max_enigma, self.enigma + enigma_gain)
-
-                print(f"{self.name} casts {spell_name} on {target.name}, dealing {spell['damage']} damage.")
-                print(f"{self.name} gains {enigma_gain} Enigma. (Total: {self.enigma}/{self.max_enigma})")
-                return True
-            else:
-                print(f"{self.name} does not have enough mana for {spell_name}.")
-                return False
-        else:
-            # This is a bit of a hack to reuse the parent's cast_spell method.
-            # In a real refactor, we would make the spell system more robust.
-            super().cast_spell(spell_name, target)
-            return False
+        self.resources["mana"] = {"current": 150, "max": 150, "regen_rate": 1.5}
+        self.resources["enigma"] = {"current": 0, "max": 100, "regen_rate": 0}
 
     def chaos_unleashed(self, target):
         """
         Unleashes her ultimate ability when Enigma is at max.
         Consumes all Enigma for a powerful, random effect.
         """
-        if self.enigma >= self.max_enigma:
+        enigma = self.resources["enigma"]
+        if enigma["current"] >= enigma["max"]:
             print(f"{self.name} unleashes CHAOS UNLEASHED!")
-            self.enigma = 0  # Reset Enigma after use
+            enigma["current"] = 0  # Reset Enigma after use
 
             # Determine the random, powerful effect
             possible_effects = [
@@ -536,21 +541,17 @@ class Reverie(Player):
             elif effect == "full_heal_and_mana":
                 print(f"The chaotic energy surges inward, restoring {self.name} to full power!")
                 self.health = self.max_health
-                self.mana = self.max_mana
+                self.resources["mana"]["current"] = self.resources["mana"]["max"]
             elif effect == "double_damage_debuff":
                 print(f"The chaotic energy latches onto {target.name}, making them vulnerable.")
-                # The take_damage method already checks for and applies this effect
-                if "vulnerable" in target.status_effects:
-                    target.status_effects["vulnerable"]["duration"] += 2
-                else:
-                    target.status_effects["vulnerable"] = {"duration": 2}
+                target.apply_status_effect('vulnerable', 2, potency=2) # 2x damage for 2 turns
             elif effect == "mana_drain":
                 drained_mana = 0
-                if hasattr(target, 'mana'):
-                    drained_mana = target.mana
-                    target.mana = 0
+                if "mana" in target.resources:
+                    drained_mana = target.resources["mana"]["current"]
+                    target.resources["mana"]["current"] = 0
                 print(f"{self.name} drains all of {target.name}'s {drained_mana} mana!")
-                self.mana = min(self.max_mana, self.mana + drained_mana)
+                self.resources["mana"]["current"] = min(self.resources["mana"]["max"], self.resources["mana"]["current"] + drained_mana)
 
             return True
         else:
@@ -565,8 +566,13 @@ class Enemy(GameObject):
         super().__init__(name=name, x=x, y=y, z=z, health=50, speed=2)
         self.type = type  # e.g., "Goblin", "Orc", "Dragon"
         self.attack_damage = 10
-        self.aggro_range = 10  # Range at which the enemy will start attacking.
+        self.aggro_range = 8
+        self.attack_range = 1.5
         self.xp_value = 0
+        self.state = 'idle' # Can be 'idle', 'chasing', 'attacking'
+        self.patrol_target = None
+        # Add some default resistances for demonstration
+        self.resistances = {"fire": 0.5, "ice": 1.5}
 
     def attack(self, target):
         """
@@ -577,34 +583,69 @@ class Enemy(GameObject):
         print(f"{self.name} attacks {target.name} for {self.attack_damage} damage.")
         target.take_damage(self.attack_damage)
 
-    def update(self, delta_time, player):
+    def update(self, delta_time, player, scene):
         """
-        Updates the enemy's state.  This is called every frame.
-        Args:
-            delta_time (float): Time since last frame.
-            player (Player): The player object.
+        Updates the enemy's state machine. This is called every frame.
         """
-        self.update_status_effects(delta_time)
+        self.update_status_effects()
 
-        if 'sleep' in self.status_effects:
-            print(f"{self.name} is asleep and cannot act.")
+        if 'sleep' in self.status_effects or 'confusion' in self.status_effects:
+            print(f"{self.name} is incapacitated and cannot act.")
             return
 
-        if self.distance_to(player) < self.aggro_range:
-            current_speed = self.speed
-            if 'slow' in self.status_effects:
-                print(f"{self.name} is slowed!")
-                current_speed /= 2
-            # Move towards the player
-            dx = player.x - self.x
-            dy = player.y - self.y
-            dz = player.z - self.z
-            distance = self.distance_to(player)
-            if distance > 0:
-              self.move(dx / distance * current_speed * delta_time, dy / distance * current_speed * delta_time, dz/distance * current_speed * delta_time)
-            # Attack the player if close enough.
-            if self.distance_to(player) < 1:  # Attack range
-                self.attack(player)
+        distance_to_player = self.distance_to(player)
+
+        # State transitions
+        if distance_to_player <= self.attack_range:
+            self.state = 'attacking'
+        elif distance_to_player <= self.aggro_range:
+            self.state = 'chasing'
+        else:
+            self.state = 'idle'
+
+        # Actions based on state
+        if self.state == 'attacking':
+            self.attack(player)
+        elif self.state == 'chasing':
+            self.move_towards(player, delta_time)
+        elif self.state == 'idle':
+            self.patrol(delta_time, scene)
+
+    def move_towards(self, target, delta_time):
+        """Moves the enemy towards a target."""
+        current_speed = self.speed
+        if 'slow' in self.status_effects:
+            print(f"{self.name} is slowed!")
+            current_speed /= 2
+
+        dx = target.x - self.x
+        dy = target.y - self.y
+        distance = self.distance_to(target)
+        if distance > 0:
+            self.move(dx / distance * current_speed * delta_time, dy / distance * current_speed * delta_time)
+
+    def patrol(self, delta_time, scene):
+        """Wanders around when idle."""
+        if not self.patrol_target or self.distance_to(self.patrol_target) < 1:
+            # Pick a new random point to patrol to
+            new_x = random.randint(0, scene.width - 1)
+            new_y = random.randint(0, scene.height - 1)
+            self.patrol_target = GameObject(x=new_x, y=new_y)
+            print(f"{self.name} starts patrolling towards ({new_x}, {new_y}).")
+
+        self.move_towards(self.patrol_target, delta_time)
+
+class Aeron(Player):
+    """A valiant knight, a playable character."""
+    def __init__(self, name="Aeron", x=0, y=0, z=0):
+        super().__init__(name, x, y, z)
+        self.symbol = 'A'
+
+class Kane(Enemy):
+    """Aeron's brother and rival, an enemy character."""
+    def __init__(self, name="Kane", x=0, y=0, z=0):
+        super().__init__(name, x, y, z)
+        self.symbol = 'K'
 
 # --- Item System ---
 
@@ -660,8 +701,9 @@ class ManaPotion(Consumable):
     def use(self, target):
         """Restores mana to the target."""
         super().use(target)
-        if hasattr(target, 'mana'):
-            target.mana = min(target.max_mana, target.mana + self.amount)
+        if "mana" in target.resources:
+            mana = target.resources["mana"]
+            mana["current"] = min(mana["max"], mana["current"] + self.amount)
             print(f"{target.name} restored {self.amount} Mana.")
         else:
             print(f"{target.name} has no mana to restore.")
@@ -710,6 +752,58 @@ class Equipment:
         for slot, item in self.slots.items():
             print(f"- {slot.capitalize()}: {'Empty' if not item else item.name}")
         print("--------------------")
+
+# --- NEW: Generic Ability System ---
+
+class Ability:
+    """Base class for all abilities."""
+    def __init__(self, name, cost=0, resource="mana"):
+        self.name = name
+        self.cost = cost
+        self.resource = resource
+
+    def can_use(self, caster):
+        """Checks if the caster has enough resources to use the ability."""
+        if self.resource not in caster.resources:
+            print(f"{caster.name} does not have the {self.resource} resource.")
+            return False
+        if caster.resources[self.resource]["current"] < self.cost:
+            print(f"{caster.name} does not have enough {self.resource} to use {self.name}.")
+            return False
+        return True
+
+    def use(self, caster, target):
+        """Uses the ability."""
+        if self.can_use(caster):
+            caster.resources[self.resource]["current"] -= self.cost
+            print(f"{caster.name} uses {self.name} on {target.name}.")
+            self.apply_effect(caster, target)
+
+    def apply_effect(self, caster, target):
+        """Applies the ability's effect. To be overridden by subclasses."""
+        raise NotImplementedError
+
+class Fireball(Ability):
+    """A powerful fire-based attack."""
+    def __init__(self):
+        super().__init__(name="Fireball", cost=20, resource="mana")
+
+    def apply_effect(self, caster, target):
+        """Deals fire damage to the target."""
+        damage = 15 + int(caster.intelligence * 1.5)
+        print(f"A roaring fireball engulfs {target.name} for {damage} fire damage!")
+        target.take_damage(damage, "fire")
+
+class PoisonCloud(Ability):
+    """Creates a cloud that poisons the target."""
+    def __init__(self):
+        super().__init__(name="Poison Cloud", cost=15, resource="mana")
+
+    def apply_effect(self, caster, target):
+        """Applies a poison status effect to the target."""
+        print(f"A toxic cloud envelops {target.name}!")
+        target.apply_status_effect("poison", duration=5, potency=3) # 3 damage per turn for 5 turns
+
 # --- 2. NEW Dialogue System Classes ---
 
 class DialogueNode:
@@ -857,7 +951,6 @@ class Game:
     def __init__(self, width=40, height=10):
         self.width = width
         self.height = height
-        self.message_log = []
         self.turn_taken = False
         self.game_over = False
         self.in_conversation = False
@@ -867,7 +960,6 @@ class Game:
         return {
             "width": self.width,
             "height": self.height,
-            "message_log": self.message_log,
             "game_over": self.game_over,
             "in_conversation": self.in_conversation,
             "dialogue_manager": self.dialogue_manager.to_dict() if self.dialogue_manager else None,
@@ -876,7 +968,6 @@ class Game:
     @classmethod
     def from_dict(cls, data):
         game = cls(width=data["width"], height=data["height"])
-        game.message_log = data.get("message_log", [])
         game.game_over = data.get("game_over", False)
         game.in_conversation = data.get("in_conversation", False)
         dialogue_data = data.get("dialogue_manager")
@@ -884,24 +975,19 @@ class Game:
             game.dialogue_manager = DialogueManager.from_dict(dialogue_data)
         return game
 
-    def log_message(self, message):
-        self.message_log.append(message)
-        if len(self.message_log) > 5:
-            self.message_log.pop(0)
-
     def handle_input(self, scene_manager):
         """UPDATED to handle dialogue, saving, and loading."""
+        player = scene_manager.scene.player_character
         if self.in_conversation:
             choice = input("Choose an option (number): ")
             if choice.isdigit() and self.dialogue_manager.select_option(int(choice) - 1):
                 pass
             else:
-                self.log_message("Invalid choice.")
+                print("Invalid choice.")
             self.turn_taken = True
             return
 
         command = input(f"What will {player.name} do? (attack, equip [item], use [item], examine, status, quit): ").lower().strip()
-        command = input("Action: ").lower().strip()
         parts = command.split()
         action = parts[0] if parts else ""
 
@@ -923,17 +1009,17 @@ class Game:
                     player.y = new_y
                     self.turn_taken = True
                 else:
-                    self.log_message(f"You can't move there. {target.name} is in the way.")
+                    print(f"You can't move there. {target.name} is in the way.")
             else:
-                self.log_message("You can't move off the map.")
+                print("You can't move off the map.")
 
         elif action == "examine" and len(parts) > 1:
             target_name = " ".join(parts[1:])
             target = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Interactable) and obj.name.lower() == target_name.lower()), None)
             if target:
-                self.log_message(f"{target.name}: {target.on_examine()}")
+                print(f"{target.name}: {target.on_examine()}")
             else:
-                self.log_message(f"There is no '{target_name}' to examine.")
+                print(f"There is no '{target_name}' to examine.")
             self.turn_taken = True
 
         elif action == "talk" and len(parts) > 1:
@@ -944,14 +1030,14 @@ class Game:
                 if distance <= 2:
                     self.start_conversation(target.dialogue)
                 else:
-                    self.log_message(f"You are too far away to talk to {target.name}.")
+                    print(f"You are too far away to talk to {target.name}.")
             else:
                 # Simple attack (for single-enemy scenes)
                 target = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Enemy) and obj.health > 0), None)
                 if target:
                     player.attack(target)
                 else:
-                    self.log_message("There is no one to attack.")
+                    print("There is no one to attack.")
 
         elif action == "equip" and len(parts) > 1:
             item_name = " ".join(parts[1:])
@@ -959,35 +1045,36 @@ class Game:
 
         elif action == "use" and len(parts) > 1:
             item_name = " ".join(parts[1:])
-            player.use_item(item_name)
+            if not player.use_item(item_name):
+                # If it's not an item, try to use it as an ability
+                target = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Enemy) and obj.health > 0), None)
+                if target:
+                    player.use_ability(item_name, target)
+                else:
+                    print("There is no target for this ability.")
 
         elif action == "examine":
             found_something = False
             for obj in scene_manager.scene.game_objects:
                 if isinstance(obj, Interactable) and player.distance_to(obj) < 1.5:
-                    self.log_message(obj.examine())
+                    print(obj.on_examine())
                     found_something = True
                     break
             if not found_something:
-                self.log_message("There is nothing nearby to examine.")
+                print("There is nothing nearby to examine.")
 
         elif action == "status":
-            self.log_message(f"{player.name} - HP: {player.health}/{player.max_health}, Mana: {int(player.mana)}/{player.max_mana}")
+            print(f"{player.name} - HP: {player.health}/{player.max_health}, Mana: {int(player.resources['mana']['current'])}/{player.resources['mana']['max']}")
             # Making status more general
             for obj in scene_manager.scene.game_objects:
                 if isinstance(obj, Enemy) and obj.health > 0:
-                     self.log_message(f"{obj.name} - HP: {obj.health}")
-
-        else:
-            self.log_message("Invalid command. Try: move [w/a/s/d], examine [object], attack [target], use [item], equip [item], status, quit")
-
-                self.log_message(f"'{target_name}' has nothing to say or isn't here.")
+                     print(f"{obj.name} - HP: {obj.health}")
             self.turn_taken = True
 
         elif action == "save":
             filename = parts[1] if len(parts) > 1 else "savegame.json"
             save_game(scene_manager, filename)
-            self.log_message(f"Game saved to {filename}")
+            print(f"Game saved to {filename}")
             self.turn_taken = False # Saving does not consume a turn
 
         elif action == "load":
@@ -995,32 +1082,32 @@ class Game:
             new_manager = load_game(filename)
             if new_manager:
                 if scene_manager.__class__ is not new_manager.__class__:
-                    self.log_message(f"Error: Save is for a different scene type ('{new_manager.__class__.__name__}').")
+                    print(f"Error: Save is for a different scene type ('{new_manager.__class__.__name__}').")
                 else:
                     scene_manager.game = new_manager.game
                     scene_manager.scene = new_manager.scene
-                    self.log_message("Game loaded successfully.")
+                    print("Game loaded successfully.")
             else:
-                self.log_message("Failed to load game.")
+                print("Failed to load game.")
             self.turn_taken = True
 
         elif action == "quit":
             self.game_over = True
         else:
-            self.log_message("Unknown command. Try: move [dir], talk [name], examine [name], save/load, quit")
+            print("Unknown command. Try: move [dir], talk [name], examine [name], save/load, quit")
 
 
     def start_conversation(self, dialogue_manager):
         """Initiates a conversation."""
         self.in_conversation = True
         self.dialogue_manager = dialogue_manager
-        self.log_message("A conversation begins.")
+        print("A conversation begins.")
 
     def end_conversation(self):
         """Ends the current conversation."""
         self.in_conversation = False
         self.dialogue_manager = None
-        self.log_message("The conversation ends.")
+        print("The conversation ends.")
 
     def draw(self, scene):
         """Draws the game state to the console."""
@@ -1059,9 +1146,6 @@ class Game:
         player = scene.player_character
         print("-" * (self.width * 2 - 1))
         print(f"{player.name} | Health: {player.health}/{player.max_health}")
-        print("-- Messages --")
-        for msg in self.message_log:
-            print(f"- {msg}")
         print("-" * (self.width * 2 - 1))
 
 
@@ -1124,14 +1208,17 @@ class AethelgardBattle(SceneManager):
         self.scene.set_player(player)
         self.scene.add_object(enemy)
         self.scene.add_object(ancient_statue)
-        self.game.log_message("Aethelgard stands silent. Your brother, Kane, awaits.")
-        self.game.log_message("You feel the weight of the Aethelgard Plate. Type 'equip Aethelgard Plate' to wear it.")
-            if self.game.turn_taken:
-                # AI turn logic would go here
-                for obj in self.scene.game_objects:
+        print("Aethelgard stands silent. Your brother, Kane, awaits.")
+        print("You feel the weight of the Aethelgard Plate. Type 'equip Aethelgard Plate' to wear it.")
+        if self.game.turn_taken:
+            # AI turn logic would go here
+            for obj in self.scene.game_objects:
+                if isinstance(obj, Enemy):
+                    obj.update(0.5, self.scene.player_character, self.scene) # Assuming a fixed delta_time for simplicity
+                else:
                     obj.update(self)
 
-            self.update() # Check for scene-specific win/loss conditions
+        self.update()
 
 # --- 4. NEW Save/Load Functionality ---
 
@@ -1150,10 +1237,7 @@ def save_game(scene_manager, filename="savegame.json"):
         with open(filename, "w") as f:
             json.dump(state, f, indent=4)
     except Exception as e:
-        # Log to the game instance if available, otherwise print.
-        if scene_manager and scene_manager.game:
-            scene_manager.game.log_message(f"Error saving game: {e}")
-        print(f"Error saving game: {e}") # Also print to console for debugging
+        print(f"Error saving game: {e}")
 
 def load_game(filename="savegame.json"):
     """Loads a game state from a file."""
@@ -1210,7 +1294,7 @@ class FirstMeetingScene(SceneManager):
 
         self.scene.set_player(player)
         self.scene.add_object(npc)
-        self.game.log_message("You approach a skeptical-looking woman leaning against a monolith.")
+        print("You approach a skeptical-looking woman leaning against a monolith.")
 
 # --- 6. RUNNING THE DIALOGUE SCENE ---
 if __name__ == "__main__":

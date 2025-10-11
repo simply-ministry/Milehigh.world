@@ -14,11 +14,12 @@ class TestRpgInteraction(unittest.TestCase):
         self.scene_manager = AethelgardBattle(self.scene, self.game)
         # We need to run the setup to populate the scene with objects
         self.scene_manager.setup()
-        # Mock the log_message to capture output without printing to console
-        self.game.log_message = MagicMock()
+        # Mock the print to capture output without printing to console
+        self.game.print = MagicMock()
 
     @patch('builtins.input', return_value='examine')
-    def test_examine_command_success(self, mock_input):
+    @patch('builtins.print')
+    def test_examine_command_success(self, mock_print, mock_input):
         """
         Tests that the 'examine' command correctly identifies a nearby
         interactable object and logs its description.
@@ -30,11 +31,12 @@ class TestRpgInteraction(unittest.TestCase):
         # The description of the statue in AethelgardBattle
         expected_description = "The statue depicts a forgotten king. A faint inscription reads: 'Only the worthy may pass.'"
 
-        # Check that log_message was called with the correct description
-        self.game.log_message.assert_called_once_with(expected_description)
+        # Check that print was called with the correct description
+        mock_print.assert_any_call(expected_description)
 
     @patch('builtins.input', return_value='examine')
-    def test_examine_command_no_object(self, mock_input):
+    @patch('builtins.print')
+    def test_examine_command_no_object(self, mock_print, mock_input):
         """
         Tests that the 'examine' command shows the correct message when
         no interactable object is nearby.
@@ -46,8 +48,8 @@ class TestRpgInteraction(unittest.TestCase):
         # Call the method that handles input
         self.game.handle_input(self.scene_manager)
 
-        # Check that log_message was called with the 'nothing nearby' message
-        self.game.log_message.assert_called_once_with("There is nothing nearby to examine.")
+        # Check that print was called with the 'nothing nearby' message
+        mock_print.assert_any_call("There is nothing nearby to examine.")
 
 if __name__ == '__main__':
     unittest.main()

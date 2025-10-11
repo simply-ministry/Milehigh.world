@@ -47,7 +47,6 @@ class TestSaveLoad(unittest.TestCase):
 
         # Compare game properties
         self.assertEqual(original_game.width, loaded_game.width)
-        self.assertEqual(len(original_game.message_log), len(loaded_game.message_log))
 
         # Compare scene properties
         self.assertEqual(original_scene.name, loaded_scene.name)
