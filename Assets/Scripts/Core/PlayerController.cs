@@ -9,6 +9,7 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(AbilitySystem))]
 [RequireComponent(typeof(Interactor))]
+[RequireComponent(typeof(TargetingSystem))]
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement Settings")]
@@ -23,11 +24,18 @@ public class PlayerController : MonoBehaviour
     [Tooltip("The currently selected target for abilities.")]
     public Character CurrentTarget { get; private set; }
 
+    // Public method to allow other systems (like TargetingSystem) to set the target.
+    public void SetTarget(Character newTarget)
+    {
+        CurrentTarget = newTarget;
+    }
+
     // Component references
     private CharacterController characterController;
     private Character character;
     private AbilitySystem abilitySystem;
     private Interactor interactor;
+    private TargetingSystem targetingSystem;
 
     void Awake()
     {
@@ -36,6 +44,7 @@ public class PlayerController : MonoBehaviour
         character = GetComponent<Character>();
         abilitySystem = GetComponent<AbilitySystem>();
         interactor = GetComponent<Interactor>();
+        targetingSystem = GetComponent<TargetingSystem>();
 
         if (Camera.main != null)
         {
@@ -98,26 +107,13 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// Handles selecting a target with the mouse (now on right-click).
+    /// Handles cycling through targets using the Tab key.
     /// </summary>
     private void HandleTargetSelection()
     {
-        if (Input.GetMouseButtonDown(1)) // Right-click to target
+        if (Input.GetKeyDown(KeyCode.Tab))
         {
-            RaycastHit hit;
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out hit))
-            {
-                if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
-                {
-                    Character targetCharacter = hit.collider.GetComponent<Character>();
-                    if (targetCharacter != null)
-                    {
-                        CurrentTarget = targetCharacter;
-                        Debug.Log($"Target set to: {CurrentTarget.characterName}");
-                    }
-                }
-            }
+            targetingSystem.CycleTarget();
         }
     }
 
