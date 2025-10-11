@@ -1,42 +1,42 @@
 import unittest
 import os
 import json
+import database
 from rpg import (
     Game,
     Scene,
     FirstMeetingScene,
     Anastasia,
     Reverie,
-    save_game,
-    load_game,
 )
 
 class TestSaveLoad(unittest.TestCase):
 
     def setUp(self):
         """Set up a clean game state and a save file path for each test."""
-        self.save_filename = "test_savegame.json"
+        database.init_db()
+        self.save_name = "test_save"
         self.game = Game()
         self.scene = Scene("Test Meeting")
-        self.scene_manager = FirstMeetingScene(self.scene, self.game)
+        self.scene_manager = FirstMeetingScene(self.scene, self.game, setup_scene=False)
+        self.scene_manager.setup()
         # The setup() method is called inside FirstMeetingScene's __init__
 
     def tearDown(self):
-        """Clean up the save file after each test."""
-        if os.path.exists(self.save_filename):
-            os.remove(self.save_filename)
+        """Clean up the database file after each test."""
+        if os.path.exists("rpg.db"):
+            os.remove("rpg.db")
 
     def test_save_and_load_game_state(self):
         """
-        Tests that the game state can be saved to a file and then loaded back,
+        Tests that the game state can be saved to the database and then loaded back,
         restoring the exact state of the game, scene, and characters.
         """
         # 1. Save the initial game state
-        save_game(self.scene_manager, self.save_filename)
-        self.assertTrue(os.path.exists(self.save_filename), "Save file was not created.")
+        database.save_game(self.save_name, self.scene_manager)
 
         # 2. Load the game state into a new manager
-        loaded_manager = load_game(self.save_filename)
+        loaded_manager = database.load_game(self.save_name)
         self.assertIsNotNone(loaded_manager, "Failed to load the game.")
 
         # 3. Assert that the loaded state matches the original state
