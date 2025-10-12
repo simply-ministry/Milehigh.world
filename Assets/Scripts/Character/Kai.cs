@@ -5,7 +5,7 @@ using UnityEngine;
 /// Kai is a tactical seer whose abilities focus on gathering information,
 /// revealing enemy weaknesses, and providing support to his allies.
 /// </summary>
-public class Kai : Character
+public class Kai : Novamina
 {
     // Placeholder for Kai's unique abilities.
     // In a full implementation, these methods would contain logic

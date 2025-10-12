@@ -3,15 +3,15 @@ import json
 
 DB_FILE = "rpg.db"
 
-def get_db_connection():
+def get_db_connection(db_file=DB_FILE):
     """Establishes a connection to the database."""
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(db_file)
     conn.row_factory = sqlite3.Row
     return conn
 
-def init_db():
+def init_db(db_file=DB_FILE):
     """Initializes the database and creates tables if they don't exist."""
-    conn = get_db_connection()
+    conn = get_db_connection(db_file)
     cursor = conn.cursor()
 
     # Table to store high-level information about each save file
@@ -95,9 +95,9 @@ def set_class_loader(loader_func):
     get_class = loader_func
 
 
-def save_game(save_name, scene_manager):
+def save_game(save_name, scene_manager, db_file=DB_FILE):
     """Saves the current game state to the database."""
-    conn = get_db_connection()
+    conn = get_db_connection(db_file)
     cursor = conn.cursor()
 
     # Clear any previous data for this save name
@@ -178,9 +178,9 @@ def save_item(cursor, save_name, item, owner_name=None):
         )
     )
 
-def load_game(save_name):
+def load_game(save_name, db_file=DB_FILE):
     """Loads a game state from the database and returns a new scene_manager."""
-    conn = get_db_connection()
+    conn = get_db_connection(db_file)
     cursor = conn.cursor()
 
     # --- Load High-Level Game State ---

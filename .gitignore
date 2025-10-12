@@ -7,6 +7,13 @@
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
 
+# Python
+__pycache__/
+*.py[cod]
+*.db
+*.sqlite
+*.sqlite3
+
 # MemoryCaptures can be huge
 /[Mm]emoryCaptures/
 
