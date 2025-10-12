@@ -130,6 +130,43 @@ public class Skyix : Novamina
         // ... logic to create a drone GameObject ...
     }
 
+    // New property for ability cost
+    private const int BlinkVoidEnergyCost = 30;
+
+    /// <summary>
+    /// Skyix's signature mobility and evasion tool.
+    /// Instantly teleports Skyix up to a maximum distance or to a targeted enemy.
+    /// Grants a brief period of Invisibility and increased Evasion after the blink.
+    /// </summary>
+    /// <param name="targetPosition">The desired position to blink to.</param>
+    public void VoidBlink(Vector3 targetPosition)
+    {
+        bool isVoidTransformed = CurrentState == CharacterState.VoidTransformed;
+        int finalEnergyCost = isVoidTransformed ? (int)(BlinkVoidEnergyCost * 0.75f) : BlinkVoidEnergyCost;
+        float evasionDuration = isVoidTransformed ? 2.5f : 1.5f;
+
+        if (VoidEnergy < finalEnergyCost)
+        {
+            Debug.Log($"[Skyix] Fails to cast Void Blink. Not enough Void Energy (Cost: {finalEnergyCost}).");
+            return;
+        }
+
+        // Subtract Void Energy
+        VoidEnergy -= finalEnergyCost;
+
+        // Placeholder logic for ability effect
+        Debug.Log(
+            $"[Skyix] **Void Blink** executed! Teleporting to target location. Grants {evasionDuration}s of Evasion. " +
+            (isVoidTransformed ? "(Void-Enhanced: Lower cost, longer duration!)" : "") +
+            $" Void Energy remaining: {VoidEnergy}."
+        );
+
+        // In a full implementation:
+        // 1. Calculate the actual destination based on targetPosition and max range.
+        // 2. Set the character's transform.position to the destination.
+        // 3. Apply a temporary 'EvasionBuff' component.
+    }
+
 
     // --- Ultimate/Destiny Ability ---
 
