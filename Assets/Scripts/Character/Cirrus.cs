@@ -112,25 +112,39 @@ public class Cirrus : Novamina
     }
 
     /// <summary>
-    /// A powerful breath attack that differs based on his current form.
+    /// Unleashes a powerful breath attack that differs based on his current form.
+    /// In Dragon form, it's a wide cone of fire. In Humanoid form, a smaller spark.
+    /// Costs 30 mana.
     /// </summary>
-    /// <param name="enemiesInPath">A list of all enemies in a line in front of Cirrus.</param>
-    public void DraconicBreath(List<Character> enemiesInPath)
+    /// <param name="enemiesInPath">A list of all enemies in the attack's path.</param>
+    public void DragonsBreath(List<Character> enemiesInPath)
     {
-        // This ability is likely only usable or is much stronger in Dragon form.
+        if (!UseMana(30))
+        {
+            Debug.Log($"{characterName} tries to use Dragon's Breath, but lacks the mana!");
+            return;
+        }
+
+        // The ability's effect changes based on his form.
         if (CurrentForm == FormState.Dragon)
         {
-            Debug.Log($"{characterName} unleashes a torrent of dragon fire!");
+            Debug.Log($"{characterName} unleashes a torrent of dragon fire for 30 mana!");
             foreach (var enemy in enemiesInPath)
             {
                 Debug.Log($"...The fire engulfs {enemy.characterName}!");
-                // ... logic to apply heavy fire damage to all enemies in the cone ...
+                // In a full implementation, we would call enemy.TakeDamage() here.
             }
         }
-        else
+        else // Humanoid Form
         {
-             // In humanoid form, it could be a lesser version.
-            Debug.Log($"{characterName} exhales a spark of draconic energy at the nearest foe.");
+            Debug.Log($"{characterName} exhales a spark of draconic energy for 30 mana.");
+            if (enemiesInPath.Count > 0)
+            {
+                // In humanoid form, maybe it only hits the first target.
+                var target = enemiesInPath[0];
+                Debug.Log($"...The spark hits {target.characterName}!");
+                 // In a full implementation, we would call target.TakeDamage() here.
+            }
         }
     }
 }
