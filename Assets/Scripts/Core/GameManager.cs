@@ -42,6 +42,28 @@ public class GameManager : MonoBehaviour
         // In a real game, you would start at a main menu.
         // For now, we'll assume we load directly into a playable scene.
         currentState = GameState.Playing;
+
+        // --- Manager Creation ---
+        // Ensure that the other core managers exist in the scene.
+        EnsureManagerExists<CombatManager>("_CombatManager");
+        EnsureManagerExists<UIManager>("_UIManager");
+    }
+
+    /// <summary>
+    /// Checks if a manager of a specific type exists in the scene. If not, it creates one.
+    /// This ensures that manager singletons are always available.
+    /// </summary>
+    /// <typeparam name="T">The type of the manager component (must be a MonoBehaviour).</typeparam>
+    /// <param name="name">The name for the new GameObject if one needs to be created.</param>
+    private void EnsureManagerExists<T>(string name) where T : MonoBehaviour
+    {
+        if (FindObjectOfType<T>() == null)
+        {
+            GameObject managerGO = new GameObject(name);
+            managerGO.AddComponent<T>();
+            DontDestroyOnLoad(managerGO);
+            Debug.Log($"'{name}' was not found in the scene. A new instance has been created.");
+        }
     }
 
     /// <summary>
