@@ -1,27 +1,45 @@
+using System;
 using UnityEngine;
+
+/// <summary>
+/// An enum to represent the different states a character can be in.
+/// </summary>
+public enum CharacterState
+{
+    Idle,
+    Walking,
+    Attacking,
+    VoidTransformed,
+    UnifiedEntity,
+    Dead
+}
 
 /// <summary>
 /// The base class for all characters in Milehigh.World.
 /// </summary>
 public class Character : MonoBehaviour
 {
+    [Header("Core Identification")]
+    [Tooltip("A unique identifier for this character instance.")]
+    public Guid CharacterId { get; private set; }
+
     [Header("Core Attributes")]
     public string characterName = "Character";
     public float maxHealth = 100f;
-    public float health;
+    public float currentHealth;
     public float maxMana = 100f;
-    public float mana;
+    public float currentMana;
     public bool isAlive = true;
-    public bool isPlayer = false;
 
     [Header("Combat Stats")]
     public int attack = 10;
     public int defense = 5;
 
-    void Awake()
+    protected virtual void Awake()
     {
-        health = maxHealth;
-        mana = maxMana;
+        CharacterId = Guid.NewGuid();
+        currentHealth = maxHealth;
+        currentMana = maxMana;
     }
 
     /// <summary>
@@ -32,13 +50,13 @@ public class Character : MonoBehaviour
         if (!isAlive) return;
 
         float damageTaken = Mathf.Max(1f, amount - defense);
-        health -= damageTaken;
+        currentHealth -= damageTaken;
 
         Debug.Log($"{characterName} takes {damageTaken} damage.");
 
-        if (health <= 0)
+        if (currentHealth <= 0)
         {
-            health = 0;
+            currentHealth = 0;
             Die();
         }
     }
@@ -49,7 +67,7 @@ public class Character : MonoBehaviour
     public void Heal(float amount)
     {
         if (!isAlive) return;
-        health = Mathf.Min(maxHealth, health + amount);
+        currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
         Debug.Log($"{characterName} heals for {amount}.");
     }
 
@@ -58,9 +76,9 @@ public class Character : MonoBehaviour
     /// </summary>
     public bool UseMana(float amount)
     {
-        if (mana >= amount)
+        if (currentMana >= amount)
         {
-            mana -= amount;
+            currentMana -= amount;
             return true;
         }
         return false;
