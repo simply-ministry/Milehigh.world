@@ -3,15 +3,6 @@ using UnityEngine;
 
 /// <summary>
 /// Represents Zaia the Just, one of the Ɲōvəmîŋāđ.
-/// Zaia is a swift and precise melee assassin, focused on exploiting enemy weaknesses
-/// and executing high-priority targets.
-/// </summary>
-public class Zaia : Novamina
-{
-    /// <summary>
-    /// Initializes Zaia's specific attributes, setting her name and archetype.
-    /// </summary>
-/// Represents Zaia, a swift and lethal member of the Ɲōvəmîŋāđ.
 /// She operates as a Rogue/Assassin, specializing in stealth, mobility, and high-precision strikes.
 /// </summary>
 public class Zaia : Novamina
@@ -116,9 +107,6 @@ public class Zaia : Novamina
     }
 
     /// <summary>
-    /// Called every frame, this method will contain Zaia's gameplay logic.
-    /// </summary>
-    void Update()
     /// An evasive maneuver that allows Zaia to quickly reposition and avoid damage.
     /// </summary>
     public void EvasiveDash()
