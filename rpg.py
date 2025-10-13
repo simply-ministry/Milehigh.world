@@ -197,15 +197,18 @@ class Player(GameObject):
         target.take_damage(total_damage)
 
     def equip_item(self, item_name):
-        """Finds an item in inventory and equips it."""
+        """Finds an item in inventory, equips it, and removes it from inventory."""
         item_to_equip = None
-        for item in self.inventory:
+        item_index = -1
+        for i, item in enumerate(self.inventory):
             if item.name.lower() == item_name.lower():
                 item_to_equip = item
+                item_index = i
                 break
 
         if item_to_equip:
             self.equipment.equip(item_to_equip)
+            self.inventory.pop(item_index) # Remove from inventory
         else:
             print(f"'{item_name}' not found in inventory.")
 
@@ -306,6 +309,13 @@ class Player(GameObject):
                 print(f"{self.name} does not have enough mana to cast Heal!")
         else:
             print(f"{self.name} does not know the spell {spell_name}.")
+
+    def heal(self, amount):
+        """Heals the character for a given amount."""
+        self.health += amount
+        if self.health > self.max_health:
+            self.health = self.max_health
+        print(f"{self.name} is healed for {amount} HP.")
 
 # --- Anastasia's Class Implementation ---
 
@@ -888,6 +898,7 @@ class DialogueManager:
             manager.add_node(key, DialogueNode.from_dict(node_data))
         return manager
 
+# --- 3. UPDATING THE CHARACTER AND GAME ENGINE ---
 # --- 3. UPDATING THE GAME ENGINE ---
 
 class Scene:

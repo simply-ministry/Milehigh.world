@@ -126,7 +126,9 @@ def save_game(save_name, scene_manager, db_file=DB_FILE):
 
     # --- Save Characters and Items ---
     for obj in scene_manager.scene.game_objects:
-        if "Character" in [base.__name__ for base in obj.__class__.__mro__]: # A bit complex, but checks for inheritance
+        mro_names = [base.__name__ for base in obj.__class__.__mro__]
+        # Check if the object is a character-type (Player or Enemy)
+        if "Player" in mro_names or "Enemy" in mro_names:
             dialogue_json = json.dumps(obj.dialogue.to_dict()) if hasattr(obj, 'dialogue') and obj.dialogue else None
             cursor.execute(
                 """
@@ -154,9 +156,9 @@ def save_game(save_name, scene_manager, db_file=DB_FILE):
                         # We add a special marker to distinguish equipped items
                         save_item(cursor, save_name, item, owner_name=f"EQUIPPED:{obj.name}:{slot}")
 
-        elif "Item" in [base.__name__ for base in obj.__class__.__mro__]:
-            # This handles items just lying on the ground
-            save_item(cursor, save_name, item)
+        # Check if the object is an item-type on the ground (not in an inventory)
+        elif "Item" in mro_names:
+            save_item(cursor, save_name, obj)
 
     conn.commit()
     conn.close()
@@ -228,8 +230,20 @@ def load_game(save_name, db_file=DB_FILE):
     cursor.execute("SELECT * FROM Items WHERE save_name = ?", (save_name,))
     for row in cursor.fetchall():
         ItemClass = get_class(row["class_name"])
-        item = ItemClass(name=row["name"], description=row["description"])
-        # Populate all fields from DB
+
+        # --- NEW: Handle different item constructors ---
+        class_name = row["class_name"]
+        if class_name == "Weapon":
+            item = ItemClass(name=row["name"], description=row["description"], damage=row["damage"])
+        elif class_name == "Armor":
+            item = ItemClass(name=row["name"], description=row["description"], defense=row["defense"])
+        elif class_name == "HealthPotion":
+            # Assuming a default amount if not specified, or fetch from DB if stored
+            item = ItemClass(name=row["name"], description=row["description"])
+        else: # Fallback for simple items
+            item = ItemClass(name=row["name"], description=row["description"])
+
+        # Populate all fields from DB (this will handle quantity, etc.)
         for key in row.keys():
             if row[key] is not None and hasattr(item, key):
                 setattr(item, key, row[key])

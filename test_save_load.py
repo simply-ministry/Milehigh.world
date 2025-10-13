@@ -8,7 +8,10 @@ from rpg import (
     FirstMeetingScene,
     Anastasia,
     Reverie,
-    get_class_by_name
+    get_class_by_name,
+    Weapon,
+    Armor,
+    HealthPotion
 )
 from database import save_game, load_game
 
@@ -77,6 +80,40 @@ class TestSaveLoad(unittest.TestCase):
         original_dialogue_node = original_npc.dialogue.nodes["start"].text
         loaded_dialogue_node = loaded_npc.dialogue.nodes["start"].text
         self.assertEqual(original_dialogue_node, loaded_dialogue_node)
+
+    def test_save_and_load_inventory_and_equipment(self):
+        """
+        Tests that a player's inventory and equipped items are correctly
+        saved and loaded.
+        """
+        # 1. Set up the player with items and equipment
+        player = self.scene_manager.scene.player_character
+        weapon = Weapon("Excalibur", "A legendary sword.", damage=50)
+        armor = Armor("Dragonscale Mail", "Armor made of dragon scales.", defense=30)
+        potion = HealthPotion()
+
+        player.pickup_item(weapon)
+        player.pickup_item(armor)
+        player.pickup_item(potion)
+        player.equip_item("Excalibur")
+
+        # 2. Save the game
+        save_game(self.save_filename, self.scene_manager, db_file=self.save_filename)
+
+        # 3. Load the game into a new manager
+        loaded_manager = load_game(self.save_filename, db_file=self.save_filename)
+        loaded_player = loaded_manager.scene.player_character
+
+        # 4. Assert that inventory and equipment are restored
+        self.assertEqual(len(loaded_player.inventory), 2) # Armor and Potion
+        self.assertIsNotNone(loaded_player.equipment.slots["weapon"])
+        self.assertEqual(loaded_player.equipment.slots["weapon"].name, "Excalibur")
+        self.assertEqual(loaded_player.equipment.slots["weapon"].damage, 50)
+
+        # Check that an item in the inventory is correct
+        loaded_armor = next(item for item in loaded_player.inventory if isinstance(item, Armor))
+        self.assertEqual(loaded_armor.name, "Dragonscale Mail")
+        self.assertEqual(loaded_armor.defense, 30)
 
 if __name__ == '__main__':
     unittest.main()
