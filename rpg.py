@@ -129,10 +129,6 @@ class GameObject:
         self.update_status_effects(scene_manager)
 
 
-class Item(GameObject):
-    """Represents items that can be picked up or used."""
-    def __init__(self, name="Item", symbol='*', x=0, y=0):
-        super().__init__(name, symbol, x, y)
 
 class Interactable(GameObject):
     """Represents objects that can be examined for a description."""
@@ -903,6 +899,7 @@ class DialogueManager:
         return manager
 
 # --- 3. UPDATING THE CHARACTER AND GAME ENGINE ---
+# --- 3. UPDATING THE GAME ENGINE ---
 
 class Scene:
     """Holds all the data for a single game area: map, objects, etc."""
@@ -1003,7 +1000,7 @@ class Game:
         elif action == "talk" and len(parts) > 1:
             target_name = " ".join(parts[1:])
             target = next((obj for obj in scene_manager.scene.game_objects if obj.name.lower() == target_name.lower()), None)
-            if target and isinstance(target, Character) and target.dialogue:
+            if target and hasattr(target, 'dialogue') and target.dialogue:
                 if player.distance_to(target) <= 2:
                     self.start_conversation(target.dialogue)
                 else:
