@@ -129,10 +129,6 @@ class GameObject:
         self.update_status_effects(scene_manager)
 
 
-class Item(GameObject):
-    """Represents items that can be picked up or used."""
-    def __init__(self, name="Item", symbol='*', x=0, y=0):
-        super().__init__(name, symbol, x, y)
 
 class Interactable(GameObject):
     """Represents objects that can be examined for a description."""
@@ -892,24 +888,7 @@ class DialogueManager:
             manager.add_node(key, DialogueNode.from_dict(node_data))
         return manager
 
-# --- 3. UPDATING THE CHARACTER AND GAME ENGINE ---
-
-class Character(GameObject):
-    def __init__(self, name="Character", x=0, y=0, health=100, state=None):
-        super().__init__(name, 'C', x, y, state)
-        self.health = health
-        self.max_health = health
-        self.dialogue = None
-
-class Anastasia(Character):
-    def __init__(self, name="Anastasia", x=0, y=0, health=120, state=None):
-        super().__init__(name=name, x=x, y=y, health=health, state=state)
-        self.symbol = '@'
-
-class Reverie(Character):
-    def __init__(self, name="Reverie", x=0, y=0, health=100, state=None):
-        super().__init__(name=name, x=x, y=y, health=health, state=state)
-        self.symbol = 'R'
+# --- 3. UPDATING THE GAME ENGINE ---
 
 class Scene:
     """Holds all the data for a single game area: map, objects, etc."""
@@ -1010,7 +989,7 @@ class Game:
         elif action == "talk" and len(parts) > 1:
             target_name = " ".join(parts[1:])
             target = next((obj for obj in scene_manager.scene.game_objects if obj.name.lower() == target_name.lower()), None)
-            if target and isinstance(target, Character) and target.dialogue:
+            if target and hasattr(target, 'dialogue') and target.dialogue:
                 if player.distance_to(target) <= 2:
                     self.start_conversation(target.dialogue)
                 else:
