@@ -201,15 +201,18 @@ class Player(GameObject):
         target.take_damage(total_damage)
 
     def equip_item(self, item_name):
-        """Finds an item in inventory and equips it."""
+        """Finds an item in inventory, equips it, and removes it from inventory."""
         item_to_equip = None
-        for item in self.inventory:
+        item_index = -1
+        for i, item in enumerate(self.inventory):
             if item.name.lower() == item_name.lower():
                 item_to_equip = item
+                item_index = i
                 break
 
         if item_to_equip:
             self.equipment.equip(item_to_equip)
+            self.inventory.pop(item_index) # Remove from inventory
         else:
             print(f"'{item_name}' not found in inventory.")
 
@@ -310,6 +313,13 @@ class Player(GameObject):
                 print(f"{self.name} does not have enough mana to cast Heal!")
         else:
             print(f"{self.name} does not know the spell {spell_name}.")
+
+    def heal(self, amount):
+        """Heals the character for a given amount."""
+        self.health += amount
+        if self.health > self.max_health:
+            self.health = self.max_health
+        print(f"{self.name} is healed for {amount} HP.")
 
 # --- Anastasia's Class Implementation ---
 
@@ -893,23 +903,6 @@ class DialogueManager:
         return manager
 
 # --- 3. UPDATING THE CHARACTER AND GAME ENGINE ---
-
-class Character(GameObject):
-    def __init__(self, name="Character", x=0, y=0, health=100, state=None):
-        super().__init__(name, 'C', x, y, state)
-        self.health = health
-        self.max_health = health
-        self.dialogue = None
-
-class Anastasia(Character):
-    def __init__(self, name="Anastasia", x=0, y=0, health=120, state=None):
-        super().__init__(name=name, x=x, y=y, health=health, state=state)
-        self.symbol = '@'
-
-class Reverie(Character):
-    def __init__(self, name="Reverie", x=0, y=0, health=100, state=None):
-        super().__init__(name=name, x=x, y=y, health=health, state=state)
-        self.symbol = 'R'
 
 class Scene:
     """Holds all the data for a single game area: map, objects, etc."""
