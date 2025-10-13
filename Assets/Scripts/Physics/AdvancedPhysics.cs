@@ -22,14 +22,26 @@ public class AdvancedPhysics : MonoBehaviour
     [Tooltip("Air resistance factor. Affects movement through the air.")]
     public float airResistance = 0.1f;
 
+    /// <summary>
+    /// A reference to the Rigidbody component attached to this GameObject.
+    /// </summary>
     private Rigidbody rb;
+    /// <summary>
+    /// A flag indicating whether the object is currently touching the ground.
+    /// </summary>
     private bool isGrounded;
 
+    /// <summary>
+    /// Initializes the component by getting the required Rigidbody reference.
+    /// </summary>
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
     }
 
+    /// <summary>
+    /// Called every fixed-framerate frame. Applies physics calculations.
+    /// </summary>
     void FixedUpdate()
     {
         // Air resistance is always applied.
@@ -87,7 +99,9 @@ public class AdvancedPhysics : MonoBehaviour
 
     /// <summary>
     /// Checks if the object is currently on the ground by analyzing collision contacts.
+    /// This method is called once per frame for every collider/rigidbody that is touching another rigidbody/collider.
     /// </summary>
+    /// <param name="collision">The collision data associated with this event.</param>
     void OnCollisionStay(Collision collision)
     {
         // Check the contact points to see if we are colliding with a surface below us.
@@ -106,6 +120,7 @@ public class AdvancedPhysics : MonoBehaviour
     /// When the object stops colliding with something, assume it's no longer grounded.
     /// This is a simplification and might not be accurate in all scenarios (e.g., sliding off a ledge).
     /// </summary>
+    /// <param name="collision">The collision data associated with this event.</param>
     void OnCollisionExit(Collision collision)
     {
         isGrounded = false;

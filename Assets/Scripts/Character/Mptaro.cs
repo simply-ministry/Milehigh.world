@@ -1,18 +1,46 @@
 using UnityEngine;
 
+/// <summary>
+/// Controls the launching mechanism for a Golem, including trajectory prediction.
+/// This script calculates the path of a projectile and can launch a prefab along that path.
+/// </summary>
 public class Mptaro : MonoBehaviour
 {
     [Header("References")]
+    /// <summary>
+    /// The target destination for the launch.
+    /// </summary>
     public Transform target;
+    /// <summary>
+    /// The prefab of the Golem to be launched.
+    /// </summary>
     public GameObject golemPrefab;
+    /// <summary>
+    /// The point from which the Golem will be launched.
+    /// </summary>
     public Transform spawnPoint;
+    /// <summary>
+    /// The LineRenderer used to visualize the launch trajectory.
+    /// </summary>
     public LineRenderer trajectoryLine;
 
     [Header("Launch Parameters")]
+    /// <summary>
+    /// The angle of the launch in degrees.
+    /// </summary>
     public float launchAngle = 45f;
+    /// <summary>
+    /// The initial force applied to the Golem at launch.
+    /// </summary>
     public float launchForce = 20f;
 
-    // Start is called before the first frame update
+    [Header("Trajectory Prediction")]
+    [SerializeField] private int trajectorySteps = 100;
+    [SerializeField] private float trajectoryTimeStep = 0.1f;
+
+    /// <summary>
+    /// Initializes the component, ensuring the LineRenderer is assigned.
+    /// </summary>
     void Start()
     {
         if (trajectoryLine == null)
@@ -21,11 +49,9 @@ public class Mptaro : MonoBehaviour
         }
     }
 
-    [Header("Trajectory Prediction")]
-    [SerializeField] private int trajectorySteps = 100;
-    [SerializeField] private float trajectoryTimeStep = 0.1f;
-
-    // Update is called once per frame
+    /// <summary>
+    /// Called every frame. Updates the trajectory visualization and listens for the launch input.
+    /// </summary>
     void Update()
     {
         if (trajectoryLine != null)
@@ -41,6 +67,10 @@ public class Mptaro : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Launches the Golem prefab towards the target.
+    /// Instantiates the Golem and applies the calculated launch velocity to its Rigidbody.
+    /// </summary>
     public void Launch()
     {
         if (golemPrefab == null || spawnPoint == null || target == null)
@@ -67,6 +97,10 @@ public class Mptaro : MonoBehaviour
         rb.velocity = launchVelocity;
     }
 
+    /// <summary>
+    /// Calculates the points along the projectile's trajectory for visualization.
+    /// </summary>
+    /// <returns>An array of Vector3 points representing the trajectory path.</returns>
     private Vector3[] CalculateTrajectoryPoints()
     {
         if (target == null || spawnPoint == null)

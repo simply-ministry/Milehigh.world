@@ -1,10 +1,15 @@
 using UnityEngine;
 
 /// <summary>
-/// Micah the Unbreakable (The Earthshaper Bulwark)
+/// Represents Micah the Unbreakable, one of the Ɲōvəmîŋāđ.
+/// Micah is a powerful tank and defensive specialist, capable of shaping the earth
+/// to protect his allies and control the battlefield.
 /// </summary>
 public class Micah : Novamina
 {
+    /// <summary>
+    /// Initializes Micah's specific attributes, setting his name and archetype.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();
@@ -25,6 +30,9 @@ public class Micah : Novamina
     // - "Immovable Object": Highly resistant to crowd control effects.
     // - "Grounding Aura": Lessens the impact of chaotic energies.
 
+    /// <summary>
+    /// Called every frame, this method will contain Micah's gameplay logic.
+    /// </summary>
     void Update()
     {
         // Gameplay logic for Micah
