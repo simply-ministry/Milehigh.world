@@ -83,11 +83,50 @@ class GameObject:
             print(f"{self.name} takes {actual_damage} damage.")
         else:
             print(f"{self.name}'s defense holds strong!")
-        self.state = state # e.g., 'normal', 'hostile', 'dead'
+        # self.state = state # BUG: 'state' is not defined here. Removed.
+
+    def update_status_effects(self, scene_manager):
+        """Updates the duration of all status effects and applies their effects."""
+        # Use a copy of keys to allow modification during iteration
+        for effect in list(self.status_effects.keys()):
+            # The value can be a simple duration (int) or a dict with more info
+            if isinstance(self.status_effects[effect], dict):
+                # Example: {'vulnerable': {'duration': 2}}
+                self.status_effects[effect]['duration'] -= 1
+                if self.status_effects[effect]['duration'] <= 0:
+                    print(f"{self.name}'s {effect} has worn off.")
+                    del self.status_effects[effect]
+            else:
+                # Example: {'sleep': 6}
+                self.status_effects[effect] -= 1
+                if self.status_effects[effect] <= 0:
+                    print(f"{self.name}'s {effect} has worn off.")
+                    del self.status_effects[effect]
+        # Apply continuous damage effects after ticking down, so they don't happen on the last turn
+        if 'psychic_damage' in self.status_effects:
+             damage = 5 # Example damage
+             print(f"{self.name} takes {damage} psychic damage.")
+             self.take_damage(damage)
+
+        if 'life_drain' in self.status_effects:
+            effect_data = self.status_effects['life_drain']
+            damage = effect_data['damage_per_turn']
+            healer_name = effect_data['heals']
+            print(f"{self.name} is drained of {damage} health by {healer_name}.")
+            self.take_damage(damage)
+
+            # Find the healer in the scene and heal them
+            healer = next((obj for obj in scene_manager.scene.game_objects if obj.name == healer_name), None)
+            if healer:
+                healed_amount = min(healer.max_health - healer.health, damage)
+                healer.health += healed_amount
+                if healed_amount > 0:
+                    print(f"{healer.name} is healed for {healed_amount} health.")
+
 
     def update(self, scene_manager):
         """Placeholder for object-specific logic that runs each turn."""
-        pass
+        self.update_status_effects(scene_manager)
 
 
 class Item(GameObject):
@@ -174,13 +213,13 @@ class Player(GameObject):
         else:
             print(f"'{item_name}' not found in inventory.")
 
-    def update(self, delta_time):
+    def update(self, scene_manager):
         """
         Updates the player's state, including mana regeneration.
         """
-        super().update(delta_time)
-        self.update_status_effects(delta_time)
-        self.mana += self.mana_regeneration_rate * delta_time
+        super().update(scene_manager) # This now handles status effects
+        # Turn-based mana regeneration
+        self.mana += self.mana_regeneration_rate
         if self.mana > self.max_mana:
             self.mana = self.max_mana
 
@@ -295,16 +334,16 @@ class Anastasia(Player):
         self.lucid_dream_duration = 15 # in game ticks/seconds
         self.lucid_dream_timer = 0
 
-    def update(self, delta_time):
-        """Called every game tick to update Anastasia's state."""
+    def update(self, scene_manager):
+        """Called every game turn to update Anastasia's state."""
         # First, call the Player's update for mana regen and status effects
-        super().update(delta_time)
+        super().update(scene_manager)
 
-        # Passively build a small amount of Dream Weave
-        self.build_dream_weave(0.5 * delta_time)
+        # Passively build a small amount of Dream Weave each turn
+        self.build_dream_weave(1) # Build 1 Dream Weave per turn
 
         if self.is_lucid_dream_active:
-            self.lucid_dream_timer -= delta_time
+            self.lucid_dream_timer -= 1 # Decrement by 1 turn
             if self.lucid_dream_timer <= 0:
                 self.is_lucid_dream_active = False
                 self.lucid_dream_timer = 0
@@ -519,6 +558,128 @@ class Reverie(Player):
             print(f"{self.name} needs more Enigma to use Chaos Unleashed. ({self.enigma}/{self.max_enigma})")
             return False
 
+# --- Nyxar's Class Implementation ---
+
+class Nyxar(Player):
+    """
+    Implementation of Nyxar, the Void-Touched.
+    Playstyle: High-risk, high-reward glass cannon who uses his own health
+               and a unique resource, Dominion, to fuel his powerful abilities.
+    """
+    def __init__(self, name="Nyxar", x=0, y=0, z=0):
+        super().__init__(name=name, x=x, y=y, z=z)
+        self.health = 80  # Lower base health
+        self.max_health = 80
+        self.mana = 0 # Nyxar does not use Mana
+        self.max_mana = 0
+
+        # Unique Mechanic: Dominion
+        self.dominion = 0
+        self.max_dominion = 100
+
+        # Unique Mechanic: Abyssal Aegis Shield
+        self.aegis_shield_hp = 0
+
+    def take_damage(self, damage):
+        """
+        Nyxar's version of take_damage, which first passes damage to his
+        Abyssal Aegis shield if it's active. Also generates Dominion.
+        """
+        # Generate Dominion when taking damage
+        self.gain_dominion(damage // 2)
+
+        if self.aegis_shield_hp > 0:
+            absorbed = min(self.aegis_shield_hp, damage)
+            self.aegis_shield_hp -= absorbed
+            damage -= absorbed
+            print(f"Abyssal Aegis absorbs {absorbed} damage!")
+            if self.aegis_shield_hp <= 0:
+                print("The aegis shatters!")
+
+        # Call the original take_damage for any remaining damage
+        if damage > 0:
+            super().take_damage(damage)
+
+    def gain_dominion(self, amount):
+        """Increases Nyxar's Dominion, capped at max_dominion."""
+        self.dominion = min(self.max_dominion, self.dominion + amount)
+        print(f"{self.name} gains {amount} Dominion. (Total: {self.dominion}/{self.max_dominion})")
+
+    def spend_health(self, amount):
+        """A helper method for abilities that cost health."""
+        if self.health > amount:
+            self.health -= amount
+            print(f"{self.name} sacrifices {amount} health.")
+            return True
+        else:
+            print(f"Not enough health to use this ability!")
+            return False
+
+    # --- ABILITIES (Cost Health, Generate/Use Dominion) ---
+
+    def sanguine_strike(self, target):
+        """A powerful melee strike that costs health but generates significant Dominion."""
+        cost = 10
+        if self.spend_health(cost):
+            damage = 25 + self.strength # High base damage
+            print(f"{self.name} uses Sanguine Strike on {target.name}!")
+            target.take_damage(damage)
+            self.gain_dominion(20) # High Dominion gain
+            return True
+        return False
+
+    def abyssal_aegis(self):
+        """Creates a temporary shield by sacrificing health."""
+        cost = 15
+        if self.spend_health(cost):
+            shield_amount = 30
+            self.aegis_shield_hp += shield_amount
+            print(f"{self.name} summons an Abyssal Aegis, gaining {shield_amount} shield HP.")
+            self.gain_dominion(10)
+            return True
+        return False
+
+    def void_lash(self, target):
+        """A ranged attack that damages and slows the target."""
+        cost = 5
+        if self.spend_health(cost):
+            damage = 15
+            print(f"{self.name} lashes out with void energy at {target.name}!")
+            target.take_damage(damage)
+            target.status_effects['slow'] = 4 # Apply a 4-turn slow
+            print(f"{target.name} is slowed by the void.")
+            self.gain_dominion(15)
+            return True
+        return False
+
+    def reign_of_chaos(self, scene_manager):
+        """
+        Ultimate Ability: Consumes all Dominion to deal massive damage to all
+        enemies in the scene and apply a life-draining effect.
+        """
+        if self.dominion >= self.max_dominion:
+            print(f"\n!!! {self.name} unleashes his ultimate: REIGN OF CHAOS !!!")
+            cost = self.dominion
+            self.dominion = 0
+
+            # Damage is proportional to the Dominion spent
+            damage = cost * 2
+
+            # Find all enemies in the scene and apply the effect
+            enemies = [obj for obj in scene_manager.scene.game_objects if isinstance(obj, Enemy)]
+            print(f"A wave of chaotic energy erupts, striking all enemies for {damage} damage!")
+            for enemy in enemies:
+                enemy.take_damage(damage)
+                # Apply a life drain effect
+                enemy.status_effects['life_drain'] = {'duration': 3, 'damage_per_turn': 10, 'heals': self.name}
+                print(f"{enemy.name} is afflicted with life drain!")
+
+            return True
+        else:
+            print(f"Not enough Dominion for Reign of Chaos. ({self.dominion}/{self.max_dominion})")
+            return False
+
+
 class Enemy(GameObject):
     """
     Represents an enemy character.
@@ -539,34 +700,32 @@ class Enemy(GameObject):
         print(f"{self.name} attacks {target.name} for {self.attack_damage} damage.")
         target.take_damage(self.attack_damage)
 
-    def update(self, delta_time, player):
+    def update(self, scene_manager):
         """
-        Updates the enemy's state.  This is called every frame.
+        Updates the enemy's state each turn.
         Args:
-            delta_time (float): Time since last frame.
-            player (Player): The player object.
+            scene_manager (SceneManager): The manager for the current scene.
         """
-        self.update_status_effects(delta_time)
+        super().update(scene_manager) # Handles status effects
 
         if 'sleep' in self.status_effects:
             print(f"{self.name} is asleep and cannot act.")
             return
 
+        player = scene_manager.scene.player_character
         if self.distance_to(player) < self.aggro_range:
-            current_speed = self.speed
-            if 'slow' in self.status_effects:
-                print(f"{self.name} is slowed!")
-                current_speed /= 2
-            # Move towards the player
-            dx = player.x - self.x
-            dy = player.y - self.y
-            dz = player.z - self.z
-            distance = self.distance_to(player)
-            if distance > 0:
-              self.move(dx / distance * current_speed * delta_time, dy / distance * current_speed * delta_time, dz/distance * current_speed * delta_time)
             # Attack the player if close enough.
-            if self.distance_to(player) < 1:  # Attack range
+            if self.distance_to(player) < 1.5:  # Attack range
                 self.attack(player)
+            else:
+                # Move towards the player
+                dx = player.x - self.x
+                dy = player.y - self.y
+                # Basic integer-based movement for a grid
+                if abs(dx) > abs(dy):
+                    self.move(1 if dx > 0 else -1, 0)
+                else:
+                    self.move(0, 1 if dy > 0 else -1)
 
 # --- Item System ---
 
@@ -990,6 +1149,13 @@ class SceneManager:
             self.game.turn_taken = False
             while not self.game.turn_taken and not self.game.game_over:
                 self.game.handle_input(self)
+
+            # --- AI and World Turn ---
+            if self.game.turn_taken and not self.game.game_over:
+                # Update all other objects in the scene
+                for obj in self.scene.game_objects:
+                    if obj is not self.scene.player_character:
+                        obj.update(self)
 
 class Aeron(Player):
     """A placeholder class for the character Aeron."""
