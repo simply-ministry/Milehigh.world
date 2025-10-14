@@ -11,12 +11,18 @@
     * Onalym Nexus (A bridge between realities)
     * The Dreamscape (A shared psychic space)
     * Magen (A form of spiritual shield)
+    * TSIDKENU (A finishing move using lightning)
 * **Dimensions & Locations:**
+    * CIGNEXIA (The solar system)
     * ŁĪƝĈ (Decaying tech-capital)
     * ÅẒ̌ŪŘẸ ĤĒĪĜĤṬ§ (Floating islands of the elite)
     * ÆṬĤŸŁĞÅŘÐ (Warrior lands)
     * ƁÅČ̣ĤÎŘØN̈, The Fractured Citadel
-    * Shadow Dominion
+    * The Glimmering Depths (Crystal caves)
+    * ÆŤĤËŘĪØŮŞ (Planet of ethereal sky beings)
+    * DIAVOLOS (Realm of darkness, formerly Shadow Dominion)
+    * ETHERIA (Planet of opulence, formerly The Gilded Galaxy)
+    * THE FORGE (Fortified army hub, formerly The Central Stronghold)
 * **Juxtaposition:** The world blends advanced technology (space travel, cybernetics) with powerful mysticism (Phoenix/Dragon powers, prophecy).
 
 ---
@@ -33,7 +39,7 @@
 * **Sky.ix the Bionic Goddess**
 * **Reverie**
 * **Micah the Unbreakable**
-* **Otis the Skywanderer (X)**
+* **Otis the Skywanderer (X):** His memory has been manipulated by Era and Lucent, causing emotional detachment and confusion. He has forgotten his connection to Micah, adding a layer of tragedy to his journey of redemption.
 
 ### 2.2. Antagonists
 * **Cyrus the Dragon King** (Father of Cirrus)
@@ -87,3 +93,18 @@
     * Deeper Character Customization (Skill Trees)
     * More Robust Combat (Status Effects, Synergies)
     * Deeper Progression (Crafting, Factions)
+
+---
+
+## 5. Technical & Design Vision
+
+* **Game Design Focus:** The project emphasizes a strong combination of narrative, systems, and combat design to deliver a holistic and engaging experience.
+* **Player Experience Goals:** The core objective is to create an innovative, player-focused game that is both immersive and memorable.
+* **Tools and Technologies:**
+    * **Primary Engine:** Unity
+    * **Asset Creation:** Blender
+    * **Narrative Scripting:** Twine, Ink
+    * **Programming:** C#, Visual Scripting
+* **Animation Pipeline:**
+    * **Framework:** Universal Scene Description (USD) for managing and interchanging 3D scene and animation data.
+    * **Techniques:** Skeletal and blend shape animation for characters and creatures.
