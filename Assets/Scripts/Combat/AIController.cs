@@ -12,9 +12,16 @@ public class AIController : MonoBehaviour
     private enum AIState { Idle, Chasing, Attacking }
     private AIState currentState = AIState.Idle;
 
+    [Header("AI Settings")]
+    public float moveSpeed = 3.0f;
+    public float turnSpeed = 5.0f;
     public float attackRange = 2.0f;
     public float chaseRange = 15.0f;
+    public float obstacleAvoidanceDistance = 3.0f;
+    public LayerMask obstacleLayers;
+
     private AbilitySystem abilitySystem;
+    private Vector3 velocity = Vector3.zero;
 
     void Awake()
     {
@@ -36,6 +43,8 @@ public class AIController : MonoBehaviour
         switch (currentState)
         {
             case AIState.Idle:
+                // Smoothly stop the character when idle
+                velocity = Vector3.Lerp(velocity, Vector3.zero, Time.deltaTime * turnSpeed);
                 if (distanceToPlayer <= chaseRange)
                 {
                     currentState = AIState.Chasing;
@@ -53,12 +62,28 @@ public class AIController : MonoBehaviour
                 }
                 else
                 {
-                    // Move towards the player
-                    // self.MoveTowards(playerTarget.transform.position);
+                    // Move towards the player with obstacle avoidance
+                    Vector3 targetDirection = (playerTarget.transform.position - transform.position).normalized;
+                    Vector3 moveDirection = GetSteeringDirection(targetDirection);
+
+                    Vector3 desiredVelocity = moveDirection * moveSpeed;
+                    velocity = Vector3.Lerp(velocity, desiredVelocity, Time.deltaTime * turnSpeed);
+
+                    transform.position += velocity * Time.deltaTime;
+
+                    if (velocity.sqrMagnitude > 0.01f)
+                    {
+                        Quaternion targetRotation = Quaternion.LookRotation(velocity.normalized);
+                        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * turnSpeed);
+                    }
                 }
                 break;
 
             case AIState.Attacking:
+                // Stop moving when attacking
+                velocity = Vector3.Lerp(velocity, Vector3.zero, Time.deltaTime * turnSpeed);
+                transform.position += velocity * Time.deltaTime; // Apply deceleration
+
                 if (distanceToPlayer > attackRange)
                 {
                     currentState = AIState.Chasing;
@@ -69,7 +94,7 @@ public class AIController : MonoBehaviour
                     abilitySystem.UseAbility(0, playerTarget);
                 }
                 break;
-    }
+        }
 
     public void TakeTurn()
     {
@@ -82,5 +107,40 @@ public class AIController : MonoBehaviour
             // For now, a basic attack will suffice.
             // self.Attack(target);
         }
+    }
+
+    /// <summary>
+    /// Calculates a steering direction to avoid obstacles.
+    /// </summary>
+    /// <param name="targetDirection">The initial desired direction.</param>
+    /// <returns>A new direction vector that avoids obstacles.</returns>
+    private Vector3 GetSteeringDirection(Vector3 targetDirection)
+    {
+        // Check for obstacles directly ahead
+        if (Physics.Raycast(transform.position, targetDirection, obstacleAvoidanceDistance, obstacleLayers))
+        {
+            // If the path is blocked, try to find a clear path by checking left and right "whiskers"
+            float whiskerAngle = 30f; // Angle of the whisker rays
+
+            // Check right whisker
+            Vector3 rightWhiskerDir = Quaternion.Euler(0, whiskerAngle, 0) * targetDirection;
+            if (!Physics.Raycast(transform.position, rightWhiskerDir, obstacleAvoidanceDistance, obstacleLayers))
+            {
+                return rightWhiskerDir;
+            }
+
+            // Check left whisker
+            Vector3 leftWhiskerDir = Quaternion.Euler(0, -whiskerAngle, 0) * targetDirection;
+            if (!Physics.Raycast(transform.position, leftWhiskerDir, obstacleAvoidanceDistance, obstacleLayers))
+            {
+                return leftWhiskerDir;
+            }
+
+            // If all paths are blocked, the AI can stop or reverse, here we just stop moving forward in this direction
+            return Vector3.zero;
+        }
+
+        // If the path is clear, continue in the target direction
+        return targetDirection;
     }
 }
