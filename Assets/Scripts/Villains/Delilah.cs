@@ -1,26 +1,57 @@
 using UnityEngine;
 
+/// <summary>
+/// Represents Delilah the Desolate, the tragic transformation of Ingris
+/// after succumbing to the Void's emptiness. She is a powerful and
+/// emotionally charged boss encounter.
+/// </summary>
 public class Delilah : ShadowSyndicateVillain
 {
- [TextArea(2, 4)]
- public string dialogue = "You cannot stop the inevitable.";
+    [Header("Desolate Soul")]
+    [TextArea(2, 4)]
+    public string dialogue = "The Phoenix has burned out... only the ashes remain.";
 
- protected override void Awake()
- {
- base.Awake();
- villainName = "Delilah the Desolate";
- maxHealth = 600;
- currentHealth = maxHealth;
- }
+    protected override void Awake()
+    {
+        base.Awake();
+        villainName = "Delilah the Desolate";
+        maxHealth = 4000; // High health for a major boss
+        currentHealth = maxHealth;
+    }
 
- /// <summary>
- /// Casts a spell that fills the heroes with despair.
- /// </summary>
- public void CastDespair()
- {
- currentState = VillainAIState.Casting;
- Debug.Log($"{villainName}: '{dialogue}'");
- Debug.Log($"{villainName} casts a wave of despair!");
- // TODO: Apply a debuff (e.g., attack power down) to all heroes in an area.
- }
+    /// <summary>
+    /// Strikes with a Void-Corrupted Blade, draining the life from her target.
+    /// A twisted version of Ingris's Sun-Forged Blade.
+    /// </summary>
+    /// <param name="target">The hero to be targeted.</param>
+    public override void UsePrimaryAbility(GameObject target)
+    {
+        base.UsePrimaryAbility(target);
+        Debug.Log($"{villainName} strikes with her Void-Corrupted Blade, whispering, 'Feel the emptiness!'");
+        // TODO: Implement a melee attack that leeches health from the target.
+    }
+
+    /// <summary>
+    /// Unleashes a wave of pure despair, a corrupted version of Ingris's inspiring presence.
+    /// This ability instills hopelessness in her enemies.
+    /// </summary>
+    public void CastDespair()
+    {
+        currentState = VillainAIState.Casting;
+        Debug.Log($"{villainName}: '{dialogue}'");
+        Debug.Log($"{villainName} casts a wave of despair!");
+        // TODO: Apply a potent debuff (e.g., attack power and defense down) to all heroes.
+    }
+
+    /// <summary>
+    /// Shatters her own essence in a final, desperate act, dealing massive damage
+    /// to all nearby. A dark reflection of the Phoenix Protocol's rebirth.
+    /// </summary>
+    public override void UseUltimateAbility()
+    {
+        base.UseUltimateAbility();
+        currentState = VillainAIState.Casting;
+        Debug.Log($"{villainName} screams, 'If I must be nothing, I will take you with me!'");
+        // TODO: Implement a massive, close-range AoE explosion upon her own death or at low health.
+    }
 }
