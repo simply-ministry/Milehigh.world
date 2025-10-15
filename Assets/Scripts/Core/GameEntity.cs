@@ -1,98 +1,68 @@
 using UnityEngine;
 
 /// <summary>
-/// Represents a basic entity in the game world with encapsulated data.
-/// This is a plain C# class, not a MonoBehaviour, making it a lightweight data container.
-/// The [System.Serializable] attribute allows instances of this class to be serialized
-/// and viewed in the Unity Inspector.
+/// Represents a basic entity in the game world, designed to be a Unity Component.
 /// </summary>
-[System.Serializable]
-public class GameEntity
+public class GameEntity : MonoBehaviour
 {
-    // Private fields, exposed to the Unity Inspector via [SerializeField]
-    // but not directly accessible from other scripts.
-    [SerializeField] private string _name;
-    [SerializeField] private float _x;
-    [SerializeField] private float _y;
-    [SerializeField] private int _health;
+    // Public fields will be visible in the Unity Editor, allowing for design-time configuration.
+    [Header("Entity Properties")]
+    [SerializeField] private string entityName = "Default Entity";
+    [SerializeField] private int health = 100;
 
-    // Public properties provide controlled, read-only access to the private fields.
-    // This is the core of encapsulation.
+    // Public properties provide controlled, read-only access to the entity's state from other scripts.
+    /// <summary>
+    /// Gets the name of the entity.
+    /// </summary>
+    public string Name => entityName;
+    /// <summary>
+    /// Gets the current health of the entity.
+    /// </summary>
+    public int Health => health;
 
     /// <summary>
-    /// The name of the game entity.
+    /// Awake is called when the script instance is being loaded.
+    /// It's used for initialization and setting up references.
     /// </summary>
-    public string Name => _name;
-
-    /// <summary>
-    /// The X-coordinate of the entity's position.
-    /// </summary>
-    public float X => _x;
-
-    /// <summary>
-    /// The Y-coordinate of the entity's position.
-    /// </summary>
-    public float Y => _y;
-
-    /// <summary>
-    /// The current health points of the entity.
-    /// </summary>
-    public int Health => _health;
-
-    // Constructor
-
-    /// <summary>
-    /// Initializes a new instance of the GameEntity class.
-    /// </summary>
-    /// <param name="name">The name for the game entity.</param>
-    /// <param name="x">The initial X-coordinate.</param>
-    /// <param name="y">The initial Y-coordinate.</param>
-    /// <param name="health">The initial health points.</param>
-    public GameEntity(string name, float x, float y, int health)
+    private void Awake()
     {
-        _name = name;
-        _x = x;
-        _y = y;
-        _health = health;
-        Debug.Log($"[GameEntity] A new entity named '{_name}' was created at ({_x}, {_y}) with {_health} HP.");
+        // The entity's name and health are typically set in the Unity Editor.
+        // We log a message to confirm the entity has been initialized.
+        Debug.Log($"{entityName} has been initialized with {health} health.");
     }
 
-    // Public methods define the behaviors and operations for the entity.
-
     /// <summary>
-    /// Reduces the game entity's health by a specified amount.
-    /// This is the only public method to modify health, ensuring all damage logic
-    /// (like bounds checking and logging) is consistently applied.
+    /// Public method to apply damage to the entity.
+    /// This is the primary way other components should interact with this entity's health.
     /// </summary>
-    /// <param name="damage">The amount of damage to inflict. Must be non-negative.</param>
+    /// <param name="damage">The amount of damage to apply.</param>
     public void TakeDamage(int damage)
     {
-        if (damage < 0)
+        // Ensure health doesn't go below zero.
+        health -= damage;
+        if (health < 0)
         {
-            Debug.LogWarning($"[GameEntity] Damage amount cannot be negative. Ignoring damage to {_name}.");
-            return;
+            health = 0;
         }
+        Debug.Log($"{entityName} took {damage} damage. Current Health: {health}");
 
-        _health -= damage;
-        if (_health < 0)
+        if (health <= 0)
         {
-            _health = 0;
-        }
-        Debug.Log($"[GameEntity] {_name} took {damage} damage. Current Health: {_health}");
-
-        if (_health <= 0)
-        {
-            Debug.Log($"[GameEntity] {_name} has been defeated!");
-            // In a real game, you might fire off an event here, e.g., OnDefeated?.Invoke(this);
+            Debug.Log($"{entityName} has been defeated!");
+            // In a real game, you would add logic here to handle the entity's death,
+            // such as playing an animation, dropping loot, or removing the object from the scene.
         }
     }
 
     /// <summary>
-    /// Provides a string representation of the GameEntity for easy debugging.
+    /// Provides a string representation of the GameEntity's current state.
     /// </summary>
-    /// <returns>A string summarizing the entity's current state.</returns>
+    /// <returns>A string summarizing the entity's state.</returns>
     public override string ToString()
     {
-        return $"{_name} [Position: ({_x}, {_y}), Health: {_health}]";
+        // Note: The concept of a single X, Y position is less relevant for a MonoBehaviour,
+        // as its position is determined by the Transform component of the GameObject it's attached to.
+        // We now reference the Transform for position information.
+        return $"{entityName} [Position: {transform.position}, Health: {Health}]";
     }
 }

@@ -1,113 +1,96 @@
+using System;
 using UnityEngine;
-using System.Collections.Generic;
 
 /// <summary>
-/// A data structure to associate a DamageType with a resistance value.
-/// Made serializable to be editable in the Unity Inspector.
+/// An enum to represent the different states a character can be in.
 /// </summary>
-[System.Serializable]
-public class DamageTypeResistance
+public enum CharacterState
 {
-    public DamageType damageType;
-    [Tooltip("The flat value of resistance against this damage type.")]
-    public int resistanceValue;
+    Idle,
+    Walking,
+    Attacking,
+    VoidTransformed,
+    UnifiedEntity,
+    Dead
 }
 
-[RequireComponent(typeof(Rigidbody))]
-[RequireComponent(typeof(AdvancedPhysics))]
+/// <summary>
+/// The base class for all characters in Milehigh.World.
+/// </summary>
 public class Character : MonoBehaviour
 {
-    public string characterName;
-    public int maxHealth = 100;
-    public int currentHealth;
-    public int attack = 50;
-    public int defense = 50;
-    public float speed = 50f;
+    [Header("Core Identification")]
+    [Tooltip("A unique identifier for this character instance.")]
+    public Guid CharacterId { get; private set; }
 
-    [Header("Resistances")]
-    public List<DamageTypeResistance> resistances = new List<DamageTypeResistance>();
-    private Dictionary<DamageType, int> _resistanceMap;
+    [Header("Core Attributes")]
+    public string characterName = "Character";
+    public float maxHealth = 100f;
+    public float currentHealth;
+    public float maxMana = 100f;
+    public float currentMana;
+    public bool isAlive = true;
 
+    [Header("Combat Stats")]
+    public int attack = 10;
+    public int defense = 5;
 
     protected virtual void Awake()
     {
+        CharacterId = Guid.NewGuid();
         currentHealth = maxHealth;
-
-        // Initialize resistance map for O(1) lookup
-        _resistanceMap = new Dictionary<DamageType, int>();
-        foreach (var res in resistances)
-        {
-            if (!_resistanceMap.ContainsKey(res.damageType))
-            {
-                _resistanceMap.Add(res.damageType, res.resistanceValue);
-            }
-        }
+        currentMana = maxMana;
     }
 
     /// <summary>
-    /// Gets the resistance value for a specific damage type.
+    /// Applies damage to the character.
     /// </summary>
-    /// <param name="damageType">The damage type to check.</param>
-    /// <returns>The character's resistance value.</returns>
-    public int GetResistanceValue(DamageType damageType)
+    public virtual void TakeDamage(float amount)
     {
-        _resistanceMap.TryGetValue(damageType, out int value);
-        return value;
-    }
+        if (!isAlive) return;
 
-    /// <summary>
-    /// Initiates an attack on a target character using a specific ability.
-    /// </summary>
-    /// <param name="target">The character to attack.</param>
-    /// <param name="ability">The ability to use.</param>
-    /// <param name="formula">The damage formula for the calculation.</param>
-    public void PerformAttack(Character target, Ability ability, CombatManager.DamageFormula formula = CombatManager.DamageFormula.Linear)
-    {
-        Debug.Log($"{characterName} uses {ability.abilityName} on {target.characterName}!");
-        target.TakeDamage(this, ability, formula);
-    }
+        float damageTaken = Mathf.Max(1f, amount - defense);
+        currentHealth -= damageTaken;
 
-    /// <summary>
-    /// Receives an attack, calculates damage via the CombatManager, and applies it.
-    /// </summary>
-    /// <param name="attacker">The character initiating the attack.</param>
-    /// <param name="ability">The ability used in the attack.</param>
-    /// <param name="formula">The damage formula to use.</param>
-    public virtual void TakeDamage(Character attacker, Ability ability, CombatManager.DamageFormula formula = CombatManager.DamageFormula.Linear)
-    {
-        // Calculate final damage using the centralized CombatManager
-        int damageTaken = CombatManager.CalculateDamage(attacker, this, ability, formula);
-
-        // Apply damage to health
-        currentHealth = Mathf.Max(currentHealth - damageTaken, 0);
-        Debug.Log($"{characterName} takes {damageTaken} damage from {attacker.characterName}'s {ability.abilityName}! Remaining HP: {currentHealth}");
+        Debug.Log($"{characterName} takes {damageTaken} damage.");
 
         if (currentHealth <= 0)
         {
+            currentHealth = 0;
             Die();
         }
     }
 
-    public void Heal(int amount)
+    /// <summary>
+    /// Heals the character for a given amount.
+    /// </summary>
+    public void Heal(float amount)
     {
-        currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
-        Debug.Log($"{characterName} heals for {amount} health!");
-    }
-
-    protected virtual void Die()
-    {
-        Debug.Log($"{characterName} has been defeated!");
-        // In a real game, you might disable the GameObject, play a death animation, etc.
-        gameObject.SetActive(false);
+        if (!isAlive) return;
+        currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
+        Debug.Log($"{characterName} heals for {amount}.");
     }
 
     /// <summary>
-    /// Makes the character "say" a line of dialogue.
-    /// In a real game, this would integrate with a UI system.
+    /// Reduces character's mana and returns true if successful.
     /// </summary>
-    /// <param name="message">The dialogue to display.</param>
-    public void Say(string message)
+    public bool UseMana(float amount)
     {
-        Debug.Log($"{characterName}: {message}");
+        if (currentMana >= amount)
+        {
+            currentMana -= amount;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Handles the character's death logic.
+    /// </summary>
+    protected virtual void Die()
+    {
+        isAlive = false;
+        Debug.Log($"{characterName} has been defeated.");
+        gameObject.SetActive(false);
     }
 }
