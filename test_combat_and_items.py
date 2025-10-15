@@ -24,13 +24,24 @@ class TestCombatAndItems(unittest.TestCase):
 
         self.scene_manager = MockSceneManager(self.scene, game=None, setup_scene=False)
 
-    def test_player_attack_bare_hands(self):
+    @patch('rpg.random.uniform', return_value=100)
+    def test_player_attack_bare_hands(self, mock_uniform):
         """Tests a player's attack without a weapon."""
         self.player.strength = 10 # 10 strength = +5 damage bonus
         # Attack damage should be strength_bonus (5) + weapon_damage (0)
         self.player.attack(self.enemy)
         # 100 initial health - 5 damage
         self.assertEqual(self.enemy.health, 95)
+
+    @patch('rpg.random.uniform', side_effect=[100, 1])
+    def test_player_attack_bare_hands_critical_hit(self, mock_uniform):
+        """Tests a player's bare-handed critical hit."""
+        self.player.strength = 10  # +5 damage bonus
+        # Attack damage should be strength_bonus (5) + weapon_damage (0) = 5
+        # Critical hit damage should be 5 * 2 = 10
+        self.player.attack(self.enemy)
+        # 100 initial health - 10 damage
+        self.assertEqual(self.enemy.health, 90)
 
     @patch('rpg.random.uniform', return_value=100)
     def test_player_attack_with_weapon(self, mock_uniform):

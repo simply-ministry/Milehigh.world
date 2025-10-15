@@ -703,6 +703,12 @@ class Enemy(GameObject):
         Args:
             target (GameObject): The target to attack.
         """
+        # --- Evasion Check ---
+        if 'evasion' in target.status_effects:
+            if random.uniform(0, 100) < 50: # 50% chance to miss against evasion
+                print(f"{self.name}'s attack was evaded by {target.name}!")
+                return
+
         print(f"{self.name} attacks {target.name} for {self.attack_damage} damage.")
         target.take_damage(self.attack_damage)
 
