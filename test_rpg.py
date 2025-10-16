@@ -5,8 +5,12 @@ import os
 # It's important to import the classes from the script we are testing
 from rpg import Game, Scene, AethelgardBattle, Interactable, Aeron, Kane
 from database import init_db
+from rpg import Game, Scene, AethelgardBattle, Player, Enemy
 
 class TestRpgInteraction(unittest.TestCase):
+    """A suite of tests for player interaction within the RPG,
+    focusing on commands like 'examine'.
+    """
 
     DB_FILE = "test_rpg.db"
 
@@ -59,6 +63,11 @@ class TestRpgInteraction(unittest.TestCase):
 
         # Check that log_message was called with the 'nothing nearby' message
         self.game.log_message.assert_called_once_with("There is nothing nearby to examine.")
+
+        self.game = Game()
+        self.scene_manager = AethelgardBattle(self.game)
+        self.scene_manager.setup_scene()
+        self.game.log_message = MagicMock()
 
 if __name__ == '__main__':
     unittest.main()

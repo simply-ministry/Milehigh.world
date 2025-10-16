@@ -7,6 +7,12 @@
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
 
+# Blender
+*.blend
+*.blend1
+/blender_scripts/output/
+/blender_scripts/temp_frames/
+
 # Python
 __pycache__/
 *.py[cod]

@@ -35,8 +35,19 @@ public class Skyix : Novamina
 
     // --- Resource and Combat Properties ---
 
+    /// <summary>
+    /// The current amount of Void Energy Sky.ix has. This resource is used for her special abilities.
+    /// </summary>
     public float VoidEnergy { get; set; }
+
+    /// <summary>
+    /// The maximum amount of Void Energy Sky.ix can hold.
+    /// </summary>
     public float MaxVoidEnergy { get; set; }
+
+    /// <summary>
+    /// The number of active drones currently deployed by Sky.ix.
+    /// </summary>
     public int ActiveDrones { get; private set; }
 
 
@@ -109,6 +120,7 @@ public class Skyix : Novamina
     /// Uses her unique connection to the Void, blending it with technology for a powerful attack.
     /// This ability is only available in her VoidTransformed state.
     /// </summary>
+    /// <param name="target">The Character to target with the ability.</param>
     public void UseVoidTech(Character target)
     {
         if (CurrentState == CharacterState.VoidTransformed && VoidEnergy >= 40)
@@ -123,6 +135,10 @@ public class Skyix : Novamina
         }
     }
 
+    /// <summary>
+    /// Deploys a combat or utility drone to the battlefield.
+    /// </summary>
+    /// <param name="droneType">The type of drone to deploy (e.g., "Attack", "Shield").</param>
     public void DeployDrone(string droneType)
     {
         Debug.Log($"{characterName} deploys a {droneType} drone to the battlefield!");

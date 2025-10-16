@@ -46,3 +46,28 @@ To move the project forward, focus on defining the mechanics that make the lore 
  * Cyrus's Motive: Clarify King Cyrus's goals beyond simple invasion. Is he trying to prevent Millenia because he believes his world's order is superior, or is he seeking to control the prophecy's outcome? This ambiguity will make him a far more interesting antagonist than a generic warlord.
  * Otis's Redemption: The central personal arc should be Otis/X's journey to reclaim his memories of Micah, Sky.ix, and his true self. This can be handled through in-game "memory fragments" collected in the Void-corrupted zones. Success in this arc could unlock his true potential as the 10th Ɲōvəmîŋāđ member.
 This comprehensive world map is ready for the next stage of development: defining the gameplay loop and creating specific ability sets for the protagonists.
+# Game Design Document
+
+## Characters
+
+### Sky.ix
+
+```usd
+def Xform "CH_Skyix" (
+    asset aname = "CH_Skyix_Body_A.usd"
+)
+{
+    rel material:binding = </materials/CH_Skyix_Material>
+}
+```
+
+### Aeron's Sword
+
+```usd
+def Xform "WP_Aeron_Sword" (
+    asset aname = "WP_Aeron_Sword.usd"
+)
+{
+    rel material:binding = </materials/WP_Aeron_Sword_Material>
+}
+```

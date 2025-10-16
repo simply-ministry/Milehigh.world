@@ -1,5 +1,9 @@
 using UnityEngine;
 
+/// <summary>
+/// Controls character animations by managing a state machine.
+/// It transitions between idle and walking states based on player input.
+/// </summary>
 public class CharacterAnimationController : MonoBehaviour
 {
     private Animator _animator;
@@ -7,14 +11,16 @@ public class CharacterAnimationController : MonoBehaviour
 
     // States
     private IdleState _idleState;
-    private WalkingState _walkingState; // Add a variable for the walking state
+    private WalkingState _walkingState;
 
     // Input tracking
     private bool _isMoving = false;
 
+    /// <summary>
+    /// Initializes the component, getting references and setting up the state machine.
+    /// </summary>
     void Awake()
     {
-        // Get the Animator component attached to this GameObject
         _animator = GetComponent<Animator>();
         if (_animator == null)
         {
@@ -23,27 +29,25 @@ public class CharacterAnimationController : MonoBehaviour
             return;
         }
 
-        // Get or add the AnimationStateMachine component
         _stateMachine = GetComponent<AnimationStateMachine>();
         if (_stateMachine == null)
         {
             _stateMachine = gameObject.AddComponent<AnimationStateMachine>();
         }
 
-        // Create instances of the states, passing in the Animator
         _idleState = new IdleState(_animator);
-        _walkingState = new WalkingState(_animator); // Create an instance of the WalkingState
+        _walkingState = new WalkingState(_animator);
 
-        // Initialize the state machine with the IdleState as the starting state
         _stateMachine.Initialize(_idleState);
     }
 
+    /// <summary>
+    /// Called every frame. Checks for movement input and handles state transitions.
+    /// </summary>
     void Update()
     {
-        // Check for player input to determine movement
         CheckForMovementInput();
 
-        // State transition logic
         if (_isMoving && _stateMachine.CurrentState != _walkingState)
         {
             _stateMachine.ChangeState(_walkingState);
@@ -54,20 +58,14 @@ public class CharacterAnimationController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Checks for player input to determine if the character is moving.
+    /// </summary>
     private void CheckForMovementInput()
     {
-        // A simple check for horizontal or vertical input (e.g., WASD or arrow keys)
         float horizontal = Input.GetAxis("Horizontal");
         float vertical = Input.GetAxis("Vertical");
 
-        if (Mathf.Abs(horizontal) > 0.1f || Mathf.Abs(vertical) > 0.1f)
-        {
-            _isMoving = true;
-        }
-        else
-        {
-            _isMoving = false;
-        }
+        _isMoving = Mathf.Abs(horizontal) > 0.1f || Mathf.Abs(vertical) > 0.1f;
     }
-}
 }

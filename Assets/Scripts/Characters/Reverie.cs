@@ -1,7 +1,15 @@
 using UnityEngine;
 
+/// <summary>
+/// Represents Reverie, a hero who specializes in illusions and reality manipulation.
+/// This class defines her unique abilities and initial attributes.
+/// </summary>
 public class Reverie : NoveminaadHero
 {
+    /// <summary>
+    /// Initializes Reverie's specific attributes.
+    /// Overrides the base Awake method to set her name, health, and energy.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();
