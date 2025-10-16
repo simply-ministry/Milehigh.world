@@ -229,6 +229,13 @@ def init_db(db_file=DB_FILE):
     conn.commit()
     conn.close()
 
+def get_character_data(name, conn=None):
+    """Fetches a character's data from the database."""
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
+
 
 def get_character_data(name):
     """Fetches a character's data from the database.
@@ -243,8 +250,17 @@ def get_character_data(name):
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Characters WHERE name = ?", (name,))
     character_data = cursor.fetchone()
-    conn.close()
+
+    if close_conn:
+        conn.close()
     return character_data
+
+def get_item_data(name, conn=None):
+    """Fetches an item's base data from the Items table."""
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
 
 
 def get_item_data(name):
@@ -260,8 +276,17 @@ def get_item_data(name):
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Items WHERE name = ?", (name,))
     item_data = cursor.fetchone()
-    conn.close()
+
+    if close_conn:
+        conn.close()
     return item_data
+
+def get_weapon_data(item_id, conn=None):
+    """Fetches a weapon's specific data from the Weapons table."""
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
 
 
 def get_weapon_data(item_id):
@@ -277,8 +302,17 @@ def get_weapon_data(item_id):
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Weapons WHERE weapon_id = ?", (item_id,))
     weapon_data = cursor.fetchone()
-    conn.close()
+
+    if close_conn:
+        conn.close()
     return weapon_data
+
+def get_armor_data(item_id, conn=None):
+    """Fetches armor's specific data from the Armor table."""
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
 
 
 def get_armor_data(item_id):
@@ -294,8 +328,20 @@ def get_armor_data(item_id):
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Armor WHERE armor_id = ?", (item_id,))
     armor_data = cursor.fetchone()
-    conn.close()
+
+    if close_conn:
+        conn.close()
     return armor_data
+
+def load_game(save_name):
+    """
+    Placeholder for loading a game state.
+    In a real implementation, this would load data from the database.
+    For now, it returns None to allow for testing of the main runner.
+    """
+    # This function is intended to be mocked in tests.
+    # Returning None simulates the behavior of a save not being found.
+    return None
 
 
 if __name__ == '__main__':
