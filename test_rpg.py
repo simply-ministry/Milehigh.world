@@ -1,5 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
+import os
+import database
 
 # It's important to import the classes from the script we are testing
 from rpg import Game, Scene, AethelgardBattle, Interactable, Aeron, Kane
@@ -8,14 +10,26 @@ class TestRpgInteraction(unittest.TestCase):
 
     def setUp(self):
         """Set up a controlled game environment for each test."""
+        # Initialize the database for the test
+        database.init_db()
         self.game = Game()
         self.scene = Scene("Test Scene", width=40, height=10)
         # The AethelgardBattle scene manager contains the setup logic we need
-        self.scene_manager = AethelgardBattle(self.scene, self.game)
+        # We pass setup_scene=False to avoid calling setup in the constructor
+        self.scene_manager = AethelgardBattle(self.scene, self.game, setup_scene=False)
         # We need to run the setup to populate the scene with objects
         self.scene_manager.setup()
         # Mock the log_message to capture output without printing to console
         self.game.log_message = MagicMock()
+
+    def tearDown(self):
+        """Clean up the database file after each test."""
+        # Ensure the database connection is closed before attempting to delete the file
+        # This might require changes in the database.py or be handled by the OS
+        try:
+            os.remove(database.DB_FILE)
+        except OSError as e:
+            print(f"Error removing database file: {e}")
 
     @patch('builtins.input', return_value='examine')
     def test_examine_command_success(self, mock_input):

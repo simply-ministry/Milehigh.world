@@ -1287,38 +1287,37 @@ class FirstMeetingScene(SceneManager):
         self.game.log_message("You approach a skeptical-looking woman leaning against a monolith.")
 
 # --- 6. RUNNING THE DIALOGUE SCENE ---
-if __name__ == "__main__":
+def main(argv):
+    """Main function to run the game."""
     # Initialize the database first
     database.init_db()
 
-    # --- Game Start ---
-    print("Starting a new game.")
-    game_engine = Game()
-    battle_scene = Scene("Aethelgard")
-    battle_manager = AethelgardBattle(battle_scene, game_engine)
+    scene_manager = None
 
-    if battle_manager:
-        battle_manager.run()
     # Check for a command-line argument to load a game
-    import sys
-    if len(sys.argv) > 2 and sys.argv[1] == 'load':
-        save_name = sys.argv[2]
+    if len(argv) > 2 and argv[1] == 'load':
+        save_name = argv[2]
         print(f"Attempting to load game from slot: {save_name}")
+        # In a real scenario, database.load_game would be implemented
+        # For this test, we'll assume it returns None if the save doesn't exist
         scene_manager = database.load_game(save_name)
         if not scene_manager:
-            print(f"Could not load '{save_name}'. Starting a new game.")
-            # Fallback to new game if load fails
-            game_engine = Game()
-            troll_scene = Scene("Troll Cave")
-            scene_manager = TrollCaveScene(troll_scene, game_engine)
-    else:
-        # Start a new game by default
+            print(f"Could not load game '{save_name}'. A new game will be started.")
+
+    # If no scene_manager was loaded (or loading failed), start a new game.
+    if not scene_manager:
         print("Starting a new game.")
         game_engine = Game()
+        # Default to TrollCaveScene as it was the original default
         troll_scene = Scene("Troll Cave")
         scene_manager = TrollCaveScene(troll_scene, game_engine)
 
-
+    # Run the game
     if scene_manager:
         scene_manager.run()
         print("Game over.")
+    return scene_manager # Return for testing purposes
+
+if __name__ == "__main__":
+    import sys
+    main(sys.argv)
