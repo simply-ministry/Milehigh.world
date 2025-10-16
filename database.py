@@ -3,14 +3,28 @@ import json
 
 DB_FILE = "game_content.db"
 
+
 def get_db_connection(db_file=DB_FILE):
-    """Establishes a connection to the database."""
+    """Establishes a connection to the database.
+
+    Args:
+        db_file (str, optional): The path to the database file.
+            Defaults to DB_FILE.
+
+    Returns:
+        sqlite3.Connection: A connection object to the database.
+    """
     conn = sqlite3.connect(db_file)
     conn.row_factory = sqlite3.Row
     return conn
 
+
 def create_schema(cursor):
-    """Creates the database schema."""
+    """Creates the database schema if it doesn't already exist.
+
+    Args:
+        cursor (sqlite3.Cursor): The database cursor to execute commands.
+    """
     # Core Tables
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS Characters (
@@ -178,7 +192,11 @@ def create_schema(cursor):
     )""")
 
 def populate_initial_data(cursor):
-    """Populates the database with initial game data."""
+    """Populates the database with initial game data.
+
+    Args:
+        cursor (sqlite3.Cursor): The database cursor to execute commands.
+    """
     # Characters
     cursor.execute("INSERT OR IGNORE INTO Characters (name, title, health, mana, strength, agility, intelligence, vitality) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                    ('Aeron', 'The Brave', 100, 50, 15, 10, 5, 12))
@@ -198,7 +216,12 @@ def populate_initial_data(cursor):
 
 
 def init_db(db_file=DB_FILE):
-    """Initializes the database and creates tables if they don't exist."""
+    """Initializes the database, creating and populating tables.
+
+    Args:
+        db_file (str, optional): The path to the database file.
+            Defaults to DB_FILE.
+    """
     conn = get_db_connection(db_file)
     cursor = conn.cursor()
     create_schema(cursor)
@@ -206,40 +229,108 @@ def init_db(db_file=DB_FILE):
     conn.commit()
     conn.close()
 
-def get_character_data(name):
+def get_character_data(name, conn=None):
     """Fetches a character's data from the database."""
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
+
+
+def get_character_data(name):
+    """Fetches a character's data from the database.
+
+    Args:
+        name (str): The name of the character to fetch.
+
+    Returns:
+        sqlite3.Row: A row object containing the character's data, or None if not found.
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Characters WHERE name = ?", (name,))
     character_data = cursor.fetchone()
-    conn.close()
+
+    if close_conn:
+        conn.close()
     return character_data
 
-def get_item_data(name):
+def get_item_data(name, conn=None):
     """Fetches an item's base data from the Items table."""
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
+
+
+def get_item_data(name):
+    """Fetches an item's base data from the Items table.
+
+    Args:
+        name (str): The name of the item to fetch.
+
+    Returns:
+        sqlite3.Row: A row object containing the item's data, or None if not found.
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Items WHERE name = ?", (name,))
     item_data = cursor.fetchone()
-    conn.close()
+
+    if close_conn:
+        conn.close()
     return item_data
 
-def get_weapon_data(item_id):
+def get_weapon_data(item_id, conn=None):
     """Fetches a weapon's specific data from the Weapons table."""
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
+
+
+def get_weapon_data(item_id):
+    """Fetches a weapon's specific data from the Weapons table.
+
+    Args:
+        item_id (int): The ID of the item.
+
+    Returns:
+        sqlite3.Row: A row object containing the weapon's data, or None if not found.
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Weapons WHERE weapon_id = ?", (item_id,))
     weapon_data = cursor.fetchone()
-    conn.close()
+
+    if close_conn:
+        conn.close()
     return weapon_data
 
-def get_armor_data(item_id):
+def get_armor_data(item_id, conn=None):
     """Fetches armor's specific data from the Armor table."""
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
+
+
+def get_armor_data(item_id):
+    """Fetches armor's specific data from the Armor table.
+
+    Args:
+        item_id (int): The ID of the item.
+
+    Returns:
+        sqlite3.Row: A row object containing the armor's data, or None if not found.
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Armor WHERE armor_id = ?", (item_id,))
     armor_data = cursor.fetchone()
-    conn.close()
+
+    if close_conn:
+        conn.close()
     return armor_data
 
 def load_game(save_name):
