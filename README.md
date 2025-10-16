@@ -4,7 +4,11 @@ Welcome to the official repository for the science-fantasy RPG, "Milehigh.World:
 
 ## 🎮 Project Overview
 
-"Milehigh.World: Into the Void" is a narrative-driven RPG set in a fragmented universe known as The Verse. The story follows the Ɲōvəmîŋāđ, ten chosen individuals destined to fulfill or prevent a prophecy that will determine the fate of their world. The game blends advanced technology with mystical forces, featuring a diverse cast of characters and a deep, branching narrative.
+**Mîlēhîgh.wørld** is a science-fantasy RPG that explores a universe defined by a central conflict between high-tech advancement and ancient mysticism. The narrative follows the **Ɲōvəmîŋāđ**, a group of ten preordained heroes, as they navigate a fragmented reality to either fulfill or prevent the Lost Prophecy of Lîŋq and achieve **Millenia**—an enduring era of peace.
+
+The inciting event is an invasion by **King Cyrus** through the **Onalym Nexus**, a dimensional bridge, which shatters reality and kicks off the gathering of the Ɲōvəmîŋāđ. The primary antagonist is **The Void**, a corrupting "digital abyss," and its cunning manipulator, **Lucent the Lightweaver**. The game's design is built on the juxtaposition of technologies like cybernetics and quantum teleportation with mystical forces such as Phoenix and Dragon powers.
+
+For a complete narrative and world-building reference, see the [Game Design Document](docs/GDD.md).
 
 ## 📂 Repository Structure
 
@@ -13,6 +17,22 @@ This repository is organized to maintain a clean and scalable workflow between t
 ```
 .
 ├── Assets/
+│   ├── Art/
+│   ├── Audio/
+│   ├── Prefabs/
+│   ├── Scenes/
+│   └── Scripts/          # All C# source code for the Unity project.
+│       ├── Character/    # Character-specific logic and abilities.
+│       ├── Combat/       # Combat systems, including damage and AI.
+│       ├── Core/         # Core gameplay systems (inventory, quests, interaction).
+│       ├── Physics/      # Custom physics components.
+│       └── Story/        # Narrative scenes and dialogue management.
+├── blender_scripts/      # Python scripts for Blender automation.
+├── docs/                 # All design and technical documentation.
+├── .gitignore
+├── README.md             # This file.
+├── requirements.txt      # Python dependencies for utility scripts.
+└── ...                   # Other project files (tests, configs).
 │   ├── Scripts/
 │   │   ├── Character/      # C# scripts for all characters, playable and NPC.
 │   │   ├── Combat/         # C# scripts for combat mechanics (abilities, damage).
