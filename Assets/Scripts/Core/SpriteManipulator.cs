@@ -8,14 +8,35 @@ namespace Milehigh.World.Core
     /// </summary>
     public class SpriteManipulator : MonoBehaviour
     {
+        /// <summary>
+        /// The speed at which the sprite moves when using the MoveSprite method.
+        /// </summary>
         public float moveSpeed = 5f;
+        /// <summary>
+        /// The speed at which the sprite rotates in the Update loop demonstration.
+        /// </summary>
         public float rotationSpeed = 100f;
+        /// <summary>
+        /// The speed at which the sprite scales up and down in the Update loop demonstration.
+        /// </summary>
         public float scaleSpeed = 1f;
 
+        /// <summary>
+        /// The initial position of the GameObject, stored at the start.
+        /// </summary>
         private Vector3 initialPosition;
+        /// <summary>
+        /// The initial rotation of the GameObject, stored at the start.
+        /// </summary>
         private Quaternion initialRotation;
+        /// <summary>
+        /// The initial scale of the GameObject, stored at the start.
+        /// </summary>
         private Vector3 initialScale;
 
+        /// <summary>
+        /// Stores the initial transform values to use as a reference for the Update loop's visual demonstration.
+        /// </summary>
         void Start()
         {
             // Store the initial transform values to use as a reference
@@ -24,6 +45,10 @@ namespace Milehigh.World.Core
             initialScale = transform.localScale;
         }
 
+        /// <summary>
+        /// Provides a visual demonstration of the manipulation methods each frame.
+        /// This method continuously rotates, scales, and moves the object in a predictable pattern.
+        /// </summary>
         void Update()
         {
             // This Update loop provides a visual demonstration of the manipulation methods.
