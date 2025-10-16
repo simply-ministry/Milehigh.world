@@ -121,6 +121,11 @@ class GameObject:
         self.update_status_effects(scene_manager)
 
 
+class Character(GameObject):
+    """A placeholder class to resolve the NameError.
+    This can be fleshed out later if needed."""
+    pass
+
 
 class Interactable(GameObject):
     """Represents objects that can be examined for a description."""
@@ -731,6 +736,31 @@ class Enemy(Character):
                 else:
                     self.move(0, 1 if dy > 0 else -1)
 
+
+class Troll(Enemy):
+    """
+    Represents a Troll enemy with health regeneration.
+    """
+    def __init__(self, name="Troll", x=0, y=0, z=0, type="Troll"):
+        super().__init__(name=name, x=x, y=y, z=z, type=type)
+        # Trolls are tougher and stronger than generic enemies
+        self.health = 80
+        self.max_health = 80
+        self.attack_damage = 15
+        self.regeneration_rate = 5 # Regenerates 5 HP per turn
+
+    def update(self, scene_manager):
+        """
+        Updates the Troll's state, including its health regeneration.
+        """
+        super().update(scene_manager) # Run base enemy logic first
+        if self.health > 0 and self.health < self.max_health:
+            self.health += self.regeneration_rate
+            if self.health > self.max_health:
+                self.health = self.max_health
+            print(f"{self.name} regenerates {self.regeneration_rate} health!")
+
+
 # --- Item System ---
 
 class Item(GameObject):
@@ -1202,6 +1232,22 @@ class AethelgardBattle(SceneManager):
 
         self.update() # Check for scene-specific win/loss conditions
 
+
+class TrollCaveScene(SceneManager):
+    """A scene for fighting a troll."""
+    def setup(self):
+        player = Aeron(name="Hero", x=5, y=5)
+        player.pickup_item(Weapon("Mighty Axe", "An axe fit for a troll slayer.", 30))
+        player.equip_item("Mighty Axe")
+
+        troll = Troll(name="Cave Troll", x=8, y=5)
+        troll.symbol = 'T'
+
+        self.scene.set_player(player)
+        self.scene.add_object(troll)
+        self.game.log_message("A massive Cave Troll blocks the path!")
+
+
 # --- Dialogue and Scene Setup ---
 
 # --- 5. SCRIPTING THE ANASTASIA & REVERIE DIALOGUE ---
@@ -1247,4 +1293,26 @@ if __name__ == "__main__":
 
     if battle_manager:
         battle_manager.run()
+    # Check for a command-line argument to load a game
+    import sys
+    if len(sys.argv) > 2 and sys.argv[1] == 'load':
+        save_name = sys.argv[2]
+        print(f"Attempting to load game from slot: {save_name}")
+        scene_manager = database.load_game(save_name)
+        if not scene_manager:
+            print(f"Could not load '{save_name}'. Starting a new game.")
+            # Fallback to new game if load fails
+            game_engine = Game()
+            troll_scene = Scene("Troll Cave")
+            scene_manager = TrollCaveScene(troll_scene, game_engine)
+    else:
+        # Start a new game by default
+        print("Starting a new game.")
+        game_engine = Game()
+        troll_scene = Scene("Troll Cave")
+        scene_manager = TrollCaveScene(troll_scene, game_engine)
+
+
+    if scene_manager:
+        scene_manager.run()
         print("Game over.")
