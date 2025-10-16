@@ -6,7 +6,7 @@ import json
 
 class GameObject:
     """The base class for all objects in the game world."""
-    def __init__(self, name="Object", symbol='?', x=0, y=0, state=None):
+    def __init__(self, name="Object", symbol='?', x=0, y=0, z=0, health=100, speed=1, visible=True, solid=True, defense=0, state=None):
         self.name = name
         self.symbol = symbol
         self.x = x
@@ -19,6 +19,7 @@ class GameObject:
         self.defense = defense
         self.attributes = {}  # Dictionary for storing additional attributes.
         self.status_effects = {}  # e.g., {'sleep': 6, 'slow': 8}
+        self.state = state # e.g., 'normal', 'hostile', 'dead'
 
     def __repr__(self):
         """
@@ -39,17 +40,28 @@ class GameObject:
         dz = self.z - other.z
         return math.sqrt(dx * dx + dy * dy + dz * dz)
 
-    def move(self, dx, dy, dz=0):
+    def move(self, dx, dy, dz=0, in_fluid_fracture=False):
         """
-        Moves the object by the specified amount.
-        Args:
-            dx (float): The change in x-coordinate.
-            dy (float): The change in y-coordinate.
-            dz (float): The change in z-coordinate (for 3D).
+        Updates the object's position. Added logic for movement
+        in the Ginga-required 'fluid dimensional fractures.'
         """
-        self.x += dx
-        self.y += dy
-        self.z += dz
+        if in_fluid_fracture and hasattr(self, 'is_ginga_ready') and not self.is_ginga_ready:
+            # Rigidity in a fluid zone causes catastrophic consequences!
+            damage = 50
+            print(f"!!! WARNING: {self.name} is rigid in a fluid fracture!")
+            self.take_damage(damage)
+            return # Blocked movement due to rigidity
+
+        # Normal, safe movement occurs if not in a fracture, or if Ginga-ready
+        self.x += dx * self.speed
+        self.y += dy * self.speed
+        self.z += dz * self.speed
+
+        # If successfully moving through the fracture, there's an energy cost.
+        if in_fluid_fracture and hasattr(self, 'mana'):
+            self.mana = max(0, self.mana - 5)
+            # This makes Ginga-Stance a resource-management challenge!
+        print(f"{self.name} moved to ({self.x}, {self.y}, {self.z}).")
 
     def take_damage(self, damage):
         """
@@ -143,12 +155,12 @@ class Interactable(GameObject):
             description=data.get("description"),
         )
 
-class Player(GameObject):
+class Player(Character):
     """
     Represents the player character.
     """
     def __init__(self, name="Player", x=0, y=0, z=0):
-        super().__init__(name=name, x=x, y=y, z=z, health=100, speed=5)
+        super().__init__(name=name, x=x, y=y, z=z, health=100, speed=5, mana=100)
         self.inventory = []
         self.level = 1
         self.experience = 0
@@ -159,8 +171,13 @@ class Player(GameObject):
         self.strength = 10
         self.dexterity = 10
         self.intelligence = 10
-        # --- NEW: Equipment Manager ---
         self.equipment = Equipment(owner=self)
+        # Ginga-related attributes
+        self.flow_meter = 0
+        self.max_flow = 100
+        self.still_point_regen = 3
+        self.has_counter_buff = False
+        self.counter_duration = 0
 
     def attack(self, target):
         """
@@ -214,13 +231,34 @@ class Player(GameObject):
 
     def update(self, delta_time):
         """
-        Updates the player's state, including mana regeneration.
+        Called every frame. Used here to manage Flow Meter regeneration and mana.
+        delta_time is the time passed since the last frame (in seconds).
         """
-        super().update(delta_time)
+        # The super().update() call was removed as Character does not have a base update method.
+        # If Character's update method is implemented later, this can be restored.
         self.update_status_effects(delta_time)
+
+        # Mana Regeneration
         self.mana += self.mana_regeneration_rate * delta_time
         if self.mana > self.max_mana:
             self.mana = self.max_mana
+
+        # --- Flow Meter Regeneration Logic ---
+        regen_rate = 1
+        is_at_still_point = True # Placeholder for actual movement check
+        if is_at_still_point:
+             regen_rate = self.still_point_regen
+
+        self.flow_meter += regen_rate * delta_time
+        self.flow_meter = min(self.flow_meter, self.max_flow)
+
+        # --- Counter Buff Duration ---
+        if self.has_counter_buff:
+            self.counter_duration -= delta_time
+            if self.counter_duration <= 0:
+                self.has_counter_buff = False
+                self.counter_duration = 0
+                print(f"{self.name}'s Counter Buff has expired.")
 
     def pickup_item(self, item):
         """
@@ -772,11 +810,22 @@ class DialogueManager:
 # --- 3. UPDATING THE CHARACTER AND GAME ENGINE ---
 
 class Character(GameObject):
-    def __init__(self, name="Character", x=0, y=0, health=100, state=None):
-        super().__init__(name, 'C', x, y, state)
-        self.health = health
+    def __init__(self, name="Character", x=0, y=0, z=0, health=100, mana=50, speed=1, is_ginga_ready=False, state=None):
+        super().__init__(name=name, symbol='C', x=x, y=y, z=z, health=health, speed=speed, state=state)
         self.max_health = health
+        self.mana = mana
+        self.is_ginga_ready = is_ginga_ready # New attribute for Yielding
         self.dialogue = None
+
+    def enter_ginga_stance(self):
+        """Prepares the character for fluid movement by yielding."""
+        self.is_ginga_ready = True
+        print(f"{self.name} enters the Ginga-Stance, embracing the Perpetual Sway.")
+
+    def exit_ginga_stance(self):
+        """Exits the yielding state, returning to normal posture."""
+        self.is_ginga_ready = False
+        print(f"{self.name} returns to a normal posture.")
 
     def to_dict(self):
         data = super().to_dict()
@@ -802,15 +851,53 @@ class Character(GameObject):
             character.dialogue = DialogueManager.from_dict(dialogue_data)
         return character
 
-class Anastasia(Character):
-    def __init__(self, name="Anastasia", x=0, y=0, health=120, state=None):
-        super().__init__(name=name, x=x, y=y, health=health, state=state)
+class Anastasia(Player):
+    """
+    Implementation of Anastasia the Dreamer.
+    Playstyle: Battlefield controller and disruptor.
+    """
+    def __init__(self, name="Anastasia", x=0, y=0, z=0):
+        super().__init__(name=name, x=x, y=y, z=z)
+        self.mana = 150
+        self.max_mana = 150
+        self.health = 100
+        self.max_health = 100
         self.symbol = '@'
 
-class Reverie(Character):
-    def __init__(self, name="Reverie", x=0, y=0, health=100, state=None):
-        super().__init__(name=name, x=x, y=y, health=health, state=state)
+        # Unique Mechanic: The Dream Weave
+        self.max_dream_weave = 100
+        self.dream_weave = 0
+
+        # Lucid Dream State
+        self.is_lucid_dream_active = False
+        self.lucid_dream_duration = 15 # in game ticks/seconds
+        self.lucid_dream_timer = 0
+
+class Reverie(Player):
+    """
+    Represents Reverie, a powerful and unpredictable Mage/Controller.
+    She builds a unique resource, Enigma, by casting spells, which she then
+    unleashes in a powerful, random ultimate attack.
+    """
+
+    def __init__(self, name="Reverie", x=0, y=0, z=0):
+        # Initialize the parent Player class with Reverie's stats
+        super().__init__(name, x, y, z)
+        self.health = 110
+        self.max_health = 110
+        self.mana = 150   # Standard mana pool for her basic spells
+        self.max_mana = 150
         self.symbol = 'R'
+
+        # Reverie's unique resource
+        self.enigma = 0
+        self.max_enigma = 100
+
+        # Her elemental spells build Enigma
+        self.spells = {}
+        self.spells["fire_blast"] = {"cost": 30, "damage": 25}
+        self.spells["ice_shard"] = {"cost": 20, "damage": 15}
+        self.spells["lightning_jolt"] = {"cost": 25, "damage": 20}
 
 class Scene:
     """Holds all the data for a single game area: map, objects, etc."""
