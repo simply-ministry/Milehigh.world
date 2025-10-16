@@ -939,110 +939,141 @@ class Game:
             self.message_log.pop(0)
 
     def handle_input(self, scene_manager):
-        """Handles player input and game commands."""
+        """
+        Handles player input for core actions like moving, attacking, and using items.
+        This simplified version focuses on a basic command structure.
+        """
+        # Get player and scene from the scene_manager
         player = scene_manager.scene.player_character
+        scene = scene_manager.scene
+
+        # If the player is in a conversation, handle dialogue choices
         if self.in_conversation:
-            choice = input("Choose an option (number): ")
-            if choice.isdigit() and self.dialogue_manager.select_option(int(choice) - 1):
-                pass
-            else:
-                self.log_message("Invalid choice.")
-            self.turn_taken = True
+            # Get the current dialogue node
+            node = self.dialogue_manager.get_current_node()
+            if not node or not node.options:
+                # End conversation if there's no node or no options
+                self.end_conversation()
+                self.turn_taken = True
+                return
+
+            # Display dialogue and prompt for choice
+            try:
+                choice = int(input("Choose an option (number): ")) - 1
+                if self.dialogue_manager.select_option(choice):
+                    self.turn_taken = True
+                else:
+                    self.log_message("Invalid choice.")
+            except (ValueError, IndexError):
+                self.log_message("Invalid input. Please enter a number.")
             return
 
-        command = input("Action: ").lower().strip()
-        parts = command.split()
-        action = parts[0] if parts else ""
+        # Main command loop
+        command = input("What do you want to do? (move, attack, use, talk, quit) > ").lower().strip()
 
-        if action == "move" and len(parts) > 1:
-            direction = parts[1]
+        if command == "quit":
+            self.game_over = True
+            self.turn_taken = True
+
+        elif command == "move":
+            direction = input("Move where? (w/a/s/d) > ").lower().strip()
             dx, dy = 0, 0
-            if direction in ["w", "up"]: dy = -1
-            elif direction in ["s", "down"]: dy = 1
-            elif direction in ["a", "left"]: dx = -1
-            elif direction in ["d", "right"]: dx = 1
+            if direction == 'w': dy = -1
+            elif direction == 's': dy = 1
+            elif direction == 'a': dx = -1
+            elif direction == 'd': dx = 1
+            else:
+                self.log_message("Invalid direction.")
+                self.turn_taken = False # Don't lose a turn for a typo
+                return
 
             new_x, new_y = player.x + dx, player.y + dy
 
-            if 0 <= new_x < self.width and 0 <= new_y < self.height:
-                target = scene_manager.scene.get_object_at(new_x, new_y)
-                if not target or not getattr(target, 'solid', False):
-                    player.x = new_x
-                    player.y = new_y
+            # Boundary and collision check
+            if not (0 <= new_x < self.width and 0 <= new_y < self.height):
+                self.log_message("You can't move off the map.")
+            else:
+                target_object = scene.get_object_at(new_x, new_y)
+                if target_object and getattr(target_object, 'solid', False):
+                    self.log_message(f"You can't move there. {target_object.name} is in the way.")
+                else:
+                    player.move(dx, dy)
+                    self.log_message(f"You move to ({player.x}, {player.y}).")
+                    self.turn_taken = True
+
+        elif command == "attack":
+            target_name = input("Attack who? > ").lower().strip()
+            # Find the target in the current scene
+            target = next((obj for obj in scene.game_objects if obj.name.lower() == target_name and isinstance(obj, Enemy)), None)
+
+            if target:
+                if target.health > 0:
+                    player.attack(target)
                     self.turn_taken = True
                 else:
-                    self.log_message(f"You can't move there. {target.name} is in the way.")
+                    self.log_message(f"{target.name} is already defeated.")
             else:
-                self.log_message("You can't move off the map.")
+                self.log_message(f"There is no one here named '{target_name}'.")
 
-        elif action == "examine":
-            target_name = " ".join(parts[1:]) if len(parts) > 1 else None
-            found_something = False
+        elif command == "use":
+            item_name = input("Use what? > ").lower().strip()
+            if player.use_item(item_name):
+                self.turn_taken = True
+            # The use_item method prints its own messages, so no need for else here.
+
+        elif command == "talk":
+            target_name = input("Talk to who? > ").lower().strip()
+            # Find any character (NPC or otherwise) with dialogue
+            target = next((obj for obj in scene.game_objects if obj.name.lower() == target_name), None)
+
+            if target and hasattr(target, 'dialogue') and target.dialogue:
+                if player.distance_to(target) < 3: # A bit more lenient for talking
+                    self.start_conversation(target.dialogue)
+                    self.turn_taken = True
+                else:
+                    self.log_message(f"You need to get closer to {target.name}.")
+            else:
+                self.log_message(f"'{target_name}' has nothing to say, or isn't here.")
+
+        elif command == "examine":
+            target_name = input("Examine what? (or leave blank for nearby) > ").lower().strip()
             if target_name:
-                # Examine a specific object by name
-                target = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Interactable) and obj.name.lower() == target_name.lower()), None)
+                target = next((obj for obj in scene.game_objects if obj.name.lower() == target_name and isinstance(obj, Interactable)), None)
                 if target:
                     self.log_message(f"{target.name}: {target.on_examine()}")
-                    found_something = True
                 else:
                     self.log_message(f"There is no '{target_name}' to examine.")
             else:
-                # Examine nearby objects
-                for obj in scene_manager.scene.game_objects:
+                found_something = False
+                for obj in scene.game_objects:
                     if isinstance(obj, Interactable) and player.distance_to(obj) < 1.5:
                         self.log_message(f"{obj.name}: {obj.on_examine()}")
                         found_something = True
-                        break # Only examine one nearby thing
+                        break
                 if not found_something:
                     self.log_message("There is nothing nearby to examine.")
             self.turn_taken = True
 
-        elif action == "talk" and len(parts) > 1:
-            target_name = " ".join(parts[1:])
-            target = next((obj for obj in scene_manager.scene.game_objects if obj.name.lower() == target_name.lower()), None)
-            if target and hasattr(target, 'dialogue') and target.dialogue:
-                if player.distance_to(target) <= 2:
-                    self.start_conversation(target.dialogue)
-                else:
-                    self.log_message(f"You are too far away to talk to {target.name}.")
-            else:
-                self.log_message(f"'{target_name}' has nothing to say or isn't here.")
-            self.turn_taken = True
-
-        elif action == "attack" and len(parts) > 1:
-            target_name = " ".join(parts[1:])
-            target = next((obj for obj in scene_manager.scene.game_objects if isinstance(obj, Enemy) and obj.name.lower() == target_name.lower() and obj.health > 0), None)
-            if target:
-                player.attack(target)
-            else:
-                self.log_message(f"There is no one to attack named '{target_name}'.")
-            self.turn_taken = True
-
-        elif action == "equip" and len(parts) > 1:
-            item_name = " ".join(parts[1:])
+        elif command == "equip":
+            item_name = input("Equip what? > ").lower().strip()
             player.equip_item(item_name)
             self.turn_taken = True
 
-        elif action == "use" and len(parts) > 1:
-            item_name = " ".join(parts[1:])
-            player.use_item(item_name)
-            self.turn_taken = True
-
-        elif action == "status":
+        elif command == "status":
             self.log_message(f"{player.name} - HP: {player.health}/{player.max_health}, Mana: {int(player.mana)}/{player.max_mana}")
-            for obj in scene_manager.scene.game_objects:
+            for obj in scene.game_objects:
                 if isinstance(obj, Enemy) and obj.health > 0:
-                     self.log_message(f"{obj.name} - HP: {obj.health}")
-            self.turn_taken = False # Does not consume a turn
+                    self.log_message(f"{obj.name} - HP: {obj.health}")
+            self.turn_taken = False
 
-        elif action == "save":
-            save_name = parts[1] if len(parts) > 1 else "quicksave"
+        elif command == "save":
+            save_name = input("Save name? (default: quicksave) > ").lower().strip() or "quicksave"
             database.save_game(save_name, scene_manager)
             self.log_message(f"Game saved to slot: {save_name}")
             self.turn_taken = False
 
-        elif action == "load":
-            save_name = parts[1] if len(parts) > 1 else "quicksave"
+        elif command == "load":
+            save_name = input("Load from what save? (default: quicksave) > ").lower().strip() or "quicksave"
             new_manager = database.load_game(save_name)
             if new_manager:
                 scene_manager.game = new_manager.game
@@ -1052,10 +1083,9 @@ class Game:
                 self.log_message(f"Failed to load game from slot: {save_name}")
             self.turn_taken = True
 
-        elif action == "quit":
-            self.game_over = True
         else:
-            self.log_message("Unknown command. Try: move [w/a/s/d], talk [name], examine [name], attack [name], equip [item], use [item], status, save/load, quit")
+            self.log_message("Unknown command. Try: move, attack, use, talk, examine, equip, status, save, load, quit")
+            self.turn_taken = False # Does not consume a turn
 
 
     def start_conversation(self, dialogue_manager):
