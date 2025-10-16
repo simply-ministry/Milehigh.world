@@ -209,8 +209,6 @@ class Scene:
         return None
 
 class Game:
-    def __init__(self, width=40, height=10, db_file="game_content.db"):
-    """Manages the game state and main loop."""
     def __init__(self, width=40, height=10):
         self.width = width
         self.height = height
@@ -218,7 +216,6 @@ class Game:
         self.game_over = False
         self.in_conversation = False
         self.dialogue_manager = None
-        self.db_conn = database.get_db_connection(db_file)
 
     def log_message(self, message):
         """Adds a message to the game log."""
@@ -382,65 +379,26 @@ class AethelgardBattle(SceneManager):
         )
 
         # Add them to the scene
+        self.scene.set_player(player)
+        self.scene.add_object(enemy)
+        self.scene.add_object(ancient_statue)
+        self.game.log_message("Aethelgard stands silent. Your brother, Kane, awaits.")
+
+    def update(self):
         """Updates the scene."""
         for obj in self.scene.game_objects[:]:
             if hasattr(obj, 'health') and obj.health <= 0:
-                self.scene.game_objects.remove(obj)
+                if obj != self.scene.player_character:
+                    self.scene.game_objects.remove(obj)
             else:
                 obj.update(self)
         if self.scene.player_character.health <= 0:
             self.game.game_over = True
             self.game.log_message("You have been defeated.")
 
-class AethelgardBattle(SceneManager):
-    """A specific scene manager for the Aeron vs. Kane fight."""
-    def setup_scene(self):
-        """Sets up the characters and items for this specific battle."""
-        self.scene = Scene("Aethelgard")
-        player = Player(name="Aeron", x=5, y=5)
-        enemy = Enemy(name="Kane", x=10, y=5, health=150, damage=20, xp_value=100, defense=2)
-        self.scene.set_player(player)
-        self.scene.add_object(enemy)
-        self.game.log_message("Kane stands before you, his eyes burning with hatred.")
-
-# --- 6. RUNNING THE DIALOGUE SCENE ---
-def main(argv):
-    """Main function to run the game."""
-    # Initialize the database first
-    database.init_db()
-
-    scene_manager = None
-
-    # Check for a command-line argument to load a game
-    if len(argv) > 2 and argv[1] == 'load':
-        save_name = argv[2]
-        print(f"Attempting to load game from slot: {save_name}")
-        # In a real scenario, database.load_game would be implemented
-        # For this test, we'll assume it returns None if the save doesn't exist
-        scene_manager = database.load_game(save_name)
-        if not scene_manager:
-            print(f"Could not load game '{save_name}'. A new game will be started.")
-
-    # If no scene_manager was loaded (or loading failed), start a new game.
-    if not scene_manager:
-        print("Starting a new game.")
-        game_engine = Game()
-        # Default to TrollCaveScene as it was the original default
-        troll_scene = Scene("Troll Cave")
-        scene_manager = TrollCaveScene(troll_scene, game_engine)
-
-    # Run the game
-    if scene_manager:
-        scene_manager.run()
-        print("Game over.")
-    return scene_manager # Return for testing purposes
-
-if __name__ == "__main__":
-    import sys
-    main(sys.argv)
 if __name__ == "__main__":
     game_engine = Game()
     scene_manager = AethelgardBattle(game_engine)
-    scene_manager.setup_scene()
+    scene_manager.load_scene(Scene("Aethelgard Battle"))
     scene_manager.run()
     print("Game over.")
