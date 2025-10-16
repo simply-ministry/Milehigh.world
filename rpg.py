@@ -958,7 +958,7 @@ class Scene:
         return None
 
 class Game:
-    def __init__(self, width=40, height=10):
+    def __init__(self, width=40, height=10, db_file="game_content.db"):
         self.width = width
         self.height = height
         self.message_log = []
@@ -966,6 +966,7 @@ class Game:
         self.game_over = False
         self.in_conversation = False
         self.dialogue_manager = None
+        self.db_conn = database.get_db_connection(db_file)
 
     def log_message(self, message):
         self.message_log.append(message)
@@ -1165,10 +1166,10 @@ class SceneManager:
 
 class Aeron(Player):
     """A placeholder class for the character Aeron."""
-    def __init__(self, name="Aeron", x=0, y=0, z=0):
+    def __init__(self, name="Aeron", x=0, y=0, z=0, db_conn=None):
         super().__init__(name, x, y, z)
         self.symbol = '@'
-        data = database.get_character_data(name)
+        data = database.get_character_data(name, conn=db_conn)
         if data:
             self.health = data['health']
             self.max_health = data['health']
@@ -1180,10 +1181,10 @@ class Aeron(Player):
 
 class Kane(Enemy):
     """A placeholder class for the enemy Kane."""
-    def __init__(self, name="Kane", x=0, y=0, z=0, type="Boss"):
+    def __init__(self, name="Kane", x=0, y=0, z=0, type="Boss", db_conn=None):
         super().__init__(name, x, y, z, type)
         self.symbol = 'K'
-        data = database.get_character_data(name)
+        data = database.get_character_data(name, conn=db_conn)
         if data:
             self.health = data['health']
             self.max_health = data['health']
@@ -1196,19 +1197,19 @@ class AethelgardBattle(SceneManager):
     def setup(self):
         """Sets up the characters, items, and quest for this specific battle."""
         # Create characters
-        player = Aeron(name="Aeron", x=5, y=5)
-        enemy = Kane(name="Kane", x=10, y=5)
+        player = Aeron(name="Aeron", x=5, y=5, db_conn=self.game.db_conn)
+        enemy = Kane(name="Kane", x=10, y=5, db_conn=self.game.db_conn)
 
         # Give player items
-        item_data = database.get_item_data("Valiant Sword")
+        item_data = database.get_item_data("Valiant Sword", conn=self.game.db_conn)
         if item_data:
-            weapon_data = database.get_weapon_data(item_data['item_id'])
+            weapon_data = database.get_weapon_data(item_data['item_id'], conn=self.game.db_conn)
             if weapon_data:
                 player.pickup_item(Weapon(item_data['name'], item_data['description'], weapon_data['damage']))
 
-        item_data = database.get_item_data("Aethelgard Plate")
+        item_data = database.get_item_data("Aethelgard Plate", conn=self.game.db_conn)
         if item_data:
-            armor_data = database.get_armor_data(item_data['item_id'])
+            armor_data = database.get_armor_data(item_data['item_id'], conn=self.game.db_conn)
             if armor_data:
                 player.pickup_item(Armor(item_data['name'], item_data['description'], armor_data['defense']))
 

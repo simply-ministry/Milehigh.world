@@ -206,40 +206,64 @@ def init_db(db_file=DB_FILE):
     conn.commit()
     conn.close()
 
-def get_character_data(name):
+def get_character_data(name, conn=None):
     """Fetches a character's data from the database."""
-    conn = get_db_connection()
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
+
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Characters WHERE name = ?", (name,))
     character_data = cursor.fetchone()
-    conn.close()
+
+    if close_conn:
+        conn.close()
     return character_data
 
-def get_item_data(name):
+def get_item_data(name, conn=None):
     """Fetches an item's base data from the Items table."""
-    conn = get_db_connection()
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
+
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Items WHERE name = ?", (name,))
     item_data = cursor.fetchone()
-    conn.close()
+
+    if close_conn:
+        conn.close()
     return item_data
 
-def get_weapon_data(item_id):
+def get_weapon_data(item_id, conn=None):
     """Fetches a weapon's specific data from the Weapons table."""
-    conn = get_db_connection()
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
+
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Weapons WHERE weapon_id = ?", (item_id,))
     weapon_data = cursor.fetchone()
-    conn.close()
+
+    if close_conn:
+        conn.close()
     return weapon_data
 
-def get_armor_data(item_id):
+def get_armor_data(item_id, conn=None):
     """Fetches armor's specific data from the Armor table."""
-    conn = get_db_connection()
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
+
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Armor WHERE armor_id = ?", (item_id,))
     armor_data = cursor.fetchone()
-    conn.close()
+
+    if close_conn:
+        conn.close()
     return armor_data
 
 
