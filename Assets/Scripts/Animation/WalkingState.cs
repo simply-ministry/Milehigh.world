@@ -28,3 +28,4 @@ public class WalkingState : AnimationState
         // No specific exit behavior needed for this state.
     }
 }
+}
