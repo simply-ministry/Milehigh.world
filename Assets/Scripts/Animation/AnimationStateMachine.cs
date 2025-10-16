@@ -12,6 +12,7 @@ public class AnimationStateMachine : MonoBehaviour
 
     public void ChangeState(AnimationState newState)
     {
+        CurrentState.Exit();
         if (CurrentState != null)
         {
             CurrentState.Exit();
@@ -28,4 +29,5 @@ public class AnimationStateMachine : MonoBehaviour
             CurrentState.Update();
         }
     }
+}
 }
