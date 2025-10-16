@@ -3,31 +3,39 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// Manages the Onalym Nexus battle, a complex encounter involving heroes, a war machine, and environmental mechanics.
-/// This script coordinates the actions of Aeron, Zaia, and the enemy War Machine.
+/// Manages the gameplay mechanics for the battle that takes place at the Onalym Nexus.
+/// This script controls enemy AI, player abilities, and win/loss conditions for this specific encounter.
 /// </summary>
 public class OnalymNexusBattle : MonoBehaviour
 {
+    // These sections link the script to the actual character GameObjects in the Unity scene.
     [Header("Hero References")]
     [Tooltip("The GameObject for the Aeron character.")]
     public GameObject aeron;
     [Tooltip("The GameObject for the Zaia character.")]
     public GameObject zaia;
+    [Tooltip("The GameObject for the Micah character.")]
+    public GameObject micah;
 
+    // This section links to the enemy GameObjects involved in the battle.
     [Header("Enemy References")]
     [Tooltip("The GameObject for the War Machine enemy.")]
     public GameObject warMachine;
     [Tooltip("A list of all active enemies in the battle.")]
     public List<GameObject> activeEnemies = new List<GameObject>();
 
+    // These are tunable parameters for Aeron's special attacks.
     [Header("Aeron Abilities")]
     [Tooltip("The force of Aeron's wind gust attack.")]
     public float windGustForce = 50f;
-    [Tooltip("The damage of Aeron's electro blast attack.")]
+
+    [Header("Micah Abilities")]
+    [Tooltip("The damage of Micah's TSIDKENU attack.")]
     public float electroBlastDamage = 40f;
-    [Tooltip("The impact force of Aeron's TSIDKENU attack.")]
+    [Tooltip("The impact force of Micah's TSIDKENU attack.")]
     public float impactForce = 10f;
 
+    // Tunable parameters for Zaia's special attacks.
     [Header("Zaia Abilities")]
     [Tooltip("The damage of Zaia's rock eruption attack.")]
     public float rockEruptionDamage = 60f;
@@ -40,6 +48,7 @@ public class OnalymNexusBattle : MonoBehaviour
     [Tooltip("The duration of the molten rock effect.")]
     public float rockEruptionDuration = 5f;
 
+    // This section defines the behavior and stats of the War Machine enemy.
     [Header("War Machine Settings")]
     [Tooltip("The time between the war machine's attacks.")]
     public float timeBetweenMachineAttacks = 3f;
@@ -53,10 +62,10 @@ public class OnalymNexusBattle : MonoBehaviour
     public GameObject machineBeamPrefab;
     [Tooltip("The duration of the beam attack.")]
     public float machineBeamDuration = 2f;
-    [Tooltip("The slowdown multiplier applied to the war machine when hit by molten rock.")]
+    [Tooltip("The slowdown multiplier applied when the war machine is hit by molten rock.")]
     public float machineMoltenSlowdown = 0.5f;
 
-    // --- Private State ---
+    // --- Private variables to track the state of the battle ---
     private Rigidbody warMachineRb;
     private Health warMachineHealth;
     private bool machineIsAttacking = false;
@@ -65,7 +74,8 @@ public class OnalymNexusBattle : MonoBehaviour
     private Transform currentTarget;
 
     /// <summary>
-    /// Initializes the battle, getting references to components and setting up the initial state.
+    /// This is a standard Unity function. It runs once when the battle starts.
+    /// It's used here to get necessary components from the GameObjects for later use.
     /// </summary>
     void Start()
     {
@@ -79,30 +89,34 @@ public class OnalymNexusBattle : MonoBehaviour
     }
 
     /// <summary>
-    /// Called every frame. Manages the war machine's AI and checks for win conditions.
+    /// This is a standard Unity function that runs on every single frame.
+    /// It's the main "heartbeat" of the script, managing the enemy's decisions.
     /// </summary>
     void Update()
     {
+        // If enough time has passed, and the machine isn't already attacking, start a new attack.
         if (Time.time >= nextMachineAttackTime && !machineIsAttacking && activeEnemies.Any())
         {
             StartMachineAttack();
             nextMachineAttackTime = Time.time + timeBetweenMachineAttacks;
         }
 
+        // If the machine is in the middle of an attack, keep updating its aim and beam.
         if (machineIsAttacking)
         {
             UpdateMachineAttack();
         }
 
+        // Check for the win condition: if no enemies are left, the battle is won.
         if (!activeEnemies.Any())
         {
             Debug.Log("Cyrus's forces are defeated! Nexus secured!");
-            // Trigger end of battle event
+            // Here you would trigger a cutscene or end the level.
         }
     }
 
     /// <summary>
-    /// Starts the war machine's attack sequence, selecting a target.
+    /// Begins the enemy's attack sequence by finding the closest hero to target.
     /// </summary>
     void StartMachineAttack()
     {
@@ -114,7 +128,7 @@ public class OnalymNexusBattle : MonoBehaviour
         }
         else
         {
-            machineIsAttacking = false;
+            machineIsAttacking = false; // No targets left.
         }
     }
 
@@ -189,10 +203,10 @@ public class OnalymNexusBattle : MonoBehaviour
     }
 
     /// <summary>
-    /// Executes Aeron's TSIDKENU attack, dealing damage and applying force.
+    /// Executes Micah's TSIDKENU attack, dealing damage and applying force.
     /// </summary>
     /// <param name="target">The target GameObject.</param>
-    public void AeronTSIDKENUAttack(GameObject target)
+    public void MicahTSIDKENUAttack(GameObject target)
     {
         Health targetHealth = target.GetComponent<Health>();
         if (targetHealth != null)
@@ -203,10 +217,10 @@ public class OnalymNexusBattle : MonoBehaviour
         Rigidbody targetRb = target.GetComponent<Rigidbody>();
         if (targetRb != null)
         {
-            Vector3 awayDirection = (target.transform.position - aeron.transform.position).normalized;
+            Vector3 awayDirection = (target.transform.position - micah.transform.position).normalized;
             targetRb.AddForce(awayDirection * impactForce, ForceMode.Impulse);
         }
-        Debug.Log("Aeron uses TSIDKENU!");
+        Debug.Log("Micah uses TSIDKENU!");
     }
 
     /// <summary>
@@ -280,7 +294,17 @@ public class OnalymNexusBattle : MonoBehaviour
             float dist = Vector3.Distance(warMachine.transform.position, zaia.transform.position);
             if (dist < minDistance)
             {
+                minDistance = dist;
                 closestTarget = zaia.transform;
+            }
+        }
+
+        if (micah != null && micah.activeInHierarchy)
+        {
+            float dist = Vector3.Distance(warMachine.transform.position, micah.transform.position);
+            if (dist < minDistance)
+            {
+                closestTarget = micah.transform;
             }
         }
         return closestTarget;
