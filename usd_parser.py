@@ -1,4 +1,4 @@
-# usd_parser.py
+import re
 
 def extract_usd_from_markdown(file_path):
     """
@@ -10,13 +10,29 @@ def extract_usd_from_markdown(file_path):
     Returns:
         list: A list of strings, where each string is a USD code block.
     """
-    print(f"Parsing {file_path} for USD snippets...")
-    # In a real implementation, you would use regex or another
-    # parsing method to find code blocks tagged as 'usd'.
-    return []
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except FileNotFoundError:
+        print(f"Error: File not found at {file_path}")
+        return []
+
+    # Regex to find code blocks fenced with ```usd
+    usd_pattern = re.compile(r'```usd\n(.*?)\n```', re.DOTALL)
+    snippets = usd_pattern.findall(content)
+    return snippets
 
 if __name__ == "__main__":
     # Example usage:
-    # snippets = extract_usd_from_markdown("docs/Character_Asset_Guide.md")
-    # print(f"Found {len(snippets)} USD snippets.")
-    pass
+    # This assumes you have a 'docs/GDD.md' file with USD snippets.
+    file_to_parse = 'docs/GDD.md'
+    usd_snippets = extract_usd_from_markdown(file_to_parse)
+
+    if usd_snippets:
+        print(f"Found {len(usd_snippets)} USD snippets in {file_to_parse}:")
+        for i, snippet in enumerate(usd_snippets, 1):
+            print(f"\n--- Snippet {i} ---")
+            print(snippet.strip())
+            print("--------------------")
+    else:
+        print(f"No USD snippets found in {file_to_parse}.")

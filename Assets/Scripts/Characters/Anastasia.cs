@@ -1,7 +1,15 @@
 using UnityEngine;
 
+/// <summary>
+/// Represents Anastasia, a powerful mage hero in the game.
+/// This class defines her unique abilities and initial attributes.
+/// </summary>
 public class Anastasia : NoveminaadHero
 {
+    /// <summary>
+    /// Initializes Anastasia's specific attributes.
+    /// Overrides the base Awake method to set her name, health, and energy.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();

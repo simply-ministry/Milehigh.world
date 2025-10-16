@@ -1,7 +1,15 @@
 using UnityEngine;
 
+/// <summary>
+/// Represents Kael, a hero specializing in time manipulation.
+/// This class defines his unique abilities and initial attributes.
+/// </summary>
 public class Kael : NoveminaadHero
 {
+    /// <summary>
+    /// Initializes Kael's specific attributes.
+    /// Overrides the base Awake method to set his name, health, and energy.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();

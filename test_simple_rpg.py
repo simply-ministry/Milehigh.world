@@ -11,7 +11,7 @@ class TestLevelUpSystem(unittest.TestCase):
         self.player = Player(name="Test Hero")
 
     def test_initial_state(self):
-        """Test the player's initial state."""
+        """Tests that a new character has the correct initial attributes."""
         self.assertEqual(self.player.level, 1)
         self.assertEqual(self.player.xp, 0)
         self.assertEqual(self.player.xp_to_next_level, 100)
