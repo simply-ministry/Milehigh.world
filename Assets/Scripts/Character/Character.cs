@@ -19,12 +19,13 @@ public enum CharacterState
 /// Contains core attributes, combat stats, and methods for health/mana management.
 /// Implements an event-driven approach for state changes.
 /// </summary>
-public class Character : MonoBehaviour
+public abstract class Character : MonoBehaviour
 {
     // Events for state changes
     public event Action<float, float> OnHealthChanged; // currentHealth, maxHealth
     public event Action<float, float> OnManaChanged;   // currentMana, maxMana
     public event Action<float> OnDamageTaken;          // damageAmount
+    public event Action OnDie;
 
     [Header("Core Identification")]
     [Tooltip("A unique identifier for this character instance.")]
@@ -82,7 +83,7 @@ public class Character : MonoBehaviour
     /// <summary>
     /// Applies damage to the character and invokes damage/health events.
     /// </summary>
-    public virtual void TakeDamage(float amount)
+    public virtual void TakeDamage(float amount, Character instigator = null)
     {
         if (!isAlive) return;
 
@@ -94,7 +95,7 @@ public class Character : MonoBehaviour
 
         if (Health <= 0)
         {
-            Die();
+            Die(instigator);
         }
     }
 
@@ -124,9 +125,10 @@ public class Character : MonoBehaviour
     /// <summary>
     /// Handles the character's death logic.
     /// </summary>
-    protected virtual void Die()
+    protected virtual void Die(Character killer)
     {
         isAlive = false;
+        OnDie?.Invoke();
         Debug.Log($"{characterName} has been defeated.");
         // We don't disable the GameObject immediately to allow other scripts to react to the death event.
         // Consider a separate manager to handle object cleanup.

@@ -2,6 +2,30 @@ import pytest
 import os
 import re
 from usd_parser import extract_usd_from_markdown
+from pxr import Sdf
+
+def test_usd_snippets_are_valid():
+    """
+    Parses 'document.md' and validates that every extracted
+    USD snippet is syntactically correct.
+    """
+    snippets = extract_usd_from_markdown("document.md")
+    assert snippets, "No USD snippets were found in document.md."
+
+    for i, snippet in enumerate(snippets):
+        # Add the required USD file header
+        usd_content = f"#usda 1.0\n{snippet.strip()}"
+
+        # Create a new, empty layer to populate with the snippet
+        layer = Sdf.Layer.CreateAnonymous()
+        try:
+            # Attempt to load the string content into the layer
+            layer.ImportFromString(usd_content)
+            # If this passes, the USD is considered valid
+            assert True
+        except Exception as e:
+            # If an exception is raised, the USD is invalid
+            pytest.fail(f"Snippet {i+1} failed validation: {e}\n\n{snippet}")
 
 # Define the path to the GDD, which contains the USD snippets to be validated.
 GDD_PATH = "docs/GDD.md"
@@ -51,3 +75,4 @@ def test_no_invalid_prim_types(usd_snippets):
     for snippet in usd_snippets:
         for invalid_type in invalid_types:
             assert f'def {invalid_type} "' not in snippet, f"Found a disallowed prim type '{invalid_type}' in a USD snippet."
+    assert True
