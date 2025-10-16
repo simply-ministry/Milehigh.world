@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
-import os
+import oshttps://github.com/simply-ministry/Milehigh.world/pull/187/conflict?name=test_rpg.py&ancestor_oid=bd58b5fc6fd7aee8ad7c6fe24b3b8f8656a635d8&base_oid=0b4a3bcb2d5c166935aac084b582cde83b407c21&head_oid=5d0806843159fc616276792f085372ebc425788b
+import database
 
 # It's important to import the classes from the script we are testing
 from rpg import Game, Scene, AethelgardBattle, Interactable, Aeron, Kane
@@ -16,19 +17,30 @@ class TestRpgInteraction(unittest.TestCase):
 
     def setUp(self):
         """Set up a controlled game environment for each test."""
+        # Initialize the database for the test
+        database.init_db()
+        self.game = Game()
         # Initialize a temporary database for the test
         init_db(self.DB_FILE)
 
         self.game = Game(db_file=self.DB_FILE)
         self.scene = Scene("Test Scene", width=40, height=10)
         # The AethelgardBattle scene manager contains the setup logic we need
-        self.scene_manager = AethelgardBattle(self.scene, self.game)
+        # We pass setup_scene=False to avoid calling setup in the constructor
+        self.scene_manager = AethelgardBattle(self.scene, self.game, setup_scene=False)
         # We need to run the setup to populate the scene with objects
         self.scene_manager.setup()
         # Mock the log_message to capture output without printing to console
         self.game.log_message = MagicMock()
 
     def tearDown(self):
+        """Clean up the database file after each test."""
+        # Ensure the database connection is closed before attempting to delete the file
+        # This might require changes in the database.py or be handled by the OS
+        try:
+            os.remove(database.DB_FILE)
+        except OSError as e:
+            print(f"Error removing database file: {e}")
         """Clean up the temporary database after each test."""
         os.remove(self.DB_FILE)
 

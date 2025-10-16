@@ -403,6 +403,41 @@ class AethelgardBattle(SceneManager):
         self.scene.add_object(enemy)
         self.game.log_message("Kane stands before you, his eyes burning with hatred.")
 
+# --- 6. RUNNING THE DIALOGUE SCENE ---
+def main(argv):
+    """Main function to run the game."""
+    # Initialize the database first
+    database.init_db()
+
+    scene_manager = None
+
+    # Check for a command-line argument to load a game
+    if len(argv) > 2 and argv[1] == 'load':
+        save_name = argv[2]
+        print(f"Attempting to load game from slot: {save_name}")
+        # In a real scenario, database.load_game would be implemented
+        # For this test, we'll assume it returns None if the save doesn't exist
+        scene_manager = database.load_game(save_name)
+        if not scene_manager:
+            print(f"Could not load game '{save_name}'. A new game will be started.")
+
+    # If no scene_manager was loaded (or loading failed), start a new game.
+    if not scene_manager:
+        print("Starting a new game.")
+        game_engine = Game()
+        # Default to TrollCaveScene as it was the original default
+        troll_scene = Scene("Troll Cave")
+        scene_manager = TrollCaveScene(troll_scene, game_engine)
+
+    # Run the game
+    if scene_manager:
+        scene_manager.run()
+        print("Game over.")
+    return scene_manager # Return for testing purposes
+
+if __name__ == "__main__":
+    import sys
+    main(sys.argv)
 if __name__ == "__main__":
     game_engine = Game()
     scene_manager = AethelgardBattle(game_engine)

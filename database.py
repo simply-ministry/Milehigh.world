@@ -333,6 +333,16 @@ def get_armor_data(item_id):
         conn.close()
     return armor_data
 
+def load_game(save_name):
+    """
+    Placeholder for loading a game state.
+    In a real implementation, this would load data from the database.
+    For now, it returns None to allow for testing of the main runner.
+    """
+    # This function is intended to be mocked in tests.
+    # Returning None simulates the behavior of a save not being found.
+    return None
+
 
 if __name__ == '__main__':
     print("Initializing game content database...")
