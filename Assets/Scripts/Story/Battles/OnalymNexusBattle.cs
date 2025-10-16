@@ -2,57 +2,88 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 
+/// <summary>
+/// Manages the Onalym Nexus battle, a complex encounter involving heroes, a war machine, and environmental mechanics.
+/// This script coordinates the actions of Aeron, Zaia, and the enemy War Machine.
+/// </summary>
 public class OnalymNexusBattle : MonoBehaviour
 {
+    [Header("Hero References")]
+    [Tooltip("The GameObject for the Aeron character.")]
     public GameObject aeron;
+    [Tooltip("The GameObject for the Zaia character.")]
     public GameObject zaia;
+
+    [Header("Enemy References")]
+    [Tooltip("The GameObject for the War Machine enemy.")]
     public GameObject warMachine;
-    public GameObject nexusArea;
+    [Tooltip("A list of all active enemies in the battle.")]
     public List<GameObject> activeEnemies = new List<GameObject>();
+
+    [Header("Aeron Abilities")]
+    [Tooltip("The force of Aeron's wind gust attack.")]
     public float windGustForce = 50f;
+    [Tooltip("The damage of Aeron's electro blast attack.")]
     public float electroBlastDamage = 40f;
+    [Tooltip("The impact force of Aeron's TSIDKENU attack.")]
+    public float impactForce = 10f;
+
+    [Header("Zaia Abilities")]
+    [Tooltip("The damage of Zaia's rock eruption attack.")]
     public float rockEruptionDamage = 60f;
+    [Tooltip("The radius of the rock eruption attack.")]
     public float rockEruptionRadius = 5f;
+    [Tooltip("The prefab for the molten rock created by the eruption.")]
     public GameObject moltenRockPrefab;
+    [Tooltip("The spawn point for the rock eruption.")]
     public Transform rockEruptionSpawnPoint;
+    [Tooltip("The duration of the molten rock effect.")]
     public float rockEruptionDuration = 5f;
+
+    [Header("War Machine Settings")]
+    [Tooltip("The time between the war machine's attacks.")]
     public float timeBetweenMachineAttacks = 3f;
-    private float nextMachineAttackTime;
+    [Tooltip("The rotation speed of the war machine when targeting.")]
     public float machineRotationSpeed = 2f;
+    [Tooltip("The damage per second of the war machine's beam.")]
     public float machineBeamDamage = 10f;
+    [Tooltip("The transform of the war machine's cannon.")]
     public Transform machineCannon;
+    [Tooltip("The prefab for the war machine's beam attack.")]
     public GameObject machineBeamPrefab;
+    [Tooltip("The duration of the beam attack.")]
     public float machineBeamDuration = 2f;
-    public float machineBeamSpeed = 20f;
-    public float aeronFlySpeed = 20f;
-    public float aeronDamageReduction = 0.8f;
-    public float impactForce = 10f; // Add this line
-    public float machineMoltenSlowdown = 0.5f; // Add this line
+    [Tooltip("The slowdown multiplier applied to the war machine when hit by molten rock.")]
+    public float machineMoltenSlowdown = 0.5f;
+
+    // --- Private State ---
     private Rigidbody warMachineRb;
     private Health warMachineHealth;
     private bool machineIsAttacking = false;
+    private float nextMachineAttackTime;
     private GameObject currentMachineBeam;
     private Transform currentTarget;
 
+    /// <summary>
+    /// Initializes the battle, getting references to components and setting up the initial state.
+    /// </summary>
     void Start()
     {
         warMachineRb = warMachine.GetComponent<Rigidbody>();
         warMachineHealth = warMachine.GetComponent<Health>();
-        if (!warMachineRb)
-            Debug.LogError("War Machine needs a Rigidbody!");
-        if (!warMachineHealth)
-            Debug.LogError("War Machine needs a Health component!");
+        if (!warMachineRb) Debug.LogError("War Machine needs a Rigidbody!");
+        if (!warMachineHealth) Debug.LogError("War Machine needs a Health component!");
 
         nextMachineAttackTime = Time.time + timeBetweenMachineAttacks;
-
-        // Populate initial enemies (example)
         activeEnemies.AddRange(GameObject.FindGameObjectsWithTag("Enemy"));
     }
 
+    /// <summary>
+    /// Called every frame. Manages the war machine's AI and checks for win conditions.
+    /// </summary>
     void Update()
     {
-        // Basic AI for the War Machine
-        if (Time.time >= nextMachineAttackTime && !machineIsAttacking && activeEnemies.Count > 0)
+        if (Time.time >= nextMachineAttackTime && !machineIsAttacking && activeEnemies.Any())
         {
             StartMachineAttack();
             nextMachineAttackTime = Time.time + timeBetweenMachineAttacks;
@@ -63,70 +94,58 @@ public class OnalymNexusBattle : MonoBehaviour
             UpdateMachineAttack();
         }
 
-        // Win condition (example: all enemies defeated)
-        if (activeEnemies.Count == 0)
+        if (!activeEnemies.Any())
         {
             Debug.Log("Cyrus's forces are defeated! Nexus secured!");
             // Trigger end of battle event
         }
     }
 
+    /// <summary>
+    /// Starts the war machine's attack sequence, selecting a target.
+    /// </summary>
     void StartMachineAttack()
     {
         machineIsAttacking = true;
-        // Select a target (prioritize Aeron?)
-        if (aeron != null && zaia != null)
+        currentTarget = FindClosestTarget();
+        if (currentTarget != null)
         {
-            if (Vector3.Distance(warMachine.transform.position, aeron.transform.position) <
-                Vector3.Distance(warMachine.transform.position, zaia.transform.position))
-            {
-                currentTarget = aeron.transform;
-            }
-            else
-            {
-                currentTarget = zaia.transform;
-            }
-        }
-        else if (aeron != null)
-        {
-            currentTarget = aeron.transform;
-        }
-        else if (zaia != null)
-        {
-            currentTarget = zaia.transform;
+            Debug.Log("War Machine starts attack!");
         }
         else
         {
             machineIsAttacking = false;
-            return; // No target
         }
-        // Trigger attack animation/effects
-        Debug.Log("War Machine starts attack!");
     }
 
+    /// <summary>
+    /// Updates the war machine's attack, aiming and firing the beam.
+    /// </summary>
     void UpdateMachineAttack()
     {
         if (currentTarget == null)
         {
-            machineIsAttacking = false;
+            EndMachineAttack();
             return;
         }
 
-        // Aim the cannon
         Vector3 targetDirection = (currentTarget.position - machineCannon.position).normalized;
         Quaternion targetRotation = Quaternion.LookRotation(targetDirection);
         warMachine.transform.rotation = Quaternion.RotateTowards(warMachine.transform.rotation, targetRotation, machineRotationSpeed * Time.deltaTime);
 
-        // Fire the beam (if it's ready)
         if (currentMachineBeam == null)
         {
             currentMachineBeam = Instantiate(machineBeamPrefab, machineCannon.position, machineCannon.rotation);
-            Destroy(currentMachineBeam, machineBeamDuration); // Destroy the beam after its duration
-            // Apply damage over time to the target
-            DealBeamDamageOverTime(currentTarget.gameObject);
+            Destroy(currentMachineBeam, machineBeamDuration);
         }
+
+        DealBeamDamageOverTime(currentTarget.gameObject);
     }
 
+    /// <summary>
+    /// Deals damage over time to a target from the war machine's beam.
+    /// </summary>
+    /// <param name="target">The target GameObject.</param>
     void DealBeamDamageOverTime(GameObject target)
     {
         Health targetHealth = target.GetComponent<Health>();
@@ -137,16 +156,25 @@ public class OnalymNexusBattle : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Ends the war machine's attack sequence.
+    /// </summary>
     void EndMachineAttack()
     {
         machineIsAttacking = false;
         currentTarget = null;
-        currentMachineBeam = null;
-        // Reset animation/effects
+        if (currentMachineBeam != null)
+        {
+            Destroy(currentMachineBeam);
+        }
         Debug.Log("War Machine ends attack.");
     }
 
-    void AeronWindGustAttack(GameObject[] targets)
+    /// <summary>
+    /// Executes Aeron's wind gust attack, pushing back targets.
+    /// </summary>
+    /// <param name="targets">An array of target GameObjects.</param>
+    public void AeronWindGustAttack(GameObject[] targets)
     {
         foreach (GameObject target in targets)
         {
@@ -157,49 +185,44 @@ public class OnalymNexusBattle : MonoBehaviour
                 targetRb.AddForce(awayDirection * windGustForce, ForceMode.Impulse);
             }
         }
-        // Play VFX and SFX for wind gust
         Debug.Log("Aeron unleashes a wind gust!");
     }
 
-    void AeronTSIDKENUAttack(GameObject target)
+    /// <summary>
+    /// Executes Aeron's TSIDKENU attack, dealing damage and applying force.
+    /// </summary>
+    /// <param name="target">The target GameObject.</param>
+    public void AeronTSIDKENUAttack(GameObject target)
     {
-        // Apply damage
         Health targetHealth = target.GetComponent<Health>();
         if (targetHealth != null)
         {
             targetHealth.TakeDamage(electroBlastDamage);
         }
 
-        // Apply force to the target (if it has a Rigidbody)
         Rigidbody targetRb = target.GetComponent<Rigidbody>();
         if (targetRb != null)
         {
             Vector3 awayDirection = (target.transform.position - aeron.transform.position).normalized;
             targetRb.AddForce(awayDirection * impactForce, ForceMode.Impulse);
         }
-
-        // Play VFX and SFX for the electrical blast
         Debug.Log("Aeron uses TSIDKENU!");
     }
 
-    void ZaiaBarrier(bool active)
+    /// <summary>
+    /// Activates or deactivates Zaia's defensive barrier.
+    /// </summary>
+    /// <param name="active">Whether the barrier should be active.</param>
+    public void ZaiaBarrier(bool active)
     {
-        // Activate/deactivate a visual barrier effect
-        // (e.g., enable/disable a GameObject, change material)
-        // This is a placeholder; implement the actual visual effect
-        if (active)
-        {
-            Debug.Log("Zaia activates barrier!");
-        }
-        else
-        {
-            Debug.Log("Zaia deactivates barrier!");
-        }
+        Debug.Log(active ? "Zaia activates barrier!" : "Zaia deactivates barrier!");
     }
 
-    void ZaiaRockEruptionAttack()
+    /// <summary>
+    /// Executes Zaia's rock eruption attack, dealing area damage and slowing the war machine.
+    /// </summary>
+    public void ZaiaRockEruptionAttack()
     {
-        // Damage enemies in an area
         Collider[] hitColliders = Physics.OverlapSphere(rockEruptionSpawnPoint.position, rockEruptionRadius);
         foreach (Collider hitCollider in hitColliders)
         {
@@ -210,26 +233,56 @@ public class OnalymNexusBattle : MonoBehaviour
             }
         }
 
-        // Instantiate a molten rock prefab
         if (moltenRockPrefab != null)
         {
             GameObject rockInstance = Instantiate(moltenRockPrefab, rockEruptionSpawnPoint.position, Quaternion.identity);
-            Destroy(rockInstance, rockEruptionDuration); // Destroy after a duration
+            Destroy(rockInstance, rockEruptionDuration);
         }
 
-        // Slow down the war machine (if within range)
         float distanceToMachine = Vector3.Distance(rockEruptionSpawnPoint.position, warMachine.transform.position);
         if (distanceToMachine <= rockEruptionRadius)
         {
             warMachineRb.velocity *= machineMoltenSlowdown;
         }
-
-        // Play VFX and SFX for the rock eruption
         Debug.Log("Zaia triggers a rock eruption!");
     }
 
+    /// <summary>
+    /// Removes a defeated enemy from the active list.
+    /// </summary>
+    /// <param name="enemy">The defeated enemy GameObject.</param>
     public void EnemyDefeated(GameObject enemy)
     {
         activeEnemies.Remove(enemy);
+    }
+
+    /// <summary>
+    /// Finds the closest valid target for the war machine.
+    /// </summary>
+    /// <returns>The transform of the closest target, or null if no targets are available.</returns>
+    private Transform FindClosestTarget()
+    {
+        Transform closestTarget = null;
+        float minDistance = float.MaxValue;
+
+        if (aeron != null && aeron.activeInHierarchy)
+        {
+            float dist = Vector3.Distance(warMachine.transform.position, aeron.transform.position);
+            if (dist < minDistance)
+            {
+                minDistance = dist;
+                closestTarget = aeron.transform;
+            }
+        }
+
+        if (zaia != null && zaia.activeInHierarchy)
+        {
+            float dist = Vector3.Distance(warMachine.transform.position, zaia.transform.position);
+            if (dist < minDistance)
+            {
+                closestTarget = zaia.transform;
+            }
+        }
+        return closestTarget;
     }
 }

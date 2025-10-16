@@ -95,22 +95,30 @@ public class AIController : MonoBehaviour
                 }
                 break;
         }
-
+    }
+    /// <summary>
+    /// A placeholder method for turn-based combat systems.
+    /// In a real-time system, this would not be used.
+    /// </summary>
     public void TakeTurn()
     {
         // A real AI would have more complex logic. For now, we'll just attack.
-        PlayerCharacter target = FindObjectOfType<PlayerCharacter>(); // Assuming a PlayerCharacter script/tag
-        if (target != null && target.isAlive)
+        // Note: FindObjectOfType is slow; targets should be managed by a central system.
+        PlayerController targetController = FindObjectOfType<PlayerController>();
+        if (targetController != null)
         {
-            Debug.Log($"{self.characterName} decides to attack {target.characterName}!");
-            // In a full implementation, the AI would use its own abilities.
-            // For now, a basic attack will suffice.
-            // self.Attack(target);
+            Character target = targetController.GetComponent<Character>();
+            if (target != null && target.isAlive)
+            {
+                Debug.Log($"{self.characterName} decides to attack {target.characterName}!");
+                // In a full implementation, the AI would use its own abilities.
+                abilitySystem.UseAbility(0, target);
+            }
         }
     }
 
     /// <summary>
-    /// Calculates a steering direction to avoid obstacles.
+    /// Calculates a steering direction to avoid obstacles using a simple "whisker" method.
     /// </summary>
     /// <param name="targetDirection">The initial desired direction.</param>
     /// <returns>A new direction vector that avoids obstacles.</returns>

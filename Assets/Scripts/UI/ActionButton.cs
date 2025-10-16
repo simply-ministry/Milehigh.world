@@ -4,8 +4,14 @@ using UnityEngine.UI;
 /// <summary>
 /// A script for a UI button that represents a character's ability.
 /// </summary>
+/// <summary>
+/// A script for a UI button that represents a character's ability.
+/// It holds a reference to an ability and a caster, and executes the
+/// action via the CombatManager when clicked.
+/// </summary>
 public class ActionButton : MonoBehaviour
 {
+    [Tooltip("The UI Text element that displays the ability's name.")]
     public Text abilityNameText;
 
     private Ability assignedAbility;
@@ -14,6 +20,11 @@ public class ActionButton : MonoBehaviour
     // In a real game, a more robust targeting system would set this.
     private Character currentTarget;
 
+    /// <summary>
+    /// Initializes the action button with a specific ability and caster.
+    /// </summary>
+    /// <param name="ability">The ability this button will represent.</param>
+    /// <param name="caster">The character who will use the ability.</param>
     public void Initialize(Ability ability, Character caster)
     {
         assignedAbility = ability;
@@ -23,6 +34,9 @@ public class ActionButton : MonoBehaviour
         GetComponent<Button>().onClick.AddListener(OnButtonClick);
     }
 
+    /// <summary>
+    /// Handles the button's click event. Finds a target and tells the CombatManager to perform the action.
+    /// </summary>
     private void OnButtonClick()
     {
         // For now, let's assume a simple targeting system.

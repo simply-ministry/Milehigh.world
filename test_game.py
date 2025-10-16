@@ -12,7 +12,7 @@ from game import (
 class TestGameObject(unittest.TestCase):
     """Tests for the base GameObject class."""
     def test_game_object_creation(self):
-        """Test the creation of a GameObject."""
+        """Tests the initialization of a GameObject."""
         obj = GameObject(name="Tree", x=10, y=20, health=50)
         self.assertEqual(obj.name, "Tree")
         self.assertEqual(obj.x, 10)
@@ -45,6 +45,7 @@ class TestGameObject(unittest.TestCase):
 class TestInventory(unittest.TestCase):
     """Tests for the Inventory class."""
     def setUp(self):
+        """Sets up the test environment before each test."""
         self.inventory = Inventory()
         self.item1 = Item("Potion", "A healing potion.")
         self.item2 = Weapon("Sword", "A sharp blade.", 10)
@@ -76,6 +77,7 @@ class TestInventory(unittest.TestCase):
 class TestCharacterAndPlayer(unittest.TestCase):
     """Tests for the Character and Player classes."""
     def setUp(self):
+        """Sets up the test environment before each test."""
         self.player = Player(name="Hero")
         self.player.strength = 10
         self.player.dexterity = 10
@@ -175,6 +177,7 @@ class TestCharacterAndPlayer(unittest.TestCase):
 class TestGame(unittest.TestCase):
     """Tests for the main Game class and its loop."""
     def setUp(self):
+        """Sets up the test environment before each test."""
         self.game = Game(width=20, height=10)
         self.player = Zaia(name="Zaia", x=5, y=5)
         self.npc = Aeron(name="Aeron", x=6, y=5, dialogue="Hello")
