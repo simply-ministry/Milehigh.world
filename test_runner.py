@@ -31,12 +31,12 @@ class TestGameRunner(unittest.TestCase):
         mock_run.assert_called_once()
 
         # Check that the returned scene manager is of the correct type
-        self.assertIsInstance(scene_manager, rpg.TrollCaveScene,
-                              "Starting a new game should create a TrollCaveScene instance.")
+        self.assertIsInstance(scene_manager, rpg.AethelgardBattle,
+                              "Starting a new game should create an AethelgardBattle instance.")
 
         # Check that the scene name is correct
-        self.assertEqual(scene_manager.scene.name, "Troll Cave",
-                         "The default scene should be 'Troll Cave'.")
+        self.assertEqual(scene_manager.scene.name, "Aethelgard",
+                         "The default scene should be 'Aethelgard'.")
 
     @patch('database.load_game')
     def test_load_game_bypasses_new_game_creation(self, mock_load_game):

@@ -136,28 +136,36 @@ class GameObject:
         name (str): The name of the object.
         x (int): The x-coordinate of the object.
         y (int): The y-coordinate of the object.
+        z (int): The z-coordinate of the object.
         health (int): The current health of the object.
         max_health (int): The maximum health of the object.
     """
-    def __init__(self, name="GameObject", x=0, y=0, health=100):
+    def __init__(self, name="GameObject", x=0, y=0, z=0, health=100):
         self.name = name
         self.x = int(x)
         self.y = int(y)
+        self.z = int(z)
         self.health = health
         self.max_health = health
 
     def __str__(self):
         return f"{self.name} (HP: {self.health}/{self.max_health})"
 
-    def move(self, dx, dy):
+    def move(self, dx, dy, dz):
         """Moves the object by a given delta.
 
         Args:
             dx (int): The change in the x-coordinate.
             dy (int): The change in the y-coordinate.
+            dz (int): The change in the z-coordinate.
         """
         self.x += dx
         self.y += dy
+        self.z += dz
+
+    def distance_to(self, other):
+        """Calculates the distance to another GameObject."""
+        return math.sqrt((self.x - other.x)**2 + (self.y - other.y)**2 + (self.z - other.z)**2)
 
     def take_damage(self, damage):
         """Reduces the object's health by a given amount.
@@ -195,16 +203,22 @@ class Character(GameObject):
         inventory (Inventory): The character's inventory.
         mana (int): The character's current mana.
         max_mana (int): The character's maximum mana.
-        is_asleep (bool): Whether the character is asleep.
-        sleep_duration (int): The remaining duration of sleep.
+        status_effects (dict): A dictionary of active status effects and their durations.
     """
-    def __init__(self, name="Character", x=0, y=0, health=100):
-        super().__init__(name, x, y, health=health)
+    def __init__(self, name="Character", x=0, y=0, z=0, health=100):
+        super().__init__(name, x, y, z, health=health)
         self.inventory = Inventory(owner_name=self.name)
         self.mana = 100
         self.max_mana = 100
-        self.is_asleep = False
-        self.sleep_duration = 0
+        self.status_effects = {} # e.g., {"sleep": 3, "slow": 5}
+
+    def update_status_effects(self, delta_time):
+        """Updates status effects each turn."""
+        for effect in list(self.status_effects.keys()):
+            self.status_effects[effect] -= delta_time
+            if self.status_effects[effect] <= 0:
+                print(f"{self.name} is no longer {effect}ed.")
+                del self.status_effects[effect]
 
     def pickup_item(self, item):
         """Picks up an item and adds it to the inventory.
@@ -257,8 +271,7 @@ class Character(GameObject):
         if spell_name_lower == "dream weave" and self.mana >= 20:
             self.mana -= 20
             print(f"{self.name} weaves a dream, putting {target.name} to sleep!")
-            target.is_asleep = True
-            target.sleep_duration = 3
+            target.status_effects['sleep'] = 3 # Sleep for 3 turns
         elif spell_name_lower == "nightmare" and self.mana >= 35:
             self.mana -= 35
             print(f"{self.name} conjures a nightmare, damaging {target.name}'s mind!")
@@ -270,14 +283,11 @@ class Character(GameObject):
         else:
             print(f"{self.name} doesn't know the spell '{spell_name}' or lacks the mana.")
 
-    def update(self):
-        """Updates the character's state, including status effects."""
-        if self.is_asleep:
-            self.sleep_duration -= 1
-            print(f"{self.name} is asleep.")
-            if self.sleep_duration <= 0:
-                self.is_asleep = False
-                print(f"{self.name} woke up.")
+    def update(self, delta_time, player=None):
+        """Updates the character's state. Called once per game loop."""
+        # This method is now a placeholder for subclasses to override.
+        # The core status effect logic is handled in update_status_effects.
+        pass
 
 class Player(Character):
     """Represents the player character.
@@ -290,8 +300,8 @@ class Player(Character):
         dexterity (int): The player's dexterity stat.
         intelligence (int): The player's intelligence stat.
     """
-    def __init__(self, name="Player", x=0, y=0, health=100):
-        super().__init__(name, x, y, health=health)
+    def __init__(self, name="Player", x=0, y=0, z=0, health=100):
+        super().__init__(name, x, y, z, health=health)
         self.weapon = None
         self.level = 1
         self.experience = 0
@@ -369,8 +379,8 @@ class NPC(Character):
     Attributes:
         dialogue (str): The dialogue the NPC will say when spoken to.
     """
-    def __init__(self, name, x, y, dialogue="Hello there."):
-        super().__init__(name, x, y, health=50)
+    def __init__(self, name, x, y, z=0, dialogue="Hello there."):
+        super().__init__(name, x, y, z, health=50)
         self.dialogue = dialogue
 
 class Enemy(Character):
@@ -378,19 +388,52 @@ class Enemy(Character):
 
     Attributes:
         attack_damage (int): The amount of damage the enemy deals.
+        speed (float): The movement speed of the enemy.
+        aggro_range (float): The range at which the enemy will start attacking the player.
     """
-    def __init__(self, name, x=0, y=0, health=50, attack_damage=10):
-        super().__init__(name, x, y, health)
+    def __init__(self, name, x=0, y=0, z=0, health=50, attack_damage=10, speed=1, aggro_range=5):
+        super().__init__(name, x, y, z, health)
         self.attack_damage = attack_damage
+        self.speed = speed
+        self.aggro_range = aggro_range
 
     def attack(self, target):
-        """Attacks a target.
+      """
+      Attacks another GameObject.
+      Args:
+          target (GameObject): The target to attack.
+      """
+      print(f"{self.name} attacks {target.name} for {self.attack_damage} damage.")
+      target.take_damage(self.attack_damage)
 
-        Args:
-            target (Character): The character to attack.
-        """
-        print(f"{self.name} attacks {target.name}!")
-        target.take_damage(self.attack_damage)
+    def update(self, delta_time, player):
+      """
+      Updates the enemy's state.  This is called every frame.
+      Args:
+          delta_time (float): Time since last frame.
+          player (Player): The player object.
+      """
+      self.update_status_effects(delta_time)
+
+      if 'sleep' in self.status_effects:
+          print(f"{self.name} is asleep and cannot act.")
+          return
+
+      if self.distance_to(player) < self.aggro_range:
+          current_speed = self.speed
+          if 'slow' in self.status_effects:
+              print(f"{self.name} is slowed!")
+              current_speed /= 2
+          # Move towards the player
+          dx = player.x - self.x
+          dy = player.y - self.y
+          dz = player.z - self.z
+          distance = self.distance_to(player)
+          if distance > 0:
+            self.move(dx / distance * current_speed * delta_time, dy / distance * current_speed * delta_time, dz/distance * current_speed * delta_time)
+          # Attack the player if close enough.
+          if self.distance_to(player) < 1:  # Attack range
+              self.attack(player)
 
 # --- Specific Character Implementations ---
 
@@ -399,8 +442,8 @@ class Skyix(Player):
     pass
 class Anastasia(Player):
     """A specific implementation of the Player class for the character Anastasia."""
-    def __init__(self, name="Anastasia", x=0, y=0):
-        super().__init__(name, x, y, health=90)
+    def __init__(self, name="Anastasia", x=0, y=0, z=0):
+        super().__init__(name, x, y, z, health=90)
         self.dream_energy = 100
         self.max_dream_energy = 100
     def __str__(self):
@@ -408,8 +451,8 @@ class Anastasia(Player):
 
 class Reverie(Player):
     """A specific implementation of the Player class for the character Reverie."""
-    def __init__(self, name="Reverie", x=0, y=0):
-        super().__init__(name, x, y, health=110)
+    def __init__(self, name="Reverie", x=0, y=0, z=0):
+        super().__init__(name, x, y, z, health=110)
         self.mana = 150
         self.max_mana = 150
 
@@ -439,8 +482,8 @@ class Kane(Enemy):
     pass
 class Delilah(Enemy):
     """A specific implementation of the Enemy class for the character Delilah."""
-    def __init__(self, name="Delilah the Desolate", x=0, y=0):
-        super().__init__(name, x, y, health=200)
+    def __init__(self, name="Delilah the Desolate", x=0, y=0, z=0):
+        super().__init__(name, x, y, z, health=200)
         self.dialogue = "You cannot stop the inevitable."
 
 
@@ -569,7 +612,7 @@ class Game:
 
     def handle_input(self):
         """Handles player input."""
-        if not self.player_character or self.player_character.is_asleep:
+        if not self.player_character or 'sleep' in self.player_character.status_effects:
             return
 
         command = input("Action (move w/a/s/d, look, talk [target], get, inv, use [item], cast [spell] on [target], quit): ").lower().strip()
@@ -589,7 +632,7 @@ class Game:
             target_x, target_y = self.player_character.x + dx, self.player_character.y + dy
             blocking_object = self.get_object_at(target_x, target_y)
             if not blocking_object:
-                self.player_character.move(dx, dy)
+                self.player_character.move(dx, dy, 0)
             else:
                 self.message_log.append(f"{blocking_object.name} is in your way.")
         elif action == "look":
@@ -630,7 +673,13 @@ class Game:
     def update(self):
         """Updates the game state."""
         for obj in self.game_objects[:]:
-            obj.update()
+            if isinstance(obj, Enemy):
+                obj.update(1.0, self.player_character)
+            elif isinstance(obj, Character):
+                obj.update(1.0) # Characters like the player might still have updates
+            else:
+                obj.update()
+
 
         if self.player_character and self.player_character.x > 15 and not self.event_triggered("delilah_battle"):
             self.message_log.append("Suddenly, the air grows cold. Delilah the Desolate appears!")

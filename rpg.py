@@ -210,8 +210,7 @@ class Scene:
 
 class Game:
     def __init__(self, width=40, height=10, db_file="game_content.db"):
-    """Manages the game state and main loop."""
-    def __init__(self, width=40, height=10):
+        """Manages the game state and main loop."""
         self.width = width
         self.height = height
         self.message_log = []
@@ -425,9 +424,8 @@ def main(argv):
     if not scene_manager:
         print("Starting a new game.")
         game_engine = Game()
-        # Default to TrollCaveScene as it was the original default
-        troll_scene = Scene("Troll Cave")
-        scene_manager = TrollCaveScene(troll_scene, game_engine)
+        scene_manager = AethelgardBattle(game_engine)
+        scene_manager.setup_scene()
 
     # Run the game
     if scene_manager:
