@@ -13,6 +13,11 @@ public class AnimationStateMachine : MonoBehaviour
     public void ChangeState(AnimationState newState)
     {
         CurrentState.Exit();
+        if (CurrentState != null)
+        {
+            CurrentState.Exit();
+        }
+
         CurrentState = newState;
         CurrentState.Enter();
     }
@@ -24,4 +29,5 @@ public class AnimationStateMachine : MonoBehaviour
             CurrentState.Update();
         }
     }
+}
 }

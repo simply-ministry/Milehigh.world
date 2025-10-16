@@ -12,6 +12,9 @@ This approach prevents a wide range of cheating and exploits, including:
 -   **State manipulation:** The server maintains the canonical game state, preventing clients from directly modifying their health, inventory, or position.
 
 The recent refactoring of the combat system (`IngrisZayaEncounter.cs` and `ServerCombatManager.cs`) is a concrete example of this principle in action. All hit detection, damage calculation, and cooldowns are now managed authoritatively by the server.
+| Version | Supported          |
+| ------- | ------------------ |
+| 5.1.x   | :white_check_mark: |
 
 ## Reporting a Vulnerability
 

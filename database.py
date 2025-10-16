@@ -1,7 +1,7 @@
 import sqlite3
 import json
 
-DB_FILE = "rpg.db"
+DB_FILE = "game_content.db"
 
 def get_db_connection(db_file=DB_FILE):
     """Establishes a connection to the database."""
@@ -9,254 +9,241 @@ def get_db_connection(db_file=DB_FILE):
     conn.row_factory = sqlite3.Row
     return conn
 
+def create_schema(cursor):
+    """Creates the database schema."""
+    # Core Tables
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Characters (
+        character_id INTEGER PRIMARY KEY,
+        name TEXT UNIQUE NOT NULL,
+        title TEXT,
+        level INTEGER DEFAULT 1,
+        experience INTEGER DEFAULT 0,
+        health INTEGER,
+        mana INTEGER,
+        strength INTEGER,
+        agility INTEGER,
+        intelligence INTEGER,
+        vitality INTEGER,
+        background TEXT,
+        alignment TEXT
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Players (
+        player_id INTEGER PRIMARY KEY,
+        user_account_id INTEGER,
+        play_time INTEGER,
+        FOREIGN KEY (player_id) REFERENCES Characters(character_id)
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS NonPlayerCharacters (
+        npc_id INTEGER PRIMARY KEY,
+        faction_id INTEGER,
+        dialogue_id INTEGER,
+        FOREIGN KEY (npc_id) REFERENCES Characters(character_id)
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Noviminaad (
+        noviminaad_id INTEGER PRIMARY KEY,
+        prophecy_role TEXT,
+        FOREIGN KEY (noviminaad_id) REFERENCES Characters(character_id)
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Abilities (
+        ability_id INTEGER PRIMARY KEY,
+        name TEXT UNIQUE NOT NULL,
+        description TEXT,
+        ability_type TEXT,
+        mana_cost INTEGER,
+        cooldown REAL
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS CharacterAbilities (
+        character_id INTEGER,
+        ability_id INTEGER,
+        ability_level INTEGER,
+        PRIMARY KEY (character_id, ability_id),
+        FOREIGN KEY (character_id) REFERENCES Characters(character_id),
+        FOREIGN KEY (ability_id) REFERENCES Abilities(ability_id)
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Items (
+        item_id INTEGER PRIMARY KEY,
+        name TEXT UNIQUE NOT NULL,
+        description TEXT,
+        item_type TEXT,
+        value INTEGER,
+        weight REAL
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Weapons (
+        weapon_id INTEGER PRIMARY KEY,
+        damage INTEGER,
+        weapon_type TEXT,
+        attack_speed REAL,
+        FOREIGN KEY (weapon_id) REFERENCES Items(item_id)
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Armor (
+        armor_id INTEGER PRIMARY KEY,
+        defense INTEGER,
+        armor_type TEXT,
+        FOREIGN KEY (armor_id) REFERENCES Items(item_id)
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS CharacterInventory (
+        character_id INTEGER,
+        item_id INTEGER,
+        quantity INTEGER,
+        PRIMARY KEY (character_id, item_id),
+        FOREIGN KEY (character_id) REFERENCES Characters(character_id),
+        FOREIGN KEY (item_id) REFERENCES Items(item_id)
+    )""")
+
+    # World and Lore Tables
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Locations (
+        location_id INTEGER PRIMARY KEY,
+        name TEXT UNIQUE NOT NULL,
+        description TEXT,
+        location_type TEXT,
+        parent_location_id INTEGER,
+        FOREIGN KEY (parent_location_id) REFERENCES Locations(location_id)
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Factions (
+        faction_id INTEGER PRIMARY KEY,
+        name TEXT UNIQUE NOT NULL,
+        description TEXT,
+        reputation_effects TEXT
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Quests (
+        quest_id INTEGER PRIMARY KEY,
+        name TEXT UNIQUE NOT NULL,
+        description TEXT,
+        start_location_id INTEGER,
+        end_location_id INTEGER,
+        reward_experience INTEGER,
+        reward_items TEXT,
+        faction_id INTEGER,
+        FOREIGN KEY (start_location_id) REFERENCES Locations(location_id),
+        FOREIGN KEY (end_location_id) REFERENCES Locations(location_id),
+        FOREIGN KEY (faction_id) REFERENCES Factions(faction_id)
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS QuestObjectives (
+        quest_id INTEGER,
+        objective_id INTEGER,
+        objective_type TEXT,
+        objective_target INTEGER,
+        objective_amount INTEGER,
+        objective_description TEXT,
+        is_complete BOOLEAN,
+        PRIMARY KEY (quest_id, objective_id)
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Dialogues (
+        dialogue_id INTEGER PRIMARY KEY,
+        text TEXT,
+        next_dialogue_id INTEGER,
+        condition_quest_id INTEGER,
+        condition_objective_id INTEGER,
+        condition_faction_id INTEGER,
+        response_text TEXT,
+        response_effects TEXT,
+        FOREIGN KEY (next_dialogue_id) REFERENCES Dialogues(dialogue_id)
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Lore (
+        lore_id INTEGER PRIMARY KEY,
+        title TEXT UNIQUE NOT NULL,
+        text TEXT,
+        location_id INTEGER,
+        FOREIGN KEY (location_id) REFERENCES Locations(location_id)
+    )""")
+
+def populate_initial_data(cursor):
+    """Populates the database with initial game data."""
+    # Characters
+    cursor.execute("INSERT OR IGNORE INTO Characters (name, title, health, mana, strength, agility, intelligence, vitality) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                   ('Aeron', 'The Brave', 100, 50, 15, 10, 5, 12))
+    cursor.execute("INSERT OR IGNORE INTO Characters (name, title, health, mana, strength, agility, intelligence, vitality) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                   ('Kane', 'The Rival', 250, 20, 20, 8, 5, 15))
+
+    # Items
+    cursor.execute("INSERT OR IGNORE INTO Items (name, description, item_type, value, weight) VALUES (?, ?, ?, ?, ?)",
+                   ('Valiant Sword', 'A blade that shines with honor.', 'Weapon', 100, 5.0))
+    cursor.execute("INSERT OR IGNORE INTO Items (name, description, item_type, value, weight) VALUES (?, ?, ?, ?, ?)",
+                   ('Aethelgard Plate', 'Sturdy plate armor of a royal knight.', 'Armor', 150, 20.0))
+
+    # Weapons
+    cursor.execute("INSERT OR IGNORE INTO Weapons (weapon_id, damage, weapon_type, attack_speed) SELECT item_id, 25, 'Sword', 1.0 FROM Items WHERE name='Valiant Sword'")
+    # Armor
+    cursor.execute("INSERT OR IGNORE INTO Armor (armor_id, defense, armor_type) SELECT item_id, 15, 'Heavy' FROM Items WHERE name='Aethelgard Plate'")
+
+
 def init_db(db_file=DB_FILE):
     """Initializes the database and creates tables if they don't exist."""
     conn = get_db_connection(db_file)
     cursor = conn.cursor()
-
-    # Table to store high-level information about each save file
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS SaveGames (
-        save_name TEXT PRIMARY KEY,
-        scene_manager_class TEXT NOT NULL,
-        scene_name TEXT NOT NULL,
-        player_character_name TEXT NOT NULL,
-        game_state_json TEXT NOT NULL
-    )
-    """)
-
-    # Table to store all characters (player, NPCs, enemies) for each save
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS Characters (
-        character_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        save_name TEXT NOT NULL,
-        class_name TEXT NOT NULL,
-        name TEXT NOT NULL,
-        symbol TEXT,
-        x INTEGER NOT NULL,
-        y INTEGER NOT NULL,
-        health INTEGER NOT NULL,
-        max_health INTEGER,
-        state TEXT,
-        -- Player-specific fields
-        level INTEGER,
-        experience INTEGER,
-        mana REAL,
-        max_mana REAL,
-        strength INTEGER,
-        dexterity INTEGER,
-        intelligence INTEGER,
-        -- Enemy-specific fields
-        attack_damage INTEGER,
-        xp_value INTEGER,
-        -- Dialogue
-        dialogue_json TEXT,
-        UNIQUE(save_name, name)
-    )
-    """)
-
-    # Table to store all items for each save (both in world and in inventory)
-    # This simplifies the schema by combining Items, Weapons, Armor, etc.
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS Items (
-        item_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        save_name TEXT NOT NULL,
-        class_name TEXT NOT NULL,
-        name TEXT NOT NULL,
-        description TEXT,
-        -- Weapon fields
-        damage INTEGER,
-        weapon_type TEXT,
-        -- Armor fields
-        defense INTEGER,
-        -- Consumable fields
-        effect TEXT,
-        quantity INTEGER,
-        -- For items dropped in the world
-        x INTEGER,
-        y INTEGER,
-        in_inventory_of TEXT -- Name of the character who has this item
-    )
-    """)
-
+    create_schema(cursor)
+    populate_initial_data(cursor)
     conn.commit()
     conn.close()
 
-# --- Helper functions to get class instances from strings ---
-# This is a bit of a hack for this single-file structure. In a real project,
-# you'd use a more robust factory or registration system.
-def get_class(class_name):
-    # This function will be populated by rpg.py at runtime
-    pass
-
-def set_class_loader(loader_func):
-    """Allows rpg.py to inject its own class loader."""
-    global get_class
-    get_class = loader_func
-
-
-def save_game(save_name, scene_manager, db_file=DB_FILE):
-    """Saves the current game state to the database."""
-    conn = get_db_connection(db_file)
+def get_character_data(name):
+    """Fetches a character's data from the database."""
+    conn = get_db_connection()
     cursor = conn.cursor()
-
-    # Clear any previous data for this save name
-    cursor.execute("DELETE FROM SaveGames WHERE save_name = ?", (save_name,))
-    cursor.execute("DELETE FROM Characters WHERE save_name = ?", (save_name,))
-    cursor.execute("DELETE FROM Items WHERE save_name = ?", (save_name,))
-
-    # --- Save High-Level Game and Scene State ---
-    game_state_dict = {
-        "message_log": scene_manager.game.message_log,
-        "game_over": scene_manager.game.game_over,
-    }
-    cursor.execute(
-        """
-        INSERT INTO SaveGames (save_name, scene_manager_class, scene_name, player_character_name, game_state_json)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (
-            save_name,
-            scene_manager.__class__.__name__,
-            scene_manager.scene.name,
-            scene_manager.scene.player_character.name,
-            json.dumps(game_state_dict)
-        )
-    )
-
-    # --- Save Characters and Items ---
-    for obj in scene_manager.scene.game_objects:
-        if "Character" in [base.__name__ for base in obj.__class__.__mro__]: # A bit complex, but checks for inheritance
-            dialogue_json = json.dumps(obj.dialogue.to_dict()) if hasattr(obj, 'dialogue') and obj.dialogue else None
-            cursor.execute(
-                """
-                INSERT INTO Characters (save_name, class_name, name, symbol, x, y, health, max_health, state,
-                                       level, experience, mana, max_mana, strength, dexterity, intelligence,
-                                       attack_damage, xp_value, dialogue_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    save_name, obj.__class__.__name__, obj.name, obj.symbol, obj.x, obj.y, obj.health,
-                    getattr(obj, 'max_health', None), getattr(obj, 'state', None), getattr(obj, 'level', None),
-                    getattr(obj, 'experience', None), getattr(obj, 'mana', None), getattr(obj, 'max_mana', None),
-                    getattr(obj, 'strength', None), getattr(obj, 'dexterity', None), getattr(obj, 'intelligence', None),
-                    getattr(obj, 'attack_damage', None), getattr(obj, 'xp_value', None), dialogue_json
-                )
-            )
-            # Save inventory
-            if hasattr(obj, 'inventory'):
-                for item in obj.inventory:
-                    save_item(cursor, save_name, item, owner_name=obj.name)
-            # Save equipment
-            if hasattr(obj, 'equipment'):
-                for slot, item in obj.equipment.slots.items():
-                    if item:
-                        # We add a special marker to distinguish equipped items
-                        save_item(cursor, save_name, item, owner_name=f"EQUIPPED:{obj.name}:{slot}")
-
-        elif "Item" in [base.__name__ for base in obj.__class__.__mro__]:
-            # This handles items just lying on the ground
-            save_item(cursor, save_name, item)
-
-    conn.commit()
+    cursor.execute("SELECT * FROM Characters WHERE name = ?", (name,))
+    character_data = cursor.fetchone()
     conn.close()
+    return character_data
 
-
-def save_item(cursor, save_name, item, owner_name=None):
-    """Helper function to save an item to the database."""
-    cursor.execute(
-        """
-        INSERT INTO Items (save_name, class_name, name, description, damage, weapon_type,
-                           defense, effect, quantity, x, y, in_inventory_of)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            save_name, item.__class__.__name__, item.name, item.description,
-            getattr(item, 'damage', None), getattr(item, 'weapon_type', None),
-            getattr(item, 'defense', None), getattr(item, 'effect', None),
-            getattr(item, 'quantity', None), item.x, item.y, owner_name
-        )
-    )
-
-def load_game(save_name, db_file=DB_FILE):
-    """Loads a game state from the database and returns a new scene_manager."""
-    conn = get_db_connection(db_file)
+def get_item_data(name):
+    """Fetches an item's base data from the Items table."""
+    conn = get_db_connection()
     cursor = conn.cursor()
-
-    # --- Load High-Level Game State ---
-    cursor.execute("SELECT * FROM SaveGames WHERE save_name = ?", (save_name,))
-    save_data = cursor.fetchone()
-    if not save_data:
-        print(f"Save file '{save_name}' not found.")
-        return None
-
-    # Recreate Game object
-    game_state_dict = json.loads(save_data["game_state_json"])
-    Game = get_class("Game")
-    game = Game() # We need a way to get the class definition
-    game.message_log = game_state_dict.get("message_log", [])
-    game.game_over = game_state_dict.get("game_over", False)
-
-    # Recreate Scene object
-    Scene = get_class("Scene")
-    scene = Scene(save_data["scene_name"])
-
-    # --- Load All Characters for the Save ---
-    characters = {}
-    cursor.execute("SELECT * FROM Characters WHERE save_name = ?", (save_name,))
-    for row in cursor.fetchall():
-        CharacterClass = get_class(row["class_name"])
-        char = CharacterClass(name=row["name"], x=row["x"], y=row["y"])
-        # Populate all fields from DB
-        for key in row.keys():
-            if row[key] is not None and hasattr(char, key):
-                setattr(char, key, row[key])
-
-        # Handle dialogue deserialization
-        if row["dialogue_json"]:
-            DialogueManager = get_class("DialogueManager")
-            dialogue_data = json.loads(row["dialogue_json"])
-            char.dialogue = DialogueManager.from_dict(dialogue_data)
-
-        scene.add_object(char)
-        characters[char.name] = char
-
-    # Set the player character on the scene
-    scene.player_character = characters.get(save_data["player_character_name"])
-
-    # --- Load All Items for the Save ---
-    cursor.execute("SELECT * FROM Items WHERE save_name = ?", (save_name,))
-    for row in cursor.fetchall():
-        ItemClass = get_class(row["class_name"])
-        item = ItemClass(name=row["name"], description=row["description"])
-        # Populate all fields from DB
-        for key in row.keys():
-            if row[key] is not None and hasattr(item, key):
-                setattr(item, key, row[key])
-
-        owner_info = row["in_inventory_of"]
-        if owner_info:
-            if owner_info.startswith("EQUIPPED:"):
-                _, owner_name, slot = owner_info.split(":", 2)
-                if owner_name in characters:
-                    characters[owner_name].equipment.slots[slot] = item
-            elif owner_info in characters:
-                 characters[owner_info].inventory.append(item)
-        else:
-            # Item is on the ground
-            scene.add_object(item)
-
-
-    # Recreate the SceneManager
-    SceneManagerClass = get_class(save_data["scene_manager_class"])
-    # Pass `setup_scene=False` to prevent it from overwriting our loaded data
-    manager = SceneManagerClass(scene, game, setup_scene=False)
-
+    cursor.execute("SELECT * FROM Items WHERE name = ?", (name,))
+    item_data = cursor.fetchone()
     conn.close()
-    return manager
+    return item_data
+
+def get_weapon_data(item_id):
+    """Fetches a weapon's specific data from the Weapons table."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Weapons WHERE weapon_id = ?", (item_id,))
+    weapon_data = cursor.fetchone()
+    conn.close()
+    return weapon_data
+
+def get_armor_data(item_id):
+    """Fetches armor's specific data from the Armor table."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Armor WHERE armor_id = ?", (item_id,))
+    armor_data = cursor.fetchone()
+    conn.close()
+    return armor_data
 
 
 if __name__ == '__main__':
-    print("Initializing database...")
+    print("Initializing game content database...")
     init_db()
     print("Database initialized successfully.")

@@ -6,14 +6,6 @@ import database # Import the new database module
 # (Includes GameObject, Character, Item, etc.)
 # ... (For brevity, imagine all previously defined core classes are here) ...
 
-# --- Helper to provide class definitions to the database module ---
-def get_class_by_name(class_name):
-    """Returns a class object from the global scope by its string name."""
-    return globals().get(class_name)
-
-# Inject this function into the database module
-database.set_class_loader(get_class_by_name)
-
 class GameObject:
     """The base class for all objects in the game world."""
     def __init__(self, name="Object", symbol='?', x=0, y=0, z=0, state=None, health=100, speed=1, visible=True, solid=True, defense=0):
@@ -129,10 +121,11 @@ class GameObject:
         self.update_status_effects(scene_manager)
 
 
-class Item(GameObject):
-    """Represents items that can be picked up or used."""
-    def __init__(self, name="Item", symbol='*', x=0, y=0):
-        super().__init__(name, symbol, x, y)
+class Character(GameObject):
+    """A placeholder class to resolve the NameError.
+    This can be fleshed out later if needed."""
+    pass
+
 
 class Interactable(GameObject):
     """Represents objects that can be examined for a description."""
@@ -144,7 +137,13 @@ class Interactable(GameObject):
         """Returns the description of the object."""
         return self.description
 
-class Player(GameObject):
+class Character(GameObject):
+    """A base class for any entity that can act, fight, and has stats."""
+    def __init__(self, name, x=0, y=0, z=0, health=100, speed=1):
+        super().__init__(name=name, x=x, y=y, z=z, health=health, speed=speed)
+        self.max_health = health
+
+class Player(Character):
     """
     Represents the player character.
     """
@@ -201,15 +200,18 @@ class Player(GameObject):
         target.take_damage(total_damage)
 
     def equip_item(self, item_name):
-        """Finds an item in inventory and equips it."""
+        """Finds an item in inventory, equips it, and removes it from inventory."""
         item_to_equip = None
-        for item in self.inventory:
+        item_index = -1
+        for i, item in enumerate(self.inventory):
             if item.name.lower() == item_name.lower():
                 item_to_equip = item
+                item_index = i
                 break
 
         if item_to_equip:
             self.equipment.equip(item_to_equip)
+            self.inventory.pop(item_index) # Remove from inventory
         else:
             print(f"'{item_name}' not found in inventory.")
 
@@ -310,6 +312,13 @@ class Player(GameObject):
                 print(f"{self.name} does not have enough mana to cast Heal!")
         else:
             print(f"{self.name} does not know the spell {spell_name}.")
+
+    def heal(self, amount):
+        """Heals the character for a given amount."""
+        self.health += amount
+        if self.health > self.max_health:
+            self.health = self.max_health
+        print(f"{self.name} is healed for {amount} HP.")
 
 # --- Anastasia's Class Implementation ---
 
@@ -680,7 +689,7 @@ class Nyxar(Player):
             return False
 
 
-class Enemy(GameObject):
+class Enemy(Character):
     """
     Represents an enemy character.
     """
@@ -697,6 +706,12 @@ class Enemy(GameObject):
         Args:
             target (GameObject): The target to attack.
         """
+        # --- Evasion Check ---
+        if 'evasion' in target.status_effects:
+            if random.uniform(0, 100) < 50: # 50% chance to miss against evasion
+                print(f"{self.name}'s attack was evaded by {target.name}!")
+                return
+
         print(f"{self.name} attacks {target.name} for {self.attack_damage} damage.")
         target.take_damage(self.attack_damage)
 
@@ -726,6 +741,31 @@ class Enemy(GameObject):
                     self.move(1 if dx > 0 else -1, 0)
                 else:
                     self.move(0, 1 if dy > 0 else -1)
+
+
+class Troll(Enemy):
+    """
+    Represents a Troll enemy with health regeneration.
+    """
+    def __init__(self, name="Troll", x=0, y=0, z=0, type="Troll"):
+        super().__init__(name=name, x=x, y=y, z=z, type=type)
+        # Trolls are tougher and stronger than generic enemies
+        self.health = 80
+        self.max_health = 80
+        self.attack_damage = 15
+        self.regeneration_rate = 5 # Regenerates 5 HP per turn
+
+    def update(self, scene_manager):
+        """
+        Updates the Troll's state, including its health regeneration.
+        """
+        super().update(scene_manager) # Run base enemy logic first
+        if self.health > 0 and self.health < self.max_health:
+            self.health += self.regeneration_rate
+            if self.health > self.max_health:
+                self.health = self.max_health
+            print(f"{self.name} regenerates {self.regeneration_rate} health!")
+
 
 # --- Item System ---
 
@@ -893,23 +933,7 @@ class DialogueManager:
         return manager
 
 # --- 3. UPDATING THE CHARACTER AND GAME ENGINE ---
-
-class Character(GameObject):
-    def __init__(self, name="Character", x=0, y=0, health=100, state=None):
-        super().__init__(name, 'C', x, y, state)
-        self.health = health
-        self.max_health = health
-        self.dialogue = None
-
-class Anastasia(Character):
-    def __init__(self, name="Anastasia", x=0, y=0, health=120, state=None):
-        super().__init__(name=name, x=x, y=y, health=health, state=state)
-        self.symbol = '@'
-
-class Reverie(Character):
-    def __init__(self, name="Reverie", x=0, y=0, health=100, state=None):
-        super().__init__(name=name, x=x, y=y, health=health, state=state)
-        self.symbol = 'R'
+# --- 3. UPDATING THE GAME ENGINE ---
 
 class Scene:
     """Holds all the data for a single game area: map, objects, etc."""
@@ -1010,7 +1034,7 @@ class Game:
         elif action == "talk" and len(parts) > 1:
             target_name = " ".join(parts[1:])
             target = next((obj for obj in scene_manager.scene.game_objects if obj.name.lower() == target_name.lower()), None)
-            if target and isinstance(target, Character) and target.dialogue:
+            if target and hasattr(target, 'dialogue') and target.dialogue:
                 if player.distance_to(target) <= 2:
                     self.start_conversation(target.dialogue)
                 else:
@@ -1045,28 +1069,10 @@ class Game:
                      self.log_message(f"{obj.name} - HP: {obj.health}")
             self.turn_taken = False # Does not consume a turn
 
-        elif action == "save":
-            save_name = parts[1] if len(parts) > 1 else "quicksave"
-            database.save_game(save_name, scene_manager)
-            self.log_message(f"Game saved to slot: {save_name}")
-            self.turn_taken = False
-
-        elif action == "load":
-            save_name = parts[1] if len(parts) > 1 else "quicksave"
-            new_manager = database.load_game(save_name)
-            if new_manager:
-                scene_manager.game = new_manager.game
-                scene_manager.scene = new_manager.scene
-                self.log_message(f"Game loaded from slot: {save_name}")
-            else:
-                self.log_message(f"Failed to load game from slot: {save_name}")
-            self.turn_taken = True
-
         elif action == "quit":
             self.game_over = True
         else:
-            self.log_message("Unknown command. Try: move [w/a/s/d], talk [name], examine [name], attack [name], equip [item], use [item], status, save/load, quit")
-
+            self.log_message("Unknown command. Try: move [w/a/s/d], talk [name], examine [name], attack [name], equip [item], use [item], status, quit")
 
     def start_conversation(self, dialogue_manager):
         """Initiates a conversation."""
@@ -1162,12 +1168,28 @@ class Aeron(Player):
     def __init__(self, name="Aeron", x=0, y=0, z=0):
         super().__init__(name, x, y, z)
         self.symbol = '@'
+        data = database.get_character_data(name)
+        if data:
+            self.health = data['health']
+            self.max_health = data['health']
+            self.mana = data['mana']
+            self.max_mana = data['mana']
+            self.strength = data['strength']
+            self.dexterity = data['agility']
+            self.intelligence = data['intelligence']
 
 class Kane(Enemy):
     """A placeholder class for the enemy Kane."""
     def __init__(self, name="Kane", x=0, y=0, z=0, type="Boss"):
         super().__init__(name, x, y, z, type)
         self.symbol = 'K'
+        data = database.get_character_data(name)
+        if data:
+            self.health = data['health']
+            self.max_health = data['health']
+            # Assuming attack_damage is derived from strength for now
+            self.attack_damage = data['strength']
+            self.xp_value = 500
 
 class AethelgardBattle(SceneManager):
     """A specific scene manager for the Aeron vs. Kane fight."""
@@ -1176,14 +1198,20 @@ class AethelgardBattle(SceneManager):
         # Create characters
         player = Aeron(name="Aeron", x=5, y=5)
         enemy = Kane(name="Kane", x=10, y=5)
-        # Let's make Kane a bit tougher for this encounter
-        enemy.health = 250
-        enemy.attack_damage = 20
-        enemy.xp_value = 500 # This would be a new attribute on Enemy
 
         # Give player items
-        player.pickup_item(Weapon("Valiant Sword", "A blade that shines with honor.", 25))
-        player.pickup_item(Armor("Aethelgard Plate", "Sturdy plate armor of a royal knight.", 15))
+        item_data = database.get_item_data("Valiant Sword")
+        if item_data:
+            weapon_data = database.get_weapon_data(item_data['item_id'])
+            if weapon_data:
+                player.pickup_item(Weapon(item_data['name'], item_data['description'], weapon_data['damage']))
+
+        item_data = database.get_item_data("Aethelgard Plate")
+        if item_data:
+            armor_data = database.get_armor_data(item_data['item_id'])
+            if armor_data:
+                player.pickup_item(Armor(item_data['name'], item_data['description'], armor_data['defense']))
+
 
         # A simple quest system could be added to the Player class later
         # player.journal.add_quest(Quest("The Sibling Rivalry", "Defeat Kane.", [{'type': 'defeat', 'target': 'Kane', 'current': 0, 'required': 1}]))
@@ -1209,6 +1237,22 @@ class AethelgardBattle(SceneManager):
                 obj.update(self)
 
         self.update() # Check for scene-specific win/loss conditions
+
+
+class TrollCaveScene(SceneManager):
+    """A scene for fighting a troll."""
+    def setup(self):
+        player = Aeron(name="Hero", x=5, y=5)
+        player.pickup_item(Weapon("Mighty Axe", "An axe fit for a troll slayer.", 30))
+        player.equip_item("Mighty Axe")
+
+        troll = Troll(name="Cave Troll", x=8, y=5)
+        troll.symbol = 'T'
+
+        self.scene.set_player(player)
+        self.scene.add_object(troll)
+        self.game.log_message("A massive Cave Troll blocks the path!")
+
 
 # --- Dialogue and Scene Setup ---
 
@@ -1248,26 +1292,33 @@ if __name__ == "__main__":
     database.init_db()
 
     # --- Game Start ---
+    print("Starting a new game.")
+    game_engine = Game()
+    battle_scene = Scene("Aethelgard")
+    battle_manager = AethelgardBattle(battle_scene, game_engine)
+
+    if battle_manager:
+        battle_manager.run()
     # Check for a command-line argument to load a game
     import sys
     if len(sys.argv) > 2 and sys.argv[1] == 'load':
         save_name = sys.argv[2]
         print(f"Attempting to load game from slot: {save_name}")
-        meeting_manager = database.load_game(save_name)
-        if not meeting_manager:
+        scene_manager = database.load_game(save_name)
+        if not scene_manager:
             print(f"Could not load '{save_name}'. Starting a new game.")
             # Fallback to new game if load fails
             game_engine = Game()
-            meeting_scene = Scene("Monolith Clearing")
-            meeting_manager = FirstMeetingScene(meeting_scene, game_engine)
+            troll_scene = Scene("Troll Cave")
+            scene_manager = TrollCaveScene(troll_scene, game_engine)
     else:
         # Start a new game by default
         print("Starting a new game.")
         game_engine = Game()
-        meeting_scene = Scene("Monolith Clearing")
-        meeting_manager = FirstMeetingScene(meeting_scene, game_engine)
+        troll_scene = Scene("Troll Cave")
+        scene_manager = TrollCaveScene(troll_scene, game_engine)
 
 
-    if meeting_manager:
-        meeting_manager.run()
+    if scene_manager:
+        scene_manager.run()
         print("Game over.")
