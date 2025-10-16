@@ -1,12 +1,21 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Manages a character's abilities, including cooldowns and resource costs.
+/// This component should be attached to any character that can use abilities.
+/// </summary>
 public class AbilitySystem : MonoBehaviour
 {
+    [Tooltip("A list of abilities that this character possesses.")]
     public List<Ability> abilities;
     private Dictionary<Ability, float> abilityCooldowns = new Dictionary<Ability, float>();
     private Character character;
 
+    /// <summary>
+    /// Initializes the ability system, getting a reference to the character component
+    /// and setting up the cooldown dictionary.
+    /// </summary>
     void Awake()
     {
         character = GetComponent<Character>();
@@ -17,6 +26,9 @@ public class AbilitySystem : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Called every frame. Updates all active ability cooldowns.
+    /// </summary>
     void Update()
     {
         // Reduce all active cooldowns over time
@@ -30,6 +42,11 @@ public class AbilitySystem : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Attempts to use an ability from the character's ability list.
+    /// </summary>
+    /// <param name="abilityIndex">The index of the ability to use in the `abilities` list.</param>
+    /// <param name="target">The target of the ability.</param>
     public void UseAbility(int abilityIndex, Character target)
     {
         if (abilityIndex < 0 || abilityIndex >= abilities.Count) return;
