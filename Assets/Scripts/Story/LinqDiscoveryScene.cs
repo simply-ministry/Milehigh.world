@@ -7,13 +7,26 @@ using System.Collections;
 /// </summary>
 public class LinqDiscoveryScene : MonoBehaviour
 {
+    [Header("Character References")]
+    [Tooltip("Reference to the Micah character in the scene.")]
     public Character micah;
+    [Tooltip("Reference to the Omega.one character in the scene.")]
     public Character omegaOne;
+    [Tooltip("Reference to the Cirrus character in the scene.")]
     public Character cirrus;
+
+    [Header("Scene Objects")]
+    [Tooltip("The GameObject representing the Onalym Nexus.")]
     public GameObject onalymNexus;
 
+    [Header("Scene Settings")]
+    [Tooltip("The pause duration in seconds between lines of dialogue.")]
     public float dialoguePause = 2.5f;
 
+    /// <summary>
+    /// Called when the script instance is being loaded.
+    /// Ensures the Onalym Nexus is hidden and starts the scene sequence.
+    /// </summary>
     void Start()
     {
         if (onalymNexus != null)
@@ -23,6 +36,10 @@ public class LinqDiscoveryScene : MonoBehaviour
         StartCoroutine(SceneSequence());
     }
 
+    /// <summary>
+    /// The main coroutine that controls the flow of the narrative scene.
+    /// </summary>
+    /// <returns>An IEnumerator to be used by StartCoroutine.</returns>
     IEnumerator SceneSequence()
     {
         // Initial dialogue
