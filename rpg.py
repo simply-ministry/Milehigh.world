@@ -209,12 +209,16 @@ class Scene:
         return None
 
 class Game:
+    def __init__(self, width=40, height=10, db_file="game_content.db"):
     """Manages the game state and main loop."""
     def __init__(self, width=40, height=10):
         self.width = width
         self.height = height
         self.message_log = []
         self.game_over = False
+        self.in_conversation = False
+        self.dialogue_manager = None
+        self.db_conn = database.get_db_connection(db_file)
 
     def log_message(self, message):
         """Adds a message to the game log."""
@@ -295,6 +299,89 @@ class SceneManager:
             self.game.log_message("Unknown command.")
 
     def update(self):
+        """Runs every game loop, checking for win/loss conditions, etc."""
+        pass
+
+    def run(self):
+        """Main game loop for this scene."""
+        while not self.game.game_over and self.is_running:
+            self.game.draw(self.scene)
+            if self.game.game_over: break
+
+            self.game.turn_taken = False
+            while not self.game.turn_taken and not self.game.game_over:
+                self.game.handle_input(self)
+
+            # --- AI and World Turn ---
+            if self.game.turn_taken and not self.game.game_over:
+                # Update all other objects in the scene
+                for obj in self.scene.game_objects:
+                    if obj is not self.scene.player_character:
+                        obj.update(self)
+
+class Aeron(Player):
+    """A placeholder class for the character Aeron."""
+    def __init__(self, name="Aeron", x=0, y=0, z=0, db_conn=None):
+        super().__init__(name, x, y, z)
+        self.symbol = '@'
+        data = database.get_character_data(name, conn=db_conn)
+        if data:
+            self.health = data['health']
+            self.max_health = data['health']
+            self.mana = data['mana']
+            self.max_mana = data['mana']
+            self.strength = data['strength']
+            self.dexterity = data['agility']
+            self.intelligence = data['intelligence']
+
+class Kane(Enemy):
+    """A placeholder class for the enemy Kane."""
+    def __init__(self, name="Kane", x=0, y=0, z=0, type="Boss", db_conn=None):
+        super().__init__(name, x, y, z, type)
+        self.symbol = 'K'
+        data = database.get_character_data(name, conn=db_conn)
+        if data:
+            self.health = data['health']
+            self.max_health = data['health']
+            # Assuming attack_damage is derived from strength for now
+            self.attack_damage = data['strength']
+            self.xp_value = 500
+
+class AethelgardBattle(SceneManager):
+    """A specific scene manager for the Aeron vs. Kane fight."""
+    def setup(self):
+        """Sets up the characters, items, and quest for this specific battle."""
+        # Create characters
+        player = Aeron(name="Aeron", x=5, y=5, db_conn=self.game.db_conn)
+        enemy = Kane(name="Kane", x=10, y=5, db_conn=self.game.db_conn)
+
+        # Give player items
+        item_data = database.get_item_data("Valiant Sword", conn=self.game.db_conn)
+        if item_data:
+            weapon_data = database.get_weapon_data(item_data['item_id'], conn=self.game.db_conn)
+            if weapon_data:
+                player.pickup_item(Weapon(item_data['name'], item_data['description'], weapon_data['damage']))
+
+        item_data = database.get_item_data("Aethelgard Plate", conn=self.game.db_conn)
+        if item_data:
+            armor_data = database.get_armor_data(item_data['item_id'], conn=self.game.db_conn)
+            if armor_data:
+                player.pickup_item(Armor(item_data['name'], item_data['description'], armor_data['defense']))
+
+
+        # A simple quest system could be added to the Player class later
+        # player.journal.add_quest(Quest("The Sibling Rivalry", "Defeat Kane.", [{'type': 'defeat', 'target': 'Kane', 'current': 0, 'required': 1}]))
+
+        # Add a test interactable object
+        ancient_statue = Interactable(
+            name="Ancient Statue",
+            x=5,
+            y=4,
+            symbol='S',
+            description="The statue depicts a forgotten king. A faint inscription reads: 'Only the worthy may pass.'"
+        )
+
+        # Add them to the scene
         """Updates the scene."""
         for obj in self.scene.game_objects[:]:
             if hasattr(obj, 'health') and obj.health <= 0:
