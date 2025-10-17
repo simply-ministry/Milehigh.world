@@ -2,3 +2,4 @@
 # Add libraries like 'pytest' for testing or 'usd-core' if needed.
 pytest
 usd-core
+google-generativeai
