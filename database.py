@@ -229,6 +229,15 @@ def init_db(db_file=DB_FILE):
     conn.commit()
     conn.close()
 
+_class_loader = None
+
+
+def set_class_loader(loader):
+    """Sets the class loader function used for deserialization."""
+    global _class_loader
+    _class_loader = loader
+
+
 def get_character_data(name, conn=None):
     """Fetches a character's data from the database."""
     close_conn = False
@@ -236,17 +245,6 @@ def get_character_data(name, conn=None):
         conn = get_db_connection()
         close_conn = True
 
-
-def get_character_data(name):
-    """Fetches a character's data from the database.
-
-    Args:
-        name (str): The name of the character to fetch.
-
-    Returns:
-        sqlite3.Row: A row object containing the character's data, or None if not found.
-    """
-    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Characters WHERE name = ?", (name,))
     character_data = cursor.fetchone()
@@ -255,6 +253,7 @@ def get_character_data(name):
         conn.close()
     return character_data
 
+
 def get_item_data(name, conn=None):
     """Fetches an item's base data from the Items table."""
     close_conn = False
@@ -262,17 +261,6 @@ def get_item_data(name, conn=None):
         conn = get_db_connection()
         close_conn = True
 
-
-def get_item_data(name):
-    """Fetches an item's base data from the Items table.
-
-    Args:
-        name (str): The name of the item to fetch.
-
-    Returns:
-        sqlite3.Row: A row object containing the item's data, or None if not found.
-    """
-    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Items WHERE name = ?", (name,))
     item_data = cursor.fetchone()
@@ -281,6 +269,7 @@ def get_item_data(name):
         conn.close()
     return item_data
 
+
 def get_weapon_data(item_id, conn=None):
     """Fetches a weapon's specific data from the Weapons table."""
     close_conn = False
@@ -288,17 +277,6 @@ def get_weapon_data(item_id, conn=None):
         conn = get_db_connection()
         close_conn = True
 
-
-def get_weapon_data(item_id):
-    """Fetches a weapon's specific data from the Weapons table.
-
-    Args:
-        item_id (int): The ID of the item.
-
-    Returns:
-        sqlite3.Row: A row object containing the weapon's data, or None if not found.
-    """
-    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Weapons WHERE weapon_id = ?", (item_id,))
     weapon_data = cursor.fetchone()
@@ -307,6 +285,7 @@ def get_weapon_data(item_id):
         conn.close()
     return weapon_data
 
+
 def get_armor_data(item_id, conn=None):
     """Fetches armor's specific data from the Armor table."""
     close_conn = False
@@ -314,17 +293,6 @@ def get_armor_data(item_id, conn=None):
         conn = get_db_connection()
         close_conn = True
 
-
-def get_armor_data(item_id):
-    """Fetches armor's specific data from the Armor table.
-
-    Args:
-        item_id (int): The ID of the item.
-
-    Returns:
-        sqlite3.Row: A row object containing the armor's data, or None if not found.
-    """
-    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Armor WHERE armor_id = ?", (item_id,))
     armor_data = cursor.fetchone()
@@ -332,6 +300,14 @@ def get_armor_data(item_id):
     if close_conn:
         conn.close()
     return armor_data
+
+
+def save_game(save_name, scene_manager):
+    """Saves the current game state to the database."""
+    # In a real implementation, this would serialize the scene_manager
+    # and store it in the database. For now, we'll just acknowledge it.
+    print(f"Game state for '{save_name}' saved (simulation).")
+
 
 def load_game(save_name):
     """
