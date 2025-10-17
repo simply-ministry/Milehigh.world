@@ -182,6 +182,7 @@ class Player(GameObject):
 
     Attributes:
         inventory (list): A list of items in the player's inventory.
+        inventory_capacity (int): The maximum number of items the player can carry.
         level (int): The player's current level.
         experience (int): The player's current experience points.
         max_health (int): The player's maximum health.
@@ -194,9 +195,10 @@ class Player(GameObject):
         equipment (Equipment): The player's equipment manager.
     """
 
-    def __init__(self, name="Player", x=0, y=0, z=0):
+    def __init__(self, name="Player", x=0, y=0, z=0, inventory_capacity=10):
         super().__init__(name=name, x=x, y=y, z=z, health=100, speed=5)
         self.inventory = []
+        self.inventory_capacity = inventory_capacity
         self.level = 1
         self.experience = 0
         self.max_health = 100
@@ -207,6 +209,25 @@ class Player(GameObject):
         self.dexterity = 10
         self.intelligence = 10
         self.equipment = Equipment(owner=self)
+
+    def drop_item(self, item_name, scene):
+        """Drops an item from the inventory onto the ground.
+
+        Args:
+            item_name (str): The name of the item to drop.
+            scene (Scene): The scene to drop the item into.
+        """
+        for i, item in enumerate(self.inventory):
+            if item.name.lower() == item_name.lower():
+                dropped_item = self.inventory.pop(i)
+                dropped_item.x = self.x
+                dropped_item.y = self.y
+                dropped_item.visible = True
+                dropped_item.solid = False
+                scene.add_object(dropped_item)
+                print(f"{self.name} dropped {dropped_item.name}.")
+                return
+        print(f"'{item_name}' not found in inventory.")
 
     def attack(self, target):
         """Attacks another GameObject.
@@ -287,6 +308,10 @@ class Player(GameObject):
         Args:
             item (Item): The item to pick up.
         """
+        if len(self.inventory) >= self.inventory_capacity:
+            print("Inventory is full. Cannot pick up.")
+            return
+
         if isinstance(item, Consumable):
             for inventory_item in self.inventory:
                 if inventory_item.name == item.name and isinstance(inventory_item, Consumable):
@@ -708,12 +733,13 @@ class Enemy(GameObject):
         xp_value (int): The amount of experience awarded for defeating the enemy.
     """
 
-    def __init__(self, name="Enemy", x=0, y=0, z=0, type="Generic"):
-        super().__init__(name=name, x=x, y=y, z=z, health=50, speed=2)
+    def __init__(self, name="Enemy", x=0, y=0, z=0, type="Generic", health=50, speed=2, attack_damage=10, xp_value=0):
+        super().__init__(name=name, x=x, y=y, z=z, health=health, speed=speed)
         self.type = type
-        self.attack_damage = 10
+        self.attack_damage = attack_damage
         self.aggro_range = 10
-        self.xp_value = 0
+        self.xp_value = xp_value
+        self.state = 'idle'  # Possible states: 'idle', 'chasing', 'attacking'
 
     def attack(self, target):
         """Attacks another GameObject.
@@ -740,22 +766,32 @@ class Enemy(GameObject):
             print(f"{self.name} is asleep and cannot act.")
             return
 
-        if self.distance_to(player) < self.aggro_range:
-            current_speed = self.speed
-            if 'slow' in self.status_effects:
-                print(f"{self.name} is slowed!")
-                current_speed /= 2
-            # Move towards the player
-            dx = player.x - self.x
-            dy = player.y - self.y
-            dz = player.z - self.z
-            distance = self.distance_to(player)
-            if distance > 0:
-                self.move(dx / distance * current_speed * delta_time, dy / distance * current_speed * delta_time,
-                          dz / distance * current_speed * delta_time)
-            # Attack the player if close enough.
-            if self.distance_to(player) < 1:  # Attack range
+        distance_to_player = self.distance_to(player)
+
+        if self.state == 'idle':
+            if distance_to_player < self.aggro_range:
+                self.state = 'chasing'
+        elif self.state == 'chasing':
+            if distance_to_player < 1:  # Attack range
+                self.state = 'attacking'
+            else:
+                current_speed = self.speed
+                if 'slow' in self.status_effects:
+                    print(f"{self.name} is slowed!")
+                    current_speed /= 2
+                # Move towards the player
+                dx = player.x - self.x
+                dy = player.y - self.y
+                dz = player.z - self.z
+                distance = self.distance_to(player)
+                if distance > 0:
+                    self.move(dx / distance * current_speed * delta_time, dy / distance * current_speed * delta_time,
+                              dz / distance * current_speed * delta_time)
+        elif self.state == 'attacking':
+            if distance_to_player < 1:
                 self.attack(player)
+            else:
+                self.state = 'chasing'
 
 
 class Weapon(Item):
@@ -1241,6 +1277,11 @@ class Game:
             player.use_item(item_name)
             self.turn_taken = True
 
+        elif action == "drop" and len(parts) > 1:
+            item_name = " ".join(parts[1:])
+            player.drop_item(item_name, scene_manager.scene)
+            self.turn_taken = True
+
         elif action == "status":
             self.log_message(f"{player.name} - HP: {player.health}/{player.max_health}, Mana: {int(player.mana)}/{player.max_mana}")
             for obj in scene_manager.scene.game_objects:
@@ -1267,9 +1308,14 @@ class Game:
 
         elif action == "quit":
             self.game_over = True
+        elif action == "pause":
+            self.log_message("Game paused. Press Enter to continue...")
+            self.draw(scene_manager.scene)
+            input()
+            self.turn_taken = False
         else:
             self.log_message(
-                "Unknown command. Try: move [w/a/s/d], talk [name], examine [name], attack [name], equip [item], use [item], status, save/load, quit")
+                "Unknown command. Try: move [w/a/s/d], talk [name], examine [name], attack [name], equip [item], use [item], status, save/load, pause, quit")
 
     def start_conversation(self, dialogue_manager):
         """Initiates a conversation.
@@ -1431,37 +1477,66 @@ class AethelgardBattle(SceneManager):
 
 
 class FirstMeetingScene(SceneManager):
-    """A scene where Anastasia and Reverie meet for the first time."""
+    """A scene that sets up the game from the loaded JSON data."""
 
     def setup(self):
-        """Sets up the characters and dialogue for the scene."""
-        player = Anastasia(name="Anastasia", x=5, y=5)
-        npc = Reverie(name="Reverie", x=7, y=5)
-
-        # Create the dialogue tree for Reverie
-        reverie_dialogue = DialogueManager()
-        reverie_dialogue.add_node("start", DialogueNode(
-            "Another one drawn by these old stones. You have the look of a believer. Are you one of the ten the prophecy speaks of?",
-            "Reverie",
-            {"I am. My name is Anastasia.": "anastasia_intro", "Who's asking?": "who_asking"}
-        ))
-        reverie_dialogue.add_node("anastasia_intro", DialogueNode(
-            "Anastasia the Dreamer. I've heard the whispers. They say you're meant to lead us. I remain unconvinced.",
-            "Reverie"  # Ends conversation
-        ))
-        reverie_dialogue.add_node("who_asking", DialogueNode(
-            "Someone who finds prophecies to be... unreliable. I am Reverie. Now, answer the question.",
-            "Reverie",
-            {"I am Anastasia. And we need to work together.": "anastasia_intro"}
-        ))
-        npc.dialogue = reverie_dialogue
-
+        """Initializes the scene with objects, characters, etc. from game_data."""
+        # Create player from game_data
+        player_data = game_data['player']
+        player = Player(
+            name=player_data['name'],
+            x=player_data['x'],
+            y=player_data['y'],
+            inventory_capacity=player_data['inventory_capacity']
+        )
         self.scene.set_player(player)
-        self.scene.add_object(npc)
-        self.game.log_message("You approach a skeptical-looking woman leaning against a monolith.")
+
+        # Create enemies from game_data
+        for enemy_data in game_data['enemies']:
+            enemy = Enemy(
+                name=enemy_data['name'],
+                x=enemy_data['x'],
+                y=enemy_data['y'],
+                type=enemy_data['type'],
+                health=enemy_data['health'],
+                speed=enemy_data['speed'],
+                attack_damage=enemy_data['attack_damage'],
+                xp_value=enemy_data['xp_value']
+            )
+            self.scene.add_object(enemy)
+
+        # Create a weapon and place it in the scene
+        weapon_data = game_data['items']['weapons'][0]
+        weapon = Weapon(
+            name=weapon_data['name'],
+            description=weapon_data['description'],
+            damage=weapon_data['damage'],
+            weapon_type=weapon_data['weapon_type']
+        )
+        weapon.x = 2
+        weapon.y = 2
+        self.scene.add_object(weapon)
+
+        # Create a health potion and place it in the scene
+        potion_data = game_data['items']['consumables']['health_potions'][0]
+        potion = HealthPotion(
+            name=potion_data['name'],
+            description=potion_data['description'],
+            amount=potion_data['amount']
+        )
+        potion.x = 3
+        potion.y = 3
+        self.scene.add_object(potion)
+
+        self.game.log_message("Welcome to the game! An adventure awaits.")
+        self.game.log_message("You see a sword and a potion nearby. Try 'move d' then 'pickup sword'.")
 
 
 if __name__ == "__main__":
+    # Load game data from JSON file
+    with open("game_data.json", "r") as f:
+        game_data = json.load(f)
+
     # Initialize the database first
     database.init_db()
 
@@ -1470,20 +1545,20 @@ if __name__ == "__main__":
     if len(sys.argv) > 2 and sys.argv[1] == 'load':
         save_name = sys.argv[2]
         print(f"Attempting to load game from slot: {save_name}")
-        meeting_manager = database.load_game(save_name)
-        if not meeting_manager:
+        scene_manager = database.load_game(save_name)
+        if not scene_manager:
             print(f"Could not load '{save_name}'. Starting a new game.")
             # Fallback to new game if load fails
             game_engine = Game()
-            meeting_scene = Scene("Monolith Clearing")
-            meeting_manager = FirstMeetingScene(meeting_scene, game_engine)
+            scene = Scene("Monolith Clearing")
+            scene_manager = FirstMeetingScene(scene, game_engine)
     else:
         # Start a new game by default
         print("Starting a new game.")
         game_engine = Game()
-        meeting_scene = Scene("Monolith Clearing")
-        meeting_manager = FirstMeetingScene(meeting_scene, game_engine)
+        scene = Scene("Monolith Clearing")
+        scene_manager = FirstMeetingScene(scene, game_engine)
 
-    if meeting_manager:
-        meeting_manager.run()
+    if scene_manager:
+        scene_manager.run()
         print("Game over.")
