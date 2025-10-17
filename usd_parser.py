@@ -1,15 +1,25 @@
-# usd_parser.py
+"""Parses Markdown files to extract Universal Scene Description (USD) snippets.
+
+This script provides a utility function to find and extract USD code blocks
+from Markdown files. It is used to validate the USD examples embedded in the
+project's documentation.
+"""
 import re
 
 def extract_usd_from_markdown(file_path):
-    """
-    Parses a Markdown file to find and extract USD code snippets.
+    """Parses a Markdown file to find and extract USD code snippets.
+
+    This function reads the content of a given Markdown file and uses a regular
+    expression to find all code blocks that are explicitly tagged with the 'usd'
+    language identifier.
 
     Args:
         file_path (str): The path to the Markdown documentation file.
 
     Returns:
         list: A list of strings, where each string is a USD code block.
+              Returns an empty list if the file is not found or no snippets
+              are found.
     """
     print(f"Parsing {file_path} for USD snippets...")
     try:
@@ -24,7 +34,7 @@ def extract_usd_from_markdown(file_path):
 
 if __name__ == "__main__":
     # Example usage:
-    snippets = extract_usd_from_markdown("document.md")
+    snippets = extract_usd_from_markdown("docs/GDD.md")
     if snippets:
         print(f"Found {len(snippets)} USD snippets.")
         for i, snippet in enumerate(snippets):

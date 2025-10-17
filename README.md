@@ -32,25 +32,12 @@ This repository is organized to maintain a clean and scalable workflow between t
 ├── .gitignore
 ├── README.md             # This file.
 ├── requirements.txt      # Python dependencies for utility scripts.
-└── ...                   # Other project files (tests, configs).
-│   ├── Scripts/
-│   │   ├── Character/      # C# scripts for all characters, playable and NPC.
-│   │   ├── Combat/         # C# scripts for combat mechanics (abilities, damage).
-│   │   ├── Core/           # C# scripts for core systems (interaction, scene management).
-│   │   ├── Physics/        # C# scripts for custom physics (collisions, water effects).
-│   │   └── Story/          # C# scripts for managing narrative cutscenes.
-│   └── ...               # Other standard Unity asset folders (Scenes, Prefabs, etc.).
-├── blender_scripts/        # Python scripts for automating tasks in Blender.
-├── docs/                   # All design and technical documentation.
-├── .gitignore
-├── README.md               # This file.
-├── requirements.txt        # Python dependencies for utility scripts.
-├── database.py             # Python script for managing the game's SQLite database.
-├── game.py                 # A Python-based prototype of the game's core mechanics.
-├── rpg.py                  # A more complex Python-based RPG prototype.
-├── simple_rpg.py           # A simplified Python RPG for testing specific features.
-├── test_*.py               # Pytest files for all Python scripts.
-└── usd_parser.py           # Python script to extract USD snippets from Markdown.
+├── database.py           # Manages the game's SQLite database.
+├── game.py               # A Python-based prototype of the game's core mechanics.
+├── rpg.py                # A more complex, data-driven RPG prototype.
+├── simple_rpg.py         # A simplified RPG for testing specific features.
+├── test_*.py             # Pytest files for all Python scripts.
+└── usd_parser.py         # Extracts USD snippets from Markdown files.
 ```
 
 ### Key Directories & Files:
@@ -80,7 +67,11 @@ This repository is organized to maintain a clean and scalable workflow between t
     ```bash
     pip install -r requirements.txt
     ```
-3.  **Open the project in Unity:**
+3.  **Initialize the game database:**
+    ```bash
+    python database.py
+    ```
+4.  **Open the project in Unity:**
     *   Open Unity Hub.
     *   Click "Add" or "Open."
     *   Navigate to the cloned repository folder and select it.
@@ -90,9 +81,12 @@ This repository is organized to maintain a clean and scalable workflow between t
 
 This project uses a number of Python scripts for various purposes. Here's a brief overview:
 
-*   **`database.py`**: Manages the game's SQLite database, which stores information about characters, items, quests, and more.
+*   **`database.py`**: Manages the game's SQLite database (`game_content.db`), which stores information about characters, items, quests, and more. Running this script directly will initialize the database with the required schema and some initial data.
 *   **`game.py`**, **`rpg.py`**, **`simple_rpg.py`**: These files are Python-based prototypes of the game's core mechanics. They are used for testing and iterating on game logic before implementing it in C#.
-*   **`usd_parser.py`**: This script is used to parse and extract USD data snippets from design documents.
+    *   `simple_rpg.py`: A lightweight prototype for testing specific features like the level-up system.
+    *   `game.py`: A more complete prototype with a game loop, combat, and dialogue.
+    *   `rpg.py`: The most advanced prototype, featuring data-driven character and item loading from the database.
+*   **`usd_parser.py`**: This script is used to parse and extract USD (Universal Scene Description) data snippets from design documents, which is useful for validating the game's assets.
 *   **`test_*.py`**: These files contain unit tests for the Python scripts, written using the `pytest` framework.
 
 To run the tests, use the following command:
