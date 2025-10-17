@@ -24,6 +24,7 @@ public abstract class Character : MonoBehaviour
     // Events for state changes
     public event Action<float, float> OnHealthChanged; // currentHealth, maxHealth
     public event Action<float, float> OnManaChanged;   // currentMana, maxMana
+    public event Action<float, float> OnStaminaChanged; // currentStamina, maxStamina
     public event Action<float> OnDamageTaken;          // damageAmount
     public event Action OnDie;
 
@@ -35,6 +36,7 @@ public abstract class Character : MonoBehaviour
     public string characterName = "Character";
     public float maxHealth = 100f;
     public float maxMana = 100f;
+    public float maxStamina = 100f;
     public bool isAlive = true;
 
     // Encapsulated health and mana fields
@@ -68,6 +70,21 @@ public abstract class Character : MonoBehaviour
         }
     }
 
+    private float _currentStamina;
+    public float Stamina
+    {
+        get => _currentStamina;
+        private set
+        {
+            float clampedValue = Mathf.Clamp(value, 0, maxStamina);
+            if (_currentStamina != clampedValue)
+            {
+                _currentStamina = clampedValue;
+                OnStaminaChanged?.Invoke(_currentStamina, maxStamina);
+            }
+        }
+    }
+
     [Header("Combat Stats")]
     public int attack = 10;
     public int defense = 5;
@@ -78,6 +95,29 @@ public abstract class Character : MonoBehaviour
         // Set properties directly to trigger initial events
         Health = maxHealth;
         Mana = maxMana;
+        Stamina = maxStamina;
+    }
+
+    /// <summary>
+    /// Reduces character's stamina and returns true if successful.
+    /// </summary>
+    public bool UseStamina(float amount)
+    {
+        if (Stamina >= amount)
+        {
+            Stamina -= amount;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Restores character's stamina.
+    /// </summary>
+    public void RestoreStamina(float amount)
+    {
+        if (!isAlive) return;
+        Stamina += amount;
     }
 
     /// <summary>
