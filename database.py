@@ -1,3 +1,11 @@
+"""Manages the SQLite database for the game.
+
+This script handles the creation, initialization, and data access for the
+game's content database. It defines the schema for all game-related data,
+including characters, items, quests, and more. It also provides functions
+for saving and loading game state.
+"""
+
 import sqlite3
 import json
 
@@ -21,6 +29,10 @@ def get_db_connection(db_file=DB_FILE):
 
 def create_schema(cursor):
     """Creates the database schema if it doesn't already exist.
+
+    This function defines the table structure for the entire game, including
+    core game elements like characters and items, as well as world and lore
+    information.
 
     Args:
         cursor (sqlite3.Cursor): The database cursor to execute commands.
@@ -191,8 +203,13 @@ def create_schema(cursor):
         FOREIGN KEY (location_id) REFERENCES Locations(location_id)
     )""")
 
+
 def populate_initial_data(cursor):
     """Populates the database with initial game data.
+
+    This function inserts a small set of starting data into the database,
+    such as main characters and essential items, to ensure the game world
+    is not empty on first run.
 
     Args:
         cursor (sqlite3.Cursor): The database cursor to execute commands.
@@ -218,6 +235,10 @@ def populate_initial_data(cursor):
 def init_db(db_file=DB_FILE):
     """Initializes the database, creating and populating tables.
 
+    This function serves as the main entry point for setting up the database.
+    It establishes a connection, creates the schema, populates it with
+    initial data, and then closes the connection.
+
     Args:
         db_file (str, optional): The path to the database file.
             Defaults to DB_FILE.
@@ -229,24 +250,41 @@ def init_db(db_file=DB_FILE):
     conn.commit()
     conn.close()
 
+_class_loader = None
+
+
+def set_class_loader(loader):
+    """Sets the class loader function used for deserialization.
+
+    This function allows the database to dynamically instantiate game object
+    classes without needing to import them directly, avoiding circular
+    dependencies.
+
+    Args:
+        loader (callable): A function that takes a class name and returns
+            the corresponding class object.
+    """
+    global _class_loader
+    _class_loader = loader
+
+
 def get_character_data(name, conn=None):
-    """Fetches a character's data from the database."""
+    """Fetches a character's data from the database by name.
+
+    Args:
+        name (str): The name of the character to retrieve.
+        conn (sqlite3.Connection, optional): An existing database connection.
+            If not provided, a new one will be created. Defaults to None.
+
+    Returns:
+        sqlite3.Row: A row object containing the character's data, or None
+            if the character is not found.
+    """
     close_conn = False
     if conn is None:
         conn = get_db_connection()
         close_conn = True
 
-
-def get_character_data(name):
-    """Fetches a character's data from the database.
-
-    Args:
-        name (str): The name of the character to fetch.
-
-    Returns:
-        sqlite3.Row: A row object containing the character's data, or None if not found.
-    """
-    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Characters WHERE name = ?", (name,))
     character_data = cursor.fetchone()
@@ -255,24 +293,24 @@ def get_character_data(name):
         conn.close()
     return character_data
 
+
 def get_item_data(name, conn=None):
-    """Fetches an item's base data from the Items table."""
+    """Fetches an item's base data from the Items table by name.
+
+    Args:
+        name (str): The name of the item to retrieve.
+        conn (sqlite3.Connection, optional): An existing database connection.
+            If not provided, a new one will be created. Defaults to None.
+
+    Returns:
+        sqlite3.Row: A row object containing the item's data, or None
+            if the item is not found.
+    """
     close_conn = False
     if conn is None:
         conn = get_db_connection()
         close_conn = True
 
-
-def get_item_data(name):
-    """Fetches an item's base data from the Items table.
-
-    Args:
-        name (str): The name of the item to fetch.
-
-    Returns:
-        sqlite3.Row: A row object containing the item's data, or None if not found.
-    """
-    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Items WHERE name = ?", (name,))
     item_data = cursor.fetchone()
@@ -281,24 +319,24 @@ def get_item_data(name):
         conn.close()
     return item_data
 
+
 def get_weapon_data(item_id, conn=None):
-    """Fetches a weapon's specific data from the Weapons table."""
+    """Fetches a weapon's specific data from the Weapons table by item ID.
+
+    Args:
+        item_id (int): The ID of the weapon to retrieve.
+        conn (sqlite3.Connection, optional): An existing database connection.
+            If not provided, a new one will be created. Defaults to None.
+
+    Returns:
+        sqlite3.Row: A row object containing the weapon's data, or None
+            if the weapon is not found.
+    """
     close_conn = False
     if conn is None:
         conn = get_db_connection()
         close_conn = True
 
-
-def get_weapon_data(item_id):
-    """Fetches a weapon's specific data from the Weapons table.
-
-    Args:
-        item_id (int): The ID of the item.
-
-    Returns:
-        sqlite3.Row: A row object containing the weapon's data, or None if not found.
-    """
-    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Weapons WHERE weapon_id = ?", (item_id,))
     weapon_data = cursor.fetchone()
@@ -307,24 +345,24 @@ def get_weapon_data(item_id):
         conn.close()
     return weapon_data
 
+
 def get_armor_data(item_id, conn=None):
-    """Fetches armor's specific data from the Armor table."""
+    """Fetches armor's specific data from the Armor table by item ID.
+
+    Args:
+        item_id (int): The ID of the armor to retrieve.
+        conn (sqlite3.Connection, optional): An existing database connection.
+            If not provided, a new one will be created. Defaults to None.
+
+    Returns:
+        sqlite3.Row: A row object containing the armor's data, or None
+            if the armor is not found.
+    """
     close_conn = False
     if conn is None:
         conn = get_db_connection()
         close_conn = True
 
-
-def get_armor_data(item_id):
-    """Fetches armor's specific data from the Armor table.
-
-    Args:
-        item_id (int): The ID of the item.
-
-    Returns:
-        sqlite3.Row: A row object containing the armor's data, or None if not found.
-    """
-    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Armor WHERE armor_id = ?", (item_id,))
     armor_data = cursor.fetchone()
@@ -333,11 +371,40 @@ def get_armor_data(item_id):
         conn.close()
     return armor_data
 
-def load_game(save_name):
+
+def save_game(save_name, scene_manager):
+    """Saves the current game state to the database.
+
+    Note:
+        This is a placeholder function. A full implementation would involve
+        serializing the state of the `scene_manager` and storing it in the
+        database.
+
+    Args:
+        save_name (str): The name of the save file.
+        scene_manager (SceneManager): The scene manager object containing the
+            current game state.
     """
-    Placeholder for loading a game state.
-    In a real implementation, this would load data from the database.
-    For now, it returns None to allow for testing of the main runner.
+    # In a real implementation, this would serialize the scene_manager
+    # and store it in the database. For now, we'll just acknowledge it.
+    print(f"Game state for '{save_name}' saved (simulation).")
+
+
+def load_game(save_name):
+    """Loads a game state from the database.
+
+    Note:
+        This is a placeholder for loading a game state. In a real
+        implementation, this would load data from the database and
+        reconstruct the game state. For now, it returns None to allow for
+        testing of the main runner.
+
+    Args:
+        save_name (str): The name of the save file to load.
+
+    Returns:
+        None: This function currently returns None to simulate the behavior
+            of a save not being found.
     """
     # This function is intended to be mocked in tests.
     # Returning None simulates the behavior of a save not being found.
