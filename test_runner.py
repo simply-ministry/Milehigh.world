@@ -65,7 +65,7 @@ class TestGameRunner(unittest.TestCase):
                       "The game should run the scene manager returned by load_game.")
 
         # Ensure it's not an instance of the default new game scene
-        self.assertNotIsInstance(scene_manager, rpg.AethelgardBattle,
+        self.assertNotIsInstance(scene_manager, rpg.TrollCaveScene,
                                  "A new game should not be created when one is loaded.")
 
 if __name__ == '__main__':
