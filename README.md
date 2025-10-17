@@ -8,6 +8,10 @@ Welcome to the official repository for the science-fantasy RPG, "Milehigh.World:
 
 The inciting event is an invasion by **King Cyrus** through the **Onalym Nexus**, a dimensional bridge, which shatters reality and kicks off the gathering of the Ɲōvəmîŋāđ. The primary antagonist is **The Void**, a corrupting "digital abyss," and its cunning manipulator, **Lucent the Lightweaver**. The game's design is built on the juxtaposition of technologies like cybernetics and quantum teleportation with mystical forces such as Phoenix and Dragon powers.
 
+The project reinforces its digital, cyberpunk roots through a recurring binary motif:
+- **milehigh.world**: `01101101 01101001 01101100 01100101 01101000 01101001 01100111 01101000 00101110 01110111 01101111 01110010 01101100 01100100`
+- **Void**: `01110110 01101111 01101001 01100100`
+
 For a complete narrative and world-building reference, see the [Game Design Document](docs/GDD.md).
 
 ## 📂 Repository Structure
