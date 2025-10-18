@@ -1,29 +1,23 @@
 using UnityEngine;
 
 /// <summary>
-/// Represents Kane, a straightforward and brutal melee villain.
+/// Represents Kane, the Fallen Champion and rival brother to Aeron.
+/// As an antagonist, he possesses formidable stats, making him a major threat.
 /// </summary>
-public class Kane : ShadowSyndicateVillain
+public class Kane : Novamina
 {
     /// <summary>
-    /// Initializes Kane's attributes.
+    /// Initializes Kane's specific attributes.
+    /// Sets his name, archetype, and powerful stats to establish him as a formidable foe.
     /// </summary>
     protected override void Awake()
     {
         base.Awake();
-        villainName = "Kane";
-        maxHealth = 350;
+        characterName = "Kane";
+        Archetype = "Fallen Champion";
+        maxHealth = 1700;
         currentHealth = maxHealth;
+        attack = 190;
+        defense = 90;
     }
-
-    /// <summary>
-    /// A straightforward and brutal melee strike.
-    /// </summary>
-    /// <param name="target">The target of the attack.</param>
-    public override void UsePrimaryAbility(GameObject target)
- {
- base.UsePrimaryAbility(target);
- Debug.Log($"{villainName} lunges forward with a brutal strike aimed at {target.name}!");
- // TODO: Play attack animation, apply damage to the target on hit.
- }
 }

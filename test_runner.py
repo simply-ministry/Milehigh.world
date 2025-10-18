@@ -55,6 +55,13 @@ class TestGameRunner(unittest.TestCase):
 
         # Assert that the game runs the loaded scene manager
         mock_loaded_scene.run.assert_called_once()
+        scene_manager.run.assert_called_once()
+        self.assertIs(scene_manager, mock_loaded_scene,
+                      "The game should run the scene manager returned by load_game.")
+
+        # Ensure it's not an instance of the default new game scene
+        self.assertNotIsInstance(scene_manager, rpg.TrollCaveScene,
+                                 "A new game should not be created when one is loaded.")
 
 if __name__ == '__main__':
     unittest.main()
