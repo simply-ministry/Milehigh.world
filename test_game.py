@@ -82,7 +82,7 @@ class TestCharacterAndPlayer(unittest.TestCase):
         self.player.health = 50
         potion = HealthPotion(name="Test Potion", description="A test potion.", amount=30)
         self.player.inventory.append(potion)
-        self.player.use_item("Test Potion")
+        self.player.use_item("Test Potion", self.player)
         self.assertEqual(self.player.health, 80)
         self.assertEqual(len(self.player.inventory), 0)
 
