@@ -68,10 +68,14 @@ This repository is organized to maintain a clean and scalable workflow between t
     cd milehigh.world
     ```
 2.  **Set up the Python environment:**
+    It is recommended to use a virtual environment to keep the project's dependencies isolated.
     ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
     pip install -r requirements.txt
     ```
 3.  **Initialize the game database:**
+    This command creates the `game_content.db` file and populates it with the necessary schema and initial data.
     ```bash
     python database.py
     ```
@@ -87,13 +91,24 @@ This project uses a number of Python scripts for various purposes. Here's a brie
 
 *   **`database.py`**: Manages the game's SQLite database (`game_content.db`), which stores information about characters, items, quests, and more. Running this script directly will initialize the database with the required schema and some initial data.
 *   **`game.py`**, **`rpg.py`**, **`simple_rpg.py`**: These files are Python-based prototypes of the game's core mechanics. They are used for testing and iterating on game logic before implementing it in C#.
-    *   `simple_rpg.py`: A lightweight prototype for testing specific features like the level-up system.
-    *   `game.py`: A more complete prototype with a game loop, combat, and dialogue.
-    *   `rpg.py`: The most advanced prototype, featuring data-driven character and item loading from the database.
+    *   `simple_rpg.py`: A lightweight prototype for testing specific features like the level-up system. You can run it directly to see a demonstration of the level-up and ability learning mechanics:
+        ```bash
+        python simple_rpg.py
+        ```
+    *   `game.py`: A more complete prototype with a game loop, combat, and dialogue. It loads game data from `game_data.json` and can be run to play a simple, text-based version of the game:
+        ```bash
+        python game.py
+        ```
+    *   `rpg.py`: The most advanced prototype, featuring data-driven character and item loading from the database. It can be run to play a more complex, turn-based RPG experience:
+        ```bash
+        python rpg.py
+        ```
 *   **`usd_parser.py`**: This script is used to parse and extract USD (Universal Scene Description) data snippets from design documents, which is useful for validating the game's assets.
 *   **`test_*.py`**: These files contain unit tests for the Python scripts, written using the `pytest` framework.
 
-To run the tests, use the following command:
+### Running the Tests
+
+To ensure the Python scripts are working correctly, you can run the test suite using `pytest`.
 
 ```bash
 pytest
