@@ -1,46 +1,107 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Manages the narrative sequence for an epic battle scene in the ruins of Āɲč̣ịəŋṭ^Łīɲč̣.
+/// This script controls a choreographed sequence of dialogue and actions between heroes and villains.
+/// </summary>
 public class EpicBattleScene : MonoBehaviour
 {
     // === VILLAINS ===
-    public GameObject nafaerius;
-    public GameObject cyrus;
-    public GameObject lucent;
-    public GameObject era; // Corrupted Void
-    public GameObject delilah;
-    public GameObject theOmen;
-    public GameObject kane;
+    // Now referencing CharacterActionHandler directly
+    /// <summary>
+    /// Reference to the Nafaerius character's action handler.
+    /// </summary>
+    public CharacterActionHandler nafaerius;
+    /// <summary>
+    /// Reference to the Cyrus character's action handler.
+    /// </summary>
+    public CharacterActionHandler cyrus;
+    /// <summary>
+    /// Reference to the Lucent character's action handler.
+    /// </summary>
+    public CharacterActionHandler lucent;
+    /// <summary>
+    /// Reference to the Era (Corrupted Void) character's action handler.
+    /// </summary>
+    public CharacterActionHandler era;
+    /// <summary>
+    /// Reference to the Delilah character's action handler.
+    /// </summary>
+    public CharacterActionHandler delilah;
+    /// <summary>
+    /// Reference to The Omen character's action handler.
+    /// </summary>
+    public CharacterActionHandler theOmen;
+    /// <summary>
+    /// Reference to the Kane character's action handler.
+    /// </summary>
+    public CharacterActionHandler kane;
 
     // === HEROES (Ɲōvəmîŋāđ) ===
-    public GameObject anastasia;
-    public GameObject reverie;
-    public GameObject aeron;
-    public GameObject zaia;
-    public GameObject micah;
-    public GameObject kael;
+    /// <summary>
+    /// Reference to the Anastasia character's action handler.
+    /// </summary>
+    public CharacterActionHandler anastasia;
+    /// <summary>
+    /// Reference to the Reverie character's action handler.
+    /// </summary>
+    public CharacterActionHandler reverie;
+    /// <summary>
+    /// Reference to the Aeron character's action handler.
+    /// </summary>
+    public CharacterActionHandler aeron;
+    /// <summary>
+    /// Reference to the Zaia character's action handler.
+    /// </summary>
+    public CharacterActionHandler zaia;
+    /// <summary>
+    /// Reference to the Micah character's action handler.
+    /// </summary>
+    public CharacterActionHandler micah;
+    /// <summary>
+    /// Reference to the Kael character's action handler.
+    /// </summary>
+    public CharacterActionHandler kael;
 
-    // Dialogue System
+    /// <summary>
+    /// A delegate defining the signature for dialogue actions.
+    /// </summary>
+    /// <param name="text">The line of dialogue to be displayed.</param>
     public delegate void DialogueAction(string text);
+    /// <summary>
+    /// An event that is fired to display a line of dialogue.
+    /// A UI manager should subscribe to this event to show the text to the player.
+    /// </summary>
     public static event DialogueAction OnDialogue;
 
+    /// <summary>
+    /// Called when the script instance is being loaded. Starts the scene sequence.
+    /// </summary>
     void Start()
     {
-        // In a real implementation, we would find or instantiate these GameObjects.
-        // For this script, we assume they are assigned in the Unity Editor.
+        // In the Unity Editor, drag the GameObjects with CharacterActionHandler components
+        // into the public fields of this script.
         BeginScene();
     }
 
+    /// <summary>
+    /// Initiates the main scene coroutine.
+    /// </summary>
     void BeginScene()
     {
-        // Initial staging: position characters, set animations, etc.
         Debug.Log("The final battle for Mîlēhîgh.wørld begins in the ruins of Āɲč̣ịəŋṭ^Łīɲč̣.");
         StartCoroutine(SceneSequence());
     }
 
+    /// <summary>
+    /// Coroutine that controls the step-by-step flow of the battle scene,
+    /// including dialogue and descriptions of character actions.
+    /// </summary>
+    /// <returns>An IEnumerator to be used by StartCoroutine.</returns>
     IEnumerator SceneSequence()
     {
+        // --- SCENE INTRO AND STAGING ---
         ShowDialogue("In the shattered ruins of Āɲč̣ịəŋṭ^Łīɲč̣, the air crackles with a palpable tension.");
         yield return new WaitForSeconds(3f);
 
@@ -52,52 +113,66 @@ public class EpicBattleScene : MonoBehaviour
 
         // --- THE VILLAINS ATTACK ---
         ShowDialogue("Nafaerius unleashes shadow tendrils that snake towards the Ɲōvəmîŋāđ.");
-        // TODO: Play Nafaerius's shadow tendril attack animation and VFX.
-        yield return new WaitForSeconds(3f);
+        if (nafaerius != null) { nafaerius.CastSpell("ShadowTendrils"); }
+        yield return new WaitForSeconds(3.5f); // Increased time for a noticeable spell cast
 
         ShowDialogue("Cyrus roars, summoning interdimensional rifts that spit forth distorted energies.");
-        // TODO: Play Cyrus's rift summoning animation and VFX.
-        yield return new WaitForSeconds(3f);
+        if (cyrus != null) { cyrus.CastSpell("InterdimensionalRifts"); }
+        yield return new WaitForSeconds(3.5f);
 
         ShowDialogue("At Lucent's command, the corrupted Void, Era, surges forward like a wave of pure corruption.");
-        // TODO: Play Era's surge animation and VFX.
-        yield return new WaitForSeconds(3f);
+        if (lucent != null) { lucent.PlayAnimation("Command"); } // Lucent gestures to command
+        if (era != null) { era.Attack("VoidSurge"); } // Era performs its surge attack
+        yield return new WaitForSeconds(3.5f);
 
         ShowDialogue("With The Omen soaring above, Delilah launches a devastating volley of decay-infused projectiles.");
-        // TODO: Play Delilah's projectile attack and The Omen's fly-over animation.
-        yield return new WaitForSeconds(3f);
+        if (theOmen != null) { theOmen.PlayAnimation("Soar"); } // The Omen's specific movement/animation
+        if (delilah != null) { delilah.Attack("DecayProjectiles"); }
+        yield return new WaitForSeconds(3.5f);
 
         ShowDialogue("Driven by bitter conviction, Kane charges directly at his brother, Aeron.");
-        // TODO: Play Kane's charge animation towards Aeron.
-        yield return new WaitForSeconds(2f);
+        // A placeholder for Kane to conceptually move towards Aeron's position
+        if (kane != null && aeron != null) { kane.Move(aeron.transform.position); }
+        yield return new WaitForSeconds(2.5f); // Time for the charge animation
 
         // --- THE HEROES RESPOND ---
         ShowDialogue("But the Ɲōvəmîŋāđ meet them head-on. Anastasia conjures a shimmering barrier, deflecting the initial assault.");
-        // TODO: Play Anastasia's barrier spell animation and VFX.
+        if (anastasia != null) { anastasia.CastSpell("ShimmeringBarrier"); }
         yield return new WaitForSeconds(4f);
 
         ShowDialogue("Reverie's illusions disorient the advancing shadows, creating openings for Zaia's swift, precise attacks.");
-        // TODO: Play Reverie's illusion VFX and Zaia's attack animation.
+        if (reverie != null) { reverie.CastSpell("Illusions"); }
+        if (zaia != null) { zaia.Attack("SwiftStrike"); }
         yield return new WaitForSeconds(4f);
 
         ShowDialogue("Kael bends time itself, momentarily slowing the chaotic energies unleashed by Cyrus.");
-        // TODO: Play Kael's time manipulation VFX and apply slow-motion effect to enemy projectiles.
+        if (kael != null) { kael.CastSpell("TimeBend"); }
         yield return new WaitForSeconds(4f);
 
         ShowDialogue("Micah the Unbreakable stands firm, his form radiating resilience as he shrugs off hits that would fell lesser beings.");
-        // TODO: Play Micah's defensive stance animation and damage absorption VFX.
+        if (micah != null) { micah.Defend("Resilience"); }
         yield return new WaitForSeconds(4f);
 
         ShowDialogue("Aeron meets Kane's charge with a fierce cry, their clash of power ripping through the air.");
-        // TODO: Play Aeron and Kane's clash animation and impact VFX.
+        if (aeron != null && kane != null)
+        {
+            aeron.Clash(kane.characterName); // Aeron performs a clash action
+            kane.Clash(aeron.characterName); // Kane also performs a clash action
+        }
         yield return new WaitForSeconds(4f);
 
+        // --- SCENE CONCLUSION ---
         ShowDialogue("The battle for Mîlēhîgh.wørld has truly begun, a symphony of destruction and desperate hope.");
         yield return new WaitForSeconds(5f);
 
         EndScene();
     }
 
+    /// <summary>
+    /// Fires the OnDialogue event to display a line of text.
+    /// If no UI manager is subscribed, it logs the text to the console as a fallback.
+    /// </summary>
+    /// <param name="text">The dialogue text to show.</param>
     void ShowDialogue(string text)
     {
         if (OnDialogue != null)
@@ -106,13 +181,19 @@ public class EpicBattleScene : MonoBehaviour
         }
         else
         {
-            Debug.Log(text); // Fallback for logging
+            Debug.Log($"<color=lightblue>[DIALOGUE]</color> {text}"); // Fallback for logging with color
         }
     }
 
+    /// <summary>
+    /// Marks the end of the scene and logs a completion message.
+    /// </summary>
     void EndScene()
     {
         Debug.Log("The battle has been joined. The fate of Mîlēhîgh.wørld hangs in the balance.");
         // Logic for transitioning to gameplay or the next scene would go here.
+        // For example:
+        // SceneManager.LoadScene("BattleArena");
+        // GameManager.Instance.StartBattlePhase();
     }
 }

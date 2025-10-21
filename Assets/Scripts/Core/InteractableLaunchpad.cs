@@ -1,28 +1,31 @@
-// ~~~~~~~~~~~~~ NEW SCRIPT 5: InteractableLaunchpad.cs ~~~~~~~~~~~~~
-// Attach this to your launchpad GameObject.
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 using UnityEngine;
 
+/// <summary>
+/// An interactable component for launchpads. When the player interacts with this object,
+/// it calls the UseLaunchpad method on the AllianceTowerManager singleton.
+/// </summary>
 public class InteractableLaunchpad : Interactable
 {
-    private AllianceTowerManager towerManager;
-
-    void Start()
+    /// <summary>
+    /// Called when the script instance is being loaded. Sets the specific prompt message for the launchpad.
+    /// </summary>
+    private void Start()
     {
-        towerManager = FindObjectOfType<AllianceTowerManager>();
         promptMessage = "[E] Use Launchpad";
     }
 
+    /// <summary>
+    /// Defines the interaction logic for the launchpad.
+    /// </summary>
     protected override void Interact()
     {
-        if (towerManager != null)
+        if (AllianceTowerManager.Instance != null)
         {
-            towerManager.UseLaunchpad();
+            AllianceTowerManager.Instance.UseLaunchpad();
         }
         else
         {
-            Debug.LogError("AllianceTowerManager not found in the scene!");
+            Debug.LogError("AllianceTowerManager singleton instance not found in the scene!");
         }
     }
 }

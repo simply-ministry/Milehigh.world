@@ -1,46 +1,63 @@
 using UnityEngine;
 
+/// <summary>
+/// Manages the state and events for the Alliance Tower hub scene.
+/// This script orchestrates interactions with key objects like teleporters,
+/// NPCs, and launchpads. Implemented as a singleton for easy access.
+/// </summary>
 public class AllianceTowerManager : MonoBehaviour
 {
-    void Start()
+    // Singleton instance
+    public static AllianceTowerManager Instance { get; private set; }
+
+    [Header("Manager State")]
+    [Tooltip("A description of the current state of the tower's events.")]
+    public string managerState = "Idle";
+
+    private void Awake()
     {
-        // Programmatically create the Mascot GameObject to ensure it exists in the scene.
-        CreateMascot();
+        // Singleton pattern implementation
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            Instance = this;
+        }
     }
 
-    // Creates the Mascot character in the game world.
-    private void CreateMascot()
-    {
-        // 1. Create a new GameObject named "Mascot"
-        GameObject mascotGO = new GameObject("Mascot");
-
-        // 2. Add the Mascot script to it. This makes it interactable.
-        mascotGO.AddComponent<Mascot>();
-
-        // 3. Add a collider so the player's raycast can hit it.
-        mascotGO.AddComponent<BoxCollider>();
-
-        // 4. Set its position in the world (e.g., in front of the tower)
-        mascotGO.transform.position = new Vector3(0, 1, 5);
-
-        Debug.Log("Mascot character has been spawned in the world.");
-    }
-
+    /// <summary>
+    /// Handles the player using the main teleporter.
+    /// In a full game, this would likely trigger a scene change or open a world map.
+    /// </summary>
     public void UseTeleporter()
     {
-        Debug.Log("Teleporter activated!");
-        // Future teleporter logic will go here.
+        managerState = "Teleporter Activated";
+        Debug.Log("AllianceTowerManager: Teleporter has been used. Initiating warp sequence...");
+        // Example: UnityEngine.SceneManagement.SceneManager.LoadScene("WorldMap");
     }
 
+    /// <summary>
+    /// Triggers a dialogue sequence with an NPC.
+    /// </summary>
+    /// <param name="npcName">The name of the NPC.</param>
+    /// <param name="dialogue">The line of dialogue to display.</param>
     public void TriggerNPCDialogue(string npcName, string dialogue)
     {
-        Debug.Log($"Started dialogue with {npcName}: {dialogue}");
-        // Future dialogue system logic will go here.
+        managerState = $"In Dialogue with {npcName}";
+        Debug.Log($"AllianceTowerManager: [{npcName}] says: '{dialogue}'");
+        // Example: UIManager.Instance.ShowDialogueBox(npcName, dialogue);
     }
 
+    /// <summary>
+    /// Handles the player using the launchpad.
+    /// This could initiate a minigame or a special travel sequence.
+    /// </summary>
     public void UseLaunchpad()
     {
-        Debug.Log("Launchpad activated!");
-        // Future launchpad logic will go here.
+        managerState = "Launchpad Activated";
+        Debug.Log("AllianceTowerManager: Launchpad activated. Preparing for takeoff!");
+        // Example: StartCoroutine(LaunchpadCutscene());
     }
 }

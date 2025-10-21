@@ -1,28 +1,58 @@
 using System;
-using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 
+/// <summary>
+/// Manages the narrative scene "Dragon King's Resolve".
+/// This script controls a dialogue sequence between Cirrus and Ingris,
+/// setting the stage for the quest to unite the Ɲōvəmîŋāđ.
+/// </summary>
 public class DragonKingResolveScene : MonoBehaviour
 {
-    // Characters
+    /// <summary>
+    /// A reference to the GameObject representing Cirrus.
+    /// Intended for controlling animations or positioning during the scene.
+    /// </summary>
     public GameObject cirrus;
+    /// <summary>
+    /// A reference to the GameObject representing Ingris.
+    /// Intended for controlling animations or positioning during the scene.
+    /// </summary>
     public GameObject ingris;
 
-    // Dialogue System
+    /// <summary>
+    /// A delegate defining the signature for dialogue actions.
+    /// </summary>
+    /// <param name="text">The line of dialogue to be displayed.</param>
     public delegate void DialogueAction(string text);
+    /// <summary>
+    /// An event that is fired to display a line of dialogue.
+    /// A UI manager should subscribe to this event to show the text to the player.
+    /// </summary>
     public static event DialogueAction OnDialogue;
 
+    /// <summary>
+    /// Called when the script instance is being loaded. Starts the scene sequence.
+    /// </summary>
     void Start()
     {
         BeginScene();
     }
 
+    /// <summary>
+    /// Initiates the main scene coroutine.
+    /// </summary>
     void BeginScene()
     {
         StartCoroutine(SceneSequence());
     }
 
-    System.Collections.IEnumerator SceneSequence()
+    /// <summary>
+    /// Coroutine that controls the step-by-step flow of the narrative scene,
+    /// including showing dialogue and pausing for dramatic effect.
+    /// </summary>
+    /// <returns>An IEnumerator to be used by StartCoroutine.</returns>
+    IEnumerator SceneSequence()
     {
         ShowDialogue("Within the vast, crystalline halls of his private study in ƁÅČ̣ĤÎŘØN̈, Cirrus, the Dragon King, stood before a swirling holographic projection of the Verse.");
         yield return new WaitForSeconds(4f);
@@ -96,6 +126,11 @@ public class DragonKingResolveScene : MonoBehaviour
         EndScene();
     }
 
+    /// <summary>
+    /// Fires the OnDialogue event to display a line of text.
+    /// If no UI manager is subscribed, it logs the text to the console as a fallback.
+    /// </summary>
+    /// <param name="text">The dialogue text to show.</param>
     void ShowDialogue(string text)
     {
         if (OnDialogue != null)
@@ -108,6 +143,9 @@ public class DragonKingResolveScene : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Marks the end of the scene and logs a completion message.
+    /// </summary>
     void EndScene()
     {
         Debug.Log("Dragon King's Resolve Scene Ended.");

@@ -1,31 +1,31 @@
-// ~~~~~~~~~~~~~ NEW SCRIPT 3: InteractableTeleporter.cs ~~~~~~~~~~~~~
-// Attach this to your teleporter pad GameObject. It will call your manager.
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 using UnityEngine;
 
+/// <summary>
+/// An interactable component for teleporters. When the player interacts with this object,
+/// it calls the UseTeleporter method on the AllianceTowerManager singleton.
+/// </summary>
 public class InteractableTeleporter : Interactable
 {
-    private AllianceTowerManager towerManager;
-
-    void Start()
+    /// <summary>
+    /// Called when the script instance is being loaded. Sets the specific prompt message for the teleporter.
+    /// </summary>
+    private void Start()
     {
-        // Find the scene's manager script.
-        // NOTE: FindObjectOfType can be slow. If you have one manager, making it a singleton is more efficient.
-        towerManager = FindObjectOfType<AllianceTowerManager>();
         promptMessage = "[E] Use Teleporter";
     }
 
+    /// <summary>
+    /// Defines the interaction logic for the teleporter.
+    /// </summary>
     protected override void Interact()
     {
-        if (towerManager != null)
+        if (AllianceTowerManager.Instance != null)
         {
-            Debug.Log("InteractableTeleporter is calling AllianceTowerManager.UseTeleporter()");
-            towerManager.UseTeleporter();
+            AllianceTowerManager.Instance.UseTeleporter();
         }
         else
         {
-            Debug.LogError("AllianceTowerManager not found in the scene!");
+            Debug.LogError("AllianceTowerManager singleton instance not found in the scene!");
         }
     }
 }

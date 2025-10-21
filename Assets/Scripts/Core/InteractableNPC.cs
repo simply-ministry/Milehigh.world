@@ -1,34 +1,39 @@
-// ~~~~~~~~~~~~~ NEW SCRIPT 4: InteractableNPC.cs ~~~~~~~~~~~~~
-// Attach this to your NPC models. You can set their name and dialogue in the Inspector.
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 using UnityEngine;
 
+/// <summary>
+/// An interactable component for NPCs. Allows the player to talk to an NPC,
+/// triggering a dialogue event in the AllianceTowerManager.
+/// </summary>
 public class InteractableNPC : Interactable
 {
     [Header("NPC Dialogue")]
+    [Tooltip("The name of the NPC, displayed in the interaction prompt.")]
     public string npcName = "Mysterious Stranger";
-    [TextArea(3, 10)] // Makes the string field bigger in the inspector
+
+    [Tooltip("The dialogue the NPC will say when interacted with.")]
+    [TextArea(3, 10)]
     public string dialogue = "Hello, traveler. The Void calls, doesn't it?";
 
-    private AllianceTowerManager towerManager;
-
-    void Start()
+    /// <summary>
+    /// Called when the script instance is being loaded. Sets a custom prompt message using the NPC's name.
+    /// </summary>
+    private void Start()
     {
-        towerManager = FindObjectOfType<AllianceTowerManager>();
         promptMessage = $"[E] Talk to {npcName}";
     }
 
+    /// <summary>
+    /// Defines the interaction logic for the NPC.
+    /// </summary>
     protected override void Interact()
     {
-        if (towerManager != null)
+        if (AllianceTowerManager.Instance != null)
         {
-            Debug.Log($"Interacting with {npcName}.");
-            towerManager.TriggerNPCDialogue(npcName, dialogue);
+            AllianceTowerManager.Instance.TriggerNPCDialogue(npcName, dialogue);
         }
         else
         {
-            Debug.LogError("AllianceTowerManager not found in the scene!");
+            Debug.LogError("AllianceTowerManager singleton instance not found in the scene!");
         }
     }
 }

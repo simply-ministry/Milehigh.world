@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MILEHIGH.WORLD - Game Systems Infographic</title>
+    <!-- External libraries and fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <!-- Custom Styles -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+                max-height: 350px;
+            }
+        }
+        .flow-icon {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+        .arrow {
+            font-size: 2rem;
+            color: #67e8f9; /* cyan-400 */
+        }
+        .select-style {
+            background-color: #1f2937;
+            border-color: #4b5563;
+            color: #d1d5db;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <!-- Header Section -->
+        <header class="text-center mb-12">
+            <h1 class="text-5xl md:text-7xl font-black text-cyan-400 tracking-tighter">MILEHIGH.WORLD</h1>
+            <p class="text-xl md:text-2xl text-gray-300 mt-2">An Overview of Core Game Systems & The Void</p>
+        </header>
+
+        <!-- Introduction Section -->
+        <section id="introduction" class="mb-16">
+            <div class="bg-gray-800 rounded-lg shadow-2xl p-6 md:p-8 border-l-4 border-cyan-400">
+                <h2 class="text-3xl font-bold text-cyan-400 mb-4">Welcome to the System</h2>
+                <p class="text-gray-300 text-lg">This document provides a high-level visualization of the interconnected systems that form the backbone of MILEHIGH.WORLD. We'll explore the foundational architecture, from the base game objects to the complex, character-driven skill trees. Our focus will be on the "Architect of the Void," Delilah Desolate, showcasing how her unique abilities interact with the core game mechanics of corruption, control, and life-draining power.</p>
+            </div>
+        </section>
+
+        <!-- High-Level Overview Section -->
+        <section id="overview" class="mb-16">
+            <h2 class="text-4xl font-bold text-center mb-8 text-cyan-400">System Architecture at a Glance</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="bg-gray-800 rounded-lg shadow-xl p-6 text-center">
+                    <div class="text-6xl mb-4">🧩</div>
+                    <h3 class="text-2xl font-bold text-pink-400 mb-2">3 Playable Characters</h3>
+                    <p class="text-gray-400">Ingris, Kai, and Cirrus form the core roster, each with distinct thematic skill trees.</p>
+                </div>
+                <div class="bg-gray-800 rounded-lg shadow-xl p-6 text-center">
+                    <div class="text-6xl mb-4">🕸️</div>
+                    <h3 class="text-2xl font-bold text-pink-400 mb-2">45+ Unique Skills</h3>
+                    <p class="text-gray-400">Across all characters, offering deep customization in offense, defense, and utility.</p>
+                </div>
+                <div class="bg-gray-800 rounded-lg shadow-xl p-6 text-center">
+                    <div class="text-6xl mb-4">📦</div>
+                    <h3 class="text-2xl font-bold text-pink-400 mb-2">Modular Script System</h3>
+                    <p class="text-gray-400">Built on a <code class="bg-gray-700 px-1 py-0.5 rounded">GameObjectBase</code> class for scalable and maintainable entity design.</p>
+                </div>
+                <div class="bg-gray-800 rounded-lg shadow-xl p-6 text-center">
+                    <div class="text-6xl mb-4">🌌</div>
+                    <h3 class="text-2xl font-bold text-pink-400 mb-2">Thematic "Void" Powers</h3>
+                    <p class="text-gray-400">Delilah's abilities introduce unique DoT, control, and anti-magic mechanics.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dynamic Character Systems Section with Radar Chart -->
+        <section id="character-systems" class="mb-16">
+            <h2 class="text-4xl font-bold text-center mb-8 text-pink-400">Character Archetypes: A Statistical Overview</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-gray-800 rounded-lg shadow-2xl p-6 md:p-8">
+                <div class="prose text-gray-300">
+                    <p class="text-lg">Select a character to view their core strengths. This radar chart visualizes how each archetype focuses on key game mechanics, from dealing damage to providing vital support on the battlefield.</p>
+                    <div class="mt-4">
+                        <label for="character-select" class="block text-sm font-medium text-gray-400 mb-2">Select Character:</label>
+                        <select id="character-select" class="select-style w-full p-2 rounded-lg border focus:ring-2 focus:ring-gray-500 transition-colors">
+                            <option value="delilah">Delilah Desolate</option>
+                            <option value="ingris">Ingris the Phoenix Warden</option>
+                            <option value="kai">Kai the Unbroken Sentinel</option>
+                            <option value="cirrus">Cirrus the Dragon King</option>
+                        </select>
+                    </div>
+                    <div class="mt-4 hidden md:block">
+                        <p class="text-md mt-4 text-cyan-400 font-bold" id="character-info">
+                            Delilah's unique class focuses on corrupting the battlefield and enemies with her Void-based powers.
+                        </p>
+
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="characterRadarChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Modular Script System Section -->
+        <section id="modular-scripts" class="mb-16">
+            <h2 class="text-4xl font-bold text-center mb-8 text-cyan-400">Modular Script System: GameObjectBase</h2>
+            <div class="bg-gray-800 rounded-lg shadow-2xl p-6 md:p-8 border-l-4 border-pink-400">
+                <p class="text-gray-300 text-lg mb-4">At the heart of MILEHIGH.WORLD's scalability and maintainability is the <code class="bg-gray-700 px-1 py-0.5 rounded">GameObjectBase</code> class. All in-game entities inherit from this foundational class, ensuring a consistent structure and a unified approach to handling game logic and data.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-2xl font-bold text-pink-400 mb-2">Purpose & Benefits:</h3>
+                        <ul class="list-disc list-inside space-y-2 text-gray-400">
+                            <li><strong class="text-cyan-400">Consistency:</strong> Ensures all entities share common properties and behaviors.</li>
+                            <li><strong class="text-cyan-400">Scalability:</strong> Easily add new entity types without rewriting core logic.</li>
+                            <li><strong class="text-cyan-400">Maintainability:</strong> Centralized updates to base functionalities propagate across all derived classes.</li>
+                            <li><strong class="text-cyan-400">Modularity:</strong> Encourages breaking down complex systems into smaller, manageable components.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-pink-400 mb-2">Examples of Derived Entities:</h3>
+                        <div class="grid grid-cols-2 gap-4 text-center">
+                            <div class="bg-gray-700 rounded-lg p-3 shadow-md">
+                                <div class="text-4xl mb-2">👤</div>
+                                <p class="text-gray-300">Player Characters</p>
+                            </div>
+                            <div class="bg-gray-700 rounded-lg p-3 shadow-md">
+                                <div class="text-4xl mb-2">👹</div>
+                                <p class="text-gray-300">Enemies & Bosses</p>
+                            </div>
+                            <div class="bg-gray-700 rounded-lg p-3 shadow-md">
+                                <div class="text-4xl mb-2">✨</div>
+                                <p class="text-gray-300">Interactable Objects</p>
+                            </div>
+                            <div class="bg-gray-700 rounded-lg p-3 shadow-md">
+                                <div class="text-4xl mb-2">🔮</div>
+                                <p class="text-gray-300">Void Orbs & Effects</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Core Gameplay Loop Section -->
+        <section id="gameplay-loop" class="mb-16">
+            <h2 class="text-4xl font-bold text-center mb-8 text-pink-400">The Core Gameplay Loop</h2>
+            <div class="bg-gray-800 rounded-lg shadow-2xl p-6 md:p-8 border-l-4 border-cyan-400">
+                <p class="text-gray-300 text-lg text-center mb-8">Experience the dynamic flow of MILEHIGH.WORLD, where every action contributes to your character's growth and the ongoing battle against the Void.</p>
+                <div class="flex flex-col md:flex-row md:items-center justify-center space-y-6 md:space-y-0 md:space-x-8">
+                    <div class="flex flex-col items-center text-center">
+                        <div class="flow-icon">🗺️</div>
+                        <h3 class="text-xl font-bold text-cyan-400">Explore & Encounter</h3>
+                        <p class="text-gray-400 text-sm">Discover new areas, quests, and enemies.</p>
+                    </div>
+                    <div>
+                        <div class="arrow md:hidden">↓</div>
+                        <div class="arrow hidden md:block">→</div>
+                    </div>
+                    <div class="flex flex-col items-center text-center">
+                        <div class="flow-icon">⚔️</div>
+                        <h3 class="text-xl font-bold text-cyan-400">Combat & Strategy</h3>
+                        <p class="text-gray-400 text-sm">Engage foes, utilize skills, and adapt tactics.</p>
+                    </div>
+                    <div>
+                        <div class="arrow md:hidden">↓</div>
+                        <div class="arrow hidden md:block">→</div>
+                    </div>
+                    <div class="flex flex-col items-center text-center">
+                        <div class="flow-icon">📦</div>
+                        <h3 class="text-xl font-bold text-cyan-400">Loot & Rewards</h3>
+                        <p class="text-gray-400 text-sm">Gain experience, currency, and powerful gear.</p>
+                    </div>
+                    <div>
+                        <div class="arrow md:hidden">↓</div>
+                        <div class="arrow hidden md:block">→</div>
+                    </div>
+                    <div class="flex flex-col items-center text-center">
+                        <div class="flow-icon">📈</div>
+                        <h3 class="text-xl font-bold text-cyan-400">Progress & Customize</h3>
+                        <p class="text-gray-400 text-sm">Upgrade skills, enhance gear, and develop your character.</p>
+                    </div>
+                </div>
+                <div class="arrow text-center mt-6">↑ (Loop back to Explore & Encounter)</div>
+            </div>
+        </section>
+
+        <!-- Placeholder for future sections -->
+        <section id="future-sections" class="mb-16">
+            <div class="bg-gray-800 rounded-lg shadow-2xl p-6 md:p-8 text-center">
+                <h2 class="text-3xl font-bold text-cyan-400 mb-4">More to Explore</h2>
+                <p class="text-gray-400 text-lg">Future updates will delve deeper into individual character skill trees and the intricate world-building of MILEHIGH.WORLD.</p>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- JavaScript for Chart.js Integration -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chartCanvas = document.getElementById('characterRadarChart');
+            const characterSelect = document.getElementById('character-select');
+            const characterInfo = document.getElementById('character-info');
+
+            // Define character data for the chart
+            const characterData = {
+                delilah: {
+                    name: 'Delilah Desolate',
+                    data: [9, 8, 7, 3, 2],
+                    color: 'rgba(236, 72, 153, 0.5)', // pink-400
+                    borderColor: 'rgb(236, 72, 153)',
+                    info: "Delilah's unique class focuses on corrupting the battlefield and enemies with her Void-based powers.",
+                },
+                ingris: {
+                    name: 'Ingris the Phoenix Warden',
+                    data: [2, 1, 3, 8, 9],
+                    color: 'rgba(251, 191, 36, 0.5)', // amber-400
+                    borderColor: 'rgb(251, 191, 36)',
+                    info: "Ingris is a stalwart guardian, a warrior who uses the cleansing energies of the Milehigh.World's divine essence to protect and purify the battlefield.",
+                },
+                kai: {
+                    name: 'Kai the Unbroken Sentinel',
+                    data: [1, 2, 7, 5, 9],
+                    color: 'rgba(129, 140, 248, 0.5)', // indigo-400
+                    borderColor: 'rgb(129, 140, 248)',
+                    info: "Kai is the epitome of a steadfast warrior, a beacon of morale on the battlefield who excels in direct, brutal combat and battlefield control.",
+                },
+                cirrus: {
+                    name: 'Cirrus the Dragon King',
+                    data: [6, 4, 8, 10, 1],
+                    color: 'rgba(103, 232, 249, 0.5)', // cyan-400
+                    borderColor: 'rgb(103, 232, 249)',
+                    info: "Cirrus, the ancient Dragon King, wields immense primordial power, focusing on raw damage and a unique form of magical control.",
+                },
+            };
+
+            const labels = ['Corruption (DoT)', 'Leech (Sustain)', 'Control (CC)', 'Raw Damage', 'Support'];
+
+            const chart = new Chart(chartCanvas, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255, 255, 255, 0.2)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.2)' },
+                            pointLabels: { color: 'rgba(255, 255, 255, 0.7)' },
+                            suggestedMin: 0,
+                            suggestedMax: 10,
+                            ticks: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) { label += ': '; }
+                                    if (context.parsed.r !== null) { label += context.parsed.r; }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Function to update the chart and info
+            const updateChart = (characterKey) => {
+                const selectedCharacter = characterData[characterKey];
+                chart.data.datasets = [{
+                    label: selectedCharacter.name + "'s Strengths",
+                    data: selectedCharacter.data,
+                    fill: true,
+                    backgroundColor: selectedCharacter.color,
+                    borderColor: selectedCharacter.borderColor,
+                    pointBackgroundColor: selectedCharacter.borderColor,
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: selectedCharacter.borderColor
+                }];
+                chart.update();
+                characterInfo.textContent = selectedCharacter.info;
+            };
+
+            // Event listener for the dropdown
+            characterSelect.addEventListener('change', (event) => {
+                updateChart(event.target.value);
+            });
+
+            // Initial chart load
+            updateChart('delilah');
+        });
+    </script>
+</body>
+</html>
