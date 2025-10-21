@@ -18,11 +18,12 @@ class TestGameRunner(unittest.TestCase):
         if os.path.exists(database.DB_FILE):
             os.remove(database.DB_FILE)
 
-    @patch('game.AethelgardBattle.run')
-    def test_new_game_starts_correct_scene(self, mock_run):
+    @patch('builtins.input', return_value='quit')
+    @patch('game.FirstMeetingScene.run')
+    def test_new_game_starts_correct_scene(self, mock_run, mock_input):
         """
         Tests that starting a new game (no 'load' argument)
-        initializes and runs the AethelgardBattle scene.
+        initializes and runs the FirstMeetingScene.
         """
         # We pass an empty list to simulate no command-line arguments
         with patch('sys.argv', ['game.py']):
@@ -48,20 +49,15 @@ class TestGameRunner(unittest.TestCase):
 
         # Simulate running 'python game.py load my_save'
         with patch('sys.argv', ['game.py', 'load', 'my_save']):
-            game.main()
+            scene_manager = game.main()
 
         # Assert that load_game was called with the correct save name
         mock_load_game.assert_called_once_with('my_save')
 
         # Assert that the game runs the loaded scene manager
         mock_loaded_scene.run.assert_called_once()
-        scene_manager.run.assert_called_once()
         self.assertIs(scene_manager, mock_loaded_scene,
                       "The game should run the scene manager returned by load_game.")
-
-        # Ensure it's not an instance of the default new game scene
-        self.assertNotIsInstance(scene_manager, rpg.TrollCaveScene,
-                                 "A new game should not be created when one is loaded.")
 
 if __name__ == '__main__':
     unittest.main()

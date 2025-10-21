@@ -151,20 +151,6 @@ class GameObject:
         for effect in effects_to_remove:
             del self.status_effects[effect]
             print(f"{self.name} is no longer {effect}.")
-        """Placeholder for object-specific logic that runs each turn.
-
-        Args:
-            scene_manager (SceneManager): The scene manager controlling the game loop.
-        """
-        pass
-
-    def update_status_effects(self, delta_time):
-        """Updates the duration of active status effects.
-
-        Args:
-            delta_time (float): The time elapsed since the last update.
-        """
-        pass
 
 
 class Item(GameObject):
@@ -313,11 +299,6 @@ class Player(GameObject):
     def update(self, scene_manager):
         """
         Updates the player's state, including mana regeneration per turn.
-    def update(self, delta_time):
-        """Updates the player's state, including mana regeneration.
-
-        Args:
-            delta_time (float): The time elapsed since the last update.
         """
         super().update(scene_manager)
         # Regenerate 2 mana per turn
@@ -356,18 +337,6 @@ class Player(GameObject):
     def use_item(self, item_name, target):
         """
         Uses an item from the inventory on a target. Handles stackable and non-stackable items.
-    def use_item(self, item_name):
-        """Uses an item from the inventory.
-
-        If the item is a consumable, its effect is applied, and its quantity
-        is decreased. If the quantity reaches zero, the item is removed from
-        the inventory.
-
-        Args:
-            item_name (str): The name of the item to use.
-
-        Returns:
-            bool: True if the item was used successfully, False otherwise.
         """
         item_to_use = None
         item_index = -1
@@ -830,48 +799,7 @@ class Enemy(GameObject):
 
 class Item(GameObject):
     """Base class for all items (weapons, consumables, armor, etc.)."""
-    def update(self, delta_time, player):
-        """Updates the enemy's state.
-
-        This method handles the enemy's AI, causing it to move towards and
-        attack the player when they are in range.
-
-        Args:
-            delta_time (float): The time elapsed since the last update.
-            player (Player): The player object.
-        """
-        self.update_status_effects(delta_time)
-
-        if 'sleep' in self.status_effects:
-            print(f"{self.name} is asleep and cannot act.")
-            return
-
-        distance_to_player = self.distance_to(player)
-
-        if self.state == 'idle':
-            if distance_to_player < self.aggro_range:
-                self.state = 'chasing'
-        elif self.state == 'chasing':
-            if distance_to_player < 1:  # Attack range
-                self.state = 'attacking'
-            else:
-                current_speed = self.speed
-                if 'slow' in self.status_effects:
-                    print(f"{self.name} is slowed!")
-                    current_speed /= 2
-                # Move towards the player
-                dx = player.x - self.x
-                dy = player.y - self.y
-                dz = player.z - self.z
-                distance = self.distance_to(player)
-                if distance > 0:
-                    self.move(dx / distance * current_speed * delta_time, dy / distance * current_speed * delta_time,
-                              dz / distance * current_speed * delta_time)
-        elif self.state == 'attacking':
-            if distance_to_player < 1:
-                self.attack(player)
-            else:
-                self.state = 'chasing'
+    pass
 
 
 class Weapon(Item):
@@ -883,7 +811,8 @@ class Weapon(Item):
     """
 
     def __init__(self, name, description, damage, weapon_type="Melee"):
-        super().__init__(name, description)
+        super().__init__(name)
+        self.description = description
         self.damage = damage
         self.weapon_type = weapon_type
 
@@ -984,7 +913,8 @@ class Armor(Item):
     """
 
     def __init__(self, name, description, defense):
-        super().__init__(name, description)
+        super().__init__(name)
+        self.description = description
         self.defense = defense
 
     def __str__(self):
@@ -1594,10 +1524,14 @@ class AethelgardBattle(SceneManager):
 class FirstMeetingScene(SceneManager):
     """A scene that sets up the game from the loaded JSON data."""
 
+    def __init__(self, scene, game, game_data, setup_scene=True):
+        self.game_data = game_data
+        super().__init__(scene, game, setup_scene)
+
     def setup(self):
         """Initializes the scene with objects, characters, etc. from game_data."""
         # Create player from game_data
-        player_data = game_data['player']
+        player_data = self.game_data['player']
         player = Player(
             name=player_data['name'],
             x=player_data['x'],
@@ -1607,7 +1541,7 @@ class FirstMeetingScene(SceneManager):
         self.scene.set_player(player)
 
         # Create enemies from game_data
-        for enemy_data in game_data['enemies']:
+        for enemy_data in self.game_data['enemies']:
             enemy = Enemy(
                 name=enemy_data['name'],
                 x=enemy_data['x'],
@@ -1621,7 +1555,7 @@ class FirstMeetingScene(SceneManager):
             self.scene.add_object(enemy)
 
         # Create a weapon and place it in the scene
-        weapon_data = game_data['items']['weapons'][0]
+        weapon_data = self.game_data['items']['weapons'][0]
         weapon = Weapon(
             name=weapon_data['name'],
             description=weapon_data['description'],
@@ -1633,7 +1567,7 @@ class FirstMeetingScene(SceneManager):
         self.scene.add_object(weapon)
 
         # Create a health potion and place it in the scene
-        potion_data = game_data['items']['consumables']['health_potions'][0]
+        potion_data = self.game_data['items']['consumables']['health_potions'][0]
         potion = HealthPotion(
             name=potion_data['name'],
             description=potion_data['description'],
@@ -1649,7 +1583,6 @@ class FirstMeetingScene(SceneManager):
 
 def main():
     """Sets up and runs the game."""
-if __name__ == "__main__":
     # Load game data from JSON file
     with open("game_data.json", "r") as f:
         game_data = json.load(f)
@@ -1667,27 +1600,19 @@ if __name__ == "__main__":
             print(f"Could not load '{save_name}'. Starting a new game.")
             # Fallback to new game if load fails
             game_engine = Game()
-            battle_scene = Scene("Aethelgard Battle")
-            scene_manager = AethelgardBattle(battle_scene, game_engine)
             scene = Scene("Monolith Clearing")
-            scene_manager = FirstMeetingScene(scene, game_engine)
+            scene_manager = FirstMeetingScene(scene, game_engine, game_data)
     else:
         # Start a new game by default
         print("Starting a new game.")
         game_engine = Game()
-        battle_scene = Scene("Aethelgard Battle")
-        scene_manager = AethelgardBattle(battle_scene, game_engine)
+        scene = Scene("Monolith Clearing")
+        scene_manager = FirstMeetingScene(scene, game_engine, game_data)
 
     if scene_manager:
         scene_manager.run()
         print("Game over.")
-
+    return scene_manager
 
 if __name__ == "__main__":
     main()
-        scene = Scene("Monolith Clearing")
-        scene_manager = FirstMeetingScene(scene, game_engine)
-
-    if scene_manager:
-        scene_manager.run()
-        print("Game over.")
