@@ -1,498 +1,373 @@
+"""A simplified Python RPG for testing specific features.
+
+This script provides a lightweight implementation of a text-based RPG,
+focusing on core mechanics such as character progression, inventory management,
+and an ability system. It is designed to be a simple, self-contained
+environment for testing and demonstrating specific game features before they
+are integrated into the more complex `rpg.py` or the main Unity project.
+"""
+
 import time
 import random
 import math
 
 class GameObject:
-    """
-    Base class for all game objects.  Provides fundamental attributes and methods.
-    """
-    def __init__(self, name="GameObject", x=0, y=0, z=0, health=100, speed=1, visible=True, solid=True):
-        """
-        Constructor for GameObject.
+    """Base class for all objects in the game world.
 
-        Args:
-            name (str): The name of the object.
-            x (float): The x-coordinate of the object's position.
-            y (float): The y-coordinate of the object's position.
-            z (float): The z-coordinate of the object's position (for 3D).
-            health (int): The health of the object.
-            speed (float): The speed of the object.
-            visible (bool): Whether the object is visible.
-            solid (bool): Whether the object is solid (can collide with other objects).
-        """
+    Attributes:
+        name (str): The name of the object.
+        x (int): The x-coordinate of the object.
+        y (int): The y-coordinate of the object.
+        max_health (int): The maximum health of the object.
+        health (int): The current health of the object.
+        is_alive (bool): Whether the object is alive.
+    """
+    def __init__(self, name="GameObject", x=0, y=0, health=100):
         self.name = name
         self.x = x
         self.y = y
-        self.z = z
+        self.max_health = health
         self.health = health
-        self.speed = speed
-        self.visible = visible
-        self.solid = solid
-        self.attributes = {}  # Dictionary for storing additional attributes.
+        self.is_alive = True
 
-    def __repr__(self):
-        """
-        Returns a string representation of the GameObject.  Useful for debugging.
-        """
-        return f"{self.name}(x={self.x}, y={self.y}, z={self.z}, health={self.health})"
-
-    def distance_to(self, other):
-        """
-        Calculates the distance to another GameObject.
+    def move(self, dx, dy):
+        """Moves the object by a given delta.
 
         Args:
-            other (GameObject): The other GameObject.
-
-        Returns:
-            float: The distance to the other GameObject.
-        """
-        dx = self.x - other.x
-        dy = self.y - other.y
-        dz = self.z - other.z
-        return math.sqrt(dx * dx + dy * dy + dz * dz)
-
-    def move(self, dx, dy, dz=0):
-        """
-        Moves the object by the specified amount.
-
-        Args:
-            dx (float): The change in x-coordinate.
-            dy (float): The change in y-coordinate.
-            dz (float): The change in z-coordinate (for 3D).
+            dx (int): The change in x-coordinate.
+            dy (int): The change in y-coordinate.
         """
         self.x += dx
         self.y += dy
-        self.z += dz
-
-    def take_damage(self, damage):
-        """
-        Reduces the object's health.
-
-        Args:
-            damage (int): The amount of damage to take.
-        """
-        self.health -= damage
-        if self.health <= 0:
-            self.die()
 
     def heal(self, amount):
-        """
-        Increases the object's health.
+        """Heals the object for a given amount.
 
         Args:
-            amount (int): The amount to heal.
+            amount (int): The amount of health to restore.
         """
-        self.health += amount
-        if self.health > 100:  # Assuming max health is 100
-            self.health = 100
+        self.health = min(self.max_health, self.health + amount)
+        print(f"{self.name} heals for {amount}, now at {self.health} HP.")
 
-    def die(self):
-        """
-        Handles the object's death.  This can be overridden in subclasses.
-        """
-        self.visible = False
-        self.solid = False
-        print(f"{self.name} has died.")
+    def take_damage(self, amount):
+        """Reduces the object's health by a given amount.
 
-    def update(self, delta_time):
-        """
-        Updates the object's state.  This method is called every frame.
-        This is meant to be overridden in subclasses.
         Args:
-           delta_time: Time since the last frame in seconds.
+            amount (int): The amount of damage to take.
         """
+        self.health -= amount
+        if self.health <= 0:
+            self.health = 0
+            self.is_alive = False
+            print(f"{self.name} has been defeated!")
+        else:
+            print(f"{self.name} takes {amount:.0f} damage, {self.health:.0f} HP remaining.")
+
+    def update(self):
+        """A placeholder for future logic, called once per game turn."""
         pass
 
-    def draw(self):
-        """
-        Draws the object.  This method is called every frame.
-        This is meant to be overridden in subclasses, using a graphics library.
-        """
-        if self.visible:
-            print(f"Drawing {self.name} at ({self.x}, {self.y}, {self.z})") # Basic drawing for now.
+class Item:
+    """Base class for all items in the game.
 
-class Player(GameObject):
+    Attributes:
+        name (str): The name of the item.
+        description (str): A description of the item.
     """
-    Represents the player character.
+    def __init__(self, name, description):
+        self.name = name
+        self.description = description
+    def __str__(self):
+        return f"{self.name}: {self.description}"
+
+class Weapon(Item):
+    """A type of item that can be equipped to deal damage.
+
+    Attributes:
+        damage (int): The amount of damage the weapon deals.
     """
-    def __init__(self, name="Player", x=0, y=0, z=0):
-        super().__init__(name=name, x=x, y=y, z=z, health=100, speed=5)
-        self.weapon = None
-        self.inventory = []
+    def __init__(self, name, description, damage):
+        super().__init__(name, description)
+        self.damage = damage
+    def __str__(self):
+        return f"{self.name} (Weapon, +{self.damage} DMG)"
+
+class Consumable(Item):
+    """A type of item that can be used once for an effect.
+
+    Attributes:
+        effect (str): The type of effect the consumable has (e.g., "heal").
+        value (int): The magnitude of the effect.
+    """
+    def __init__(self, name, description, effect, value):
+        super().__init__(name, description)
+        self.effect = effect
+        self.value = value
+    def __str__(self):
+        return f"{self.name} (Consumable)"
+    def use(self, character):
+        """Applies the consumable's effect to a character.
+
+        Args:
+            character (Character): The character using the item.
+        """
+        print(f"{character.name} uses {self.name}!")
+        if self.effect == "heal":
+            character.heal(self.value)
+
+class Inventory:
+    """Manages a character's items.
+
+    Attributes:
+        items (list): A list of items in the inventory.
+        capacity (int): The maximum number of items the inventory can hold.
+        owner_name (str): The name of the inventory's owner.
+    """
+    def __init__(self, owner_name="Unknown", capacity=20):
+        self.items = []
+        self.capacity = capacity
+        self.owner_name = owner_name
+
+    def add_item(self, item):
+        """Adds an item to the inventory.
+
+        Args:
+            item (Item): The item to add.
+
+        Returns:
+            bool: True if the item was added successfully, False otherwise.
+        """
+        if len(self.items) < self.capacity:
+            self.items.append(item)
+            return True
+        return False
+
+    def remove_item(self, item_name):
+        """Removes an item from the inventory by name.
+
+        Args:
+            item_name (str): The name of the item to remove.
+        """
+        self.items = [item for item in self.items if item.name != item_name]
+
+    def list_items(self):
+        """Prints a list of all items in the inventory."""
+        print(f"--- {self.owner_name}'s Inventory ---")
+        if not self.items:
+            print("Empty")
+        else:
+            for item in self.items:
+                print(f"- {item}")
+        print("-----------------")
+
+class Ability:
+    """Base class for all abilities.
+
+    Attributes:
+        name (str): The name of the ability.
+        description (str): A description of the ability.
+        cost (int): The cost to use the ability.
+        cost_type (str): The type of resource the ability costs (e.g., "Mana").
+    """
+    def __init__(self, name, description, cost, cost_type):
+        self.name = name
+        self.description = description
+        self.cost = cost
+        self.cost_type = cost_type
+
+    def use(self, caster, target):
+        """Uses the ability.
+
+        Args:
+            caster (Character): The character using the ability.
+            target (Character): The target of the ability.
+        """
+        print("Ability base class cannot be used.")
+
+class TargetedDamageAbility(Ability):
+    """An ability that deals damage to a single target.
+
+    Attributes:
+        damage (int): The amount of damage the ability deals.
+    """
+    def __init__(self, name, description, cost, cost_type, damage):
+        super().__init__(name, description, cost, cost_type)
+        self.damage = damage
+
+    def use(self, caster, target):
+        """Uses the ability on a target.
+
+        Args:
+            caster (Character): The character using the ability.
+            target (Character): The target of the ability.
+        """
+        print(f"{caster.name} uses {self.name} on {target.name}!")
+        target.take_damage(self.damage)
+
+class Quest:
+    """Represents a quest with objectives.
+
+    Attributes:
+        title (str): The title of the quest.
+        description (str): A description of the quest.
+        objectives (list): A list of objectives for the quest.
+        status (str): The current status of the quest (e.g., "Active").
+    """
+    def __init__(self, title, description, objectives):
+        self.title = title
+        self.description = description
+        self.objectives = objectives
+        self.status = "Inactive"
+
+    def is_complete(self):
+        """Checks if all objectives are complete.
+
+        Returns:
+            bool: True if all objectives are complete, False otherwise.
+        """
+        return all(obj['current'] >= obj['required'] for obj in self.objectives)
+
+    def update_objective(self, objective_type, target_name):
+        """Updates a quest objective.
+
+        Args:
+            objective_type (str): The type of objective to update (e.g., "defeat").
+            target_name (str): The name of the target of the objective.
+        """
+        for obj in self.objectives:
+            if obj['type'] == objective_type and obj['target'].lower() == target_name.lower():
+                obj['current'] = min(obj['required'], obj['current'] + 1)
+
+class QuestJournal:
+    """Manages a character's quests.
+
+    Attributes:
+        active_quests (list): A list of active quests.
+        completed_quests (list): A list of completed quests.
+        owner_name (str): The name of the journal's owner.
+    """
+    def __init__(self, owner_name="Unknown"):
+        self.active_quests = []
+        self.completed_quests = []
+        self.owner_name = owner_name
+
+    def add_quest(self, quest):
+        """Adds a quest to the journal.
+
+        Args:
+            quest (Quest): The quest to add.
+        """
+        quest.status = "Active"
+        self.active_quests.append(quest)
+
+    def complete_quest(self, quest):
+        """Moves a quest from active to completed.
+
+        Args:
+            quest (Quest): The quest to complete.
+        """
+        quest.status = "Completed"
+        self.active_quests.remove(quest)
+        self.completed_quests.append(quest)
+
+    def display(self):
+        """Displays the quest journal."""
+        print(f"--- {self.owner_name}'s Quest Journal ---")
+        print("\n-- Active Quests --")
+        if not self.active_quests:
+            print("None")
+        for q in self.active_quests:
+            print(f"- {q.title} ({q.objectives[0]['current']}/{q.objectives[0]['required']})")
+
+class Character(GameObject):
+    """The base class for all characters in the game.
+
+    Attributes:
+        inventory (Inventory): The character's inventory.
+        journal (QuestJournal): The character's quest journal.
+        level (int): The character's current level.
+        xp (int): The character's current experience points.
+        xp_to_next_level (int): The experience points required for the next level.
+        xp_value (int): The experience points awarded for defeating the character.
+        equipped_weapon (Weapon): The character's equipped weapon.
+        base_attack_damage (int): The character's base attack damage.
+        abilities (list): A list of all possible abilities for the character.
+        unlocked_abilities (list): A list of abilities the character has unlocked.
+    """
+    def __init__(self, name="Character", x=0, y=0, health=100):
+        super().__init__(name, x, y, health)
+        self.inventory = Inventory(owner_name=self.name)
+        self.journal = QuestJournal(owner_name=self.name)
         self.level = 1
-        self.experience = 0
-        self.max_health = 100
-        self.mana = 100  # Add mana attribute
+        self.xp = 0
+        self.xp_to_next_level = 100
+        self.xp_value = 50
+        self.equipped_weapon = None
+        self.base_attack_damage = 5
+        self.abilities = []
+        self.unlocked_abilities = []
 
-    def attack(self, target):
-        """
-        Attacks another GameObject.
+    def __str__(self):
+        return f"{self.name} (Lvl {self.level}) | HP: {self.health}/{self.max_health}"
 
-        Args:
-            target (GameObject): The target to attack.
-        """
-        if self.weapon:
-            damage = self.weapon.damage
-            print(f"{self.name} attacks {target.name} with {self.weapon.name} for {damage} damage.")
-            target.take_damage(damage)
-        else:
-            print(f"{self.name} attacks {target.name} with bare hands for 10 damage.")
-            target.take_damage(10)
-
-    def equip_weapon(self, weapon):
-        """
-        Equips a weapon.
-
-        Args:
-            weapon (Weapon): The weapon to equip.
-        """
-        if isinstance(weapon, Weapon):
-            self.weapon = weapon
-            print(f"{self.name} equipped {weapon.name}.")
-        else:
-            print(f"{self.name} cannot equip {weapon.name}.  It is not a weapon.")
-
-    def pickup_item(self, item):
-        """
-        Picks up an item and adds it to the inventory.
-
-        Args:
-            item (GameObject): The item to pick up.
-        """
-        self.inventory.append(item)
-        item.visible = False
-        item.solid = False
-        print(f"{self.name} picked up {item.name}.")
-
-    def use_item(self, item_name):
-        """
-        Uses an item from the inventory.
-
-        Args:
-            item_name (str): The name of the item to use.
-        """
-        for item in self.inventory:
-            if item.name == item_name:
-                if isinstance(item, Consumable):
-                    item.use(self)  #  Use the item.
-                    self.inventory.remove(item)  # Remove used item.
-                else:
-                    print(f"{self.name} cannot use {item.name}.")
-                return
-        print(f"{self.name} does not have {item_name} in their inventory.")
-
-    def gain_experience(self, amount):
-        """
-        Gains experience points.
+    def gain_xp(self, amount):
+        """Gains experience and checks for level up.
 
         Args:
             amount (int): The amount of experience to gain.
         """
-        self.experience += amount
-        print(f"{self.name} gained {amount} experience.")
-        self.check_level_up()
+        self.xp += amount
+        print(f"{self.name} gains {amount} XP!")
+        if self.xp >= self.xp_to_next_level:
+            self.level_up()
 
-    def check_level_up(self):
-        """
-        Checks if the player has enough experience to level up.
-        """
-        # Example leveling curve: 100 * level * level
-        required_experience = 100 * self.level * self.level
-        if self.experience >= required_experience:
+    def level_up(self):
+        """Levels up the character, increasing stats and learning new abilities."""
+        while self.xp >= self.xp_to_next_level:
             self.level += 1
+            self.xp -= self.xp_to_next_level
+            self.xp_to_next_level = int(self.xp_to_next_level * 1.5)
             self.max_health += 10
-            self.health = self.max_health # Fully heal on level up.
-            self.speed *= 1.1 # Increase speed by 10%
-            print(f"{self.name} leveled up to level {self.level}!")
+            self.health = self.max_health
+            print(f"{self.name} has reached Level {self.level}!")
+        for ability, required_level in self.abilities:
+            if self.level >= required_level and not any(a.name == ability.name for a in self.unlocked_abilities):
+                self.unlocked_abilities.append(ability)
+                print(f"{self.name} has learned the ability: {ability.name}!")
 
-    def cast_spell(self, spell_name, target):
-        """Casts a spell.  Example of using the mana attribute."""
-        if spell_name == "fireball":
-            if self.mana >= 20:  # Fireball costs 20 mana
-                self.mana -= 20
-                print(f"{self.name} casts Fireball on {target.name} for 30 damage!")
-                target.take_damage(30)
-            else:
-                print(f"{self.name} does not have enough mana to cast Fireball!")
-        elif spell_name == "heal":
-            if self.mana >= 10:
-                self.mana -= 10
-                self.heal(20)
-                print(f"{self.name} casts Heal and heals for 20 HP.")
-            else:
-                print(f"{self.name} does not have enough mana to cast Heal!")
-        else:
-            print(f"{self.name} does not know the spell {spell_name}.")
+class Player(Character):
+    """A player-controlled character."""
+    def __init__(self, name="Player", x=0, y=0, health=100):
+        super().__init__(name, x, y, health)
+        self.abilities = [
+            (TargetedDamageAbility("Power Strike", "A strong melee attack.", 10, "Stamina", 25), 3),
+            (TargetedDamageAbility("Fireball", "A basic fire spell.", 20, "Mana", 40), 5)
+        ]
 
-class Enemy(GameObject):
-    """
-    Represents an enemy character.
-    """
-    def __init__(self, name="Enemy", x=0, y=0, z=0, type="Generic"):
-        super().__init__(name=name, x=x, y=y, z=z, health=50, speed=2)
-        self.type = type  # e.g., "Goblin", "Orc", "Dragon"
-        self.attack_damage = 10
-        self.aggro_range = 10  # Range at which the enemy will start attacking.
+class Enemy(Character):
+    """A basic enemy character."""
+    def __init__(self, name="Enemy", x=0, y=0, health=50, xp_value=50):
+        super().__init__(name, x, y, health)
+        self.xp_value = xp_value
 
-    def attack(self, target):
-        """
-        Attacks another GameObject.
-
-        Args:
-            target (GameObject): The target to attack.
-        """
-        print(f"{self.name} attacks {target.name} for {self.attack_damage} damage.")
-        target.take_damage(self.attack_damage)
-
-    def update(self, delta_time, player):
-        """
-        Updates the enemy's state.  This is called every frame.
-
-        Args:
-            delta_time (float): Time since last frame.
-            player (Player): The player object.
-        """
-        super().update(delta_time) # Call the superclass's update method.
-        if self.distance_to(player) < self.aggro_range:
-            # Move towards the player
-            dx = player.x - self.x
-            dy = player.y - self.y
-            dz = player.z - self.z
-            distance = self.distance_to(player)
-            if distance > 0:
-              self.move(dx / distance * self.speed * delta_time, dy / distance * self.speed * delta_time, dz/distance * self.speed * delta_time)
-            # Attack the player if close enough.
-            if self.distance_to(player) < 1:  # Attack range
-                self.attack(player)
-
-class Weapon(GameObject):
-    """
-    Represents a weapon.
-    """
-    def __init__(self, name="Weapon", x=0, y=0, z=0, damage=10, weapon_type="Melee"):
-        super().__init__(name=name, x=x, y=y, z=z, visible=False, solid=False)  # Weapons are not solid by default.
-        self.damage = damage
-        self.weapon_type = weapon_type # e.g., "Melee", "Ranged", "Magic"
-
-class Consumable(GameObject):
-    """
-    Represents a consumable item.
-    """
-    def __init__(self, name="Consumable", x=0, y=0, z=0, effect="None"):
-        super().__init__(name=name, x=x, y=y, z=z, visible=False, solid=False)
-        self.effect = effect
-
-    def use(self, target):
-        """
-        Applies the consumable's effect to the target.  Must be overridden.
-
-        Args:
-            target (GameObject): The target of the consumable's effect.
-        """
-        print(f"{self.name} used on {target.name}.  Effect: {self.effect}") # default
-
-class HealthPotion(Consumable):
-    def __init__(self, name="Health Potion", x=0, y=0, z=0, amount=20):
-        super().__init__(name=name, x=x, y=y, z=z, effect=f"Heals {amount} HP")
-        self.amount = amount
-
-    def use(self, target):
-        """Heals the target."""
-        if isinstance(target, GameObject):
-            target.heal(self.amount)
-            print(f"{target.name} healed for {self.amount} HP.")
-        else:
-            print(f"{self.name} cannot be used on {target}.")
-
-class ManaPotion(Consumable):
-    def __init__(self, name="Mana Potion", x=0, y=0, z=0, amount=30):
-        super().__init__(name=name, x=x, y=y, z=z, effect=f"Restores {amount} Mana")
-        self.amount = amount
-
-    def use(self, target):
-        """Restore mana of the target.  Assumes target has a mana attribute."""
-        if isinstance(target, GameObject):
-            if hasattr(target, 'mana'):
-                target.mana += self.amount
-                print(f"{target.name} restored for {self.amount} mana.")
-            else:
-                print(f"{target.name} does not have mana.")
-        else:
-            print(f"{self.name} cannot be used on {target}.")
-
-class Game:
-    """
-    Represents the game engine.  Handles game logic, object management, and the game loop.
-    """
-    def __init__(self):
-        self.objects = []
-        self.player = None
-        self.running = False
-        self.last_time = time.time()
-        self.game_time = 0 # Keep track of total game time.
-
-    def add_object(self, obj):
-        """
-        Adds a GameObject to the game.
-
-        Args:
-            obj (GameObject): The GameObject to add.
-        """
-        self.objects.append(obj)
-        if isinstance(obj, Player):
-            self.player = obj
-
-    def remove_object(self, obj):
-        """
-        Removes a GameObject from the game.
-
-        Args:
-            obj (GameObject): The GameObject to remove.
-        """
-        self.objects.remove(obj)
-
-    def start(self):
-        """
-        Starts the game loop.
-        """
-        if self.player is None:
-            print("Cannot start game without a Player.")
-            return
-        self.running = True
-        print("Game started.")
-        self.last_time = time.time()  # Initialize last_time here
-        while self.running:
-            self.game_loop()
-
-    def stop(self):
-        """
-        Stops the game loop.
-        """
-        self.running = False
-        print("Game stopped.")
-
-    def handle_input(self, delta_time):
-        """
-        Handles user input.  This is a placeholder and should be implemented
-        using a specific input library (e.g., pygame, keyboard).
-
-        Args:
-            delta_time (float): Time since last frame.
-        """
-        # Example: Move player with arrow keys (using a hypothetical keyboard library)
-        # if keyboard.is_pressed('up'):
-        #     self.player.move(0, -self.player.speed * delta_time)
-        # if keyboard.is_pressed('down'):
-        #     self.player.move(0, self.player.speed * delta_time)
-        # if keyboard.is_pressed('left'):
-        #     self.player.move(-self.player.speed * delta_time, 0)
-        # if keyboard.is_pressed('right'):
-        #     self.player.move(self.player.speed * delta_time, 0)
-        pass #  Do nothing for now.
-
-    def update(self, delta_time):
-        """
-        Updates the game state.  This is called every frame.
-
-        Args:
-            delta_time (float): Time since the last frame.
-        """
-        for obj in self.objects:
-            if isinstance(obj, Enemy):
-                obj.update(delta_time, self.player) # Pass the player to the enemy's update
-            else:
-                obj.update(delta_time) # Call the update method for other objects
-
-        # Example: Check for collisions (very basic)
-        for i in range(len(self.objects)):
-            for j in range(i + 1, len(self.objects)):
-                obj1 = self.objects[i]
-                obj2 = self.objects[j]
-                if obj1.solid and obj2.solid and obj1.distance_to(obj2) < 1:  # Simple collision check
-                    self.handle_collision(obj1, obj2)
-
-    def handle_collision(self, obj1, obj2):
-        """
-        Handles collisions between two GameObjects.  This is a placeholder.
-
-        Args:
-            obj1 (GameObject): The first GameObject.
-            obj2 (GameObject): The second GameObject.
-        """
-        print(f"Collision between {obj1.name} and {obj2.name}")
-        # Example:  Make them bounce
-        obj1.move(-0.5, 0)
-        obj2.move(0.5, 0)
-
-    def draw(self):
-        """
-        Draws the game objects.  This is a placeholder and should be implemented
-        using a specific graphics library (e.g., pygame, OpenGL).
-        """
-        for obj in self.objects:
-            obj.draw()
-
-    def game_loop(self):
-        """
-        The main game loop.  This is called every frame.
-        """
-        current_time = time.time()
-        delta_time = current_time - self.last_time
-        self.last_time = current_time
-        self.game_time += delta_time
-
-        # Cap delta_time to prevent issues with very large time steps (e.g., if the game freezes)
-        delta_time = min(delta_time, 0.1)
-
-        self.handle_input(delta_time)
-        self.update(delta_time)
-        self.draw()
-        #  Add a small delay.  Important for CPU usage.
-        time.sleep(0.01) # 10 milliseconds
-
-def run_game():
-    """
-    Main function to run the game.  Sets up the game and starts it.
-    """
-    game = Game()
-
-    # Create game objects
-    player = Player(name="Hero", x=0, y=0, z=0)
-    game.add_object(player)
-
-    enemy1 = Enemy(name="Goblin", x=5, y=5, z=0, type="Goblin")
-    game.add_object(enemy1)
-
-    enemy2 = Enemy(name="Orc", x=-5, y=-5, z=0, type="Orc")
-    game.add_object(enemy2)
-
-    sword = Weapon(name="Sword", x=1, y=0, z=0, damage=20, weapon_type="Melee")
-    game.add_object(sword)
-
-    potion = HealthPotion(name="Potion", x=-1, y=0, z=0, amount=30)
-    game.add_object(potion)
-
-    mana_potion = ManaPotion(name="Mana Potion", x=-2, y=0, z=0, amount=40)
-    game.add_object(mana_potion)
-
-    player.pickup_item(sword)
-    player.equip_weapon(sword)
-    player.pickup_item(potion)
-    player.pickup_item(mana_potion)
-    player.mana = 100 # give player some mana
-
-    # Example of using the new mana and cast_spell
-    print("\n--- Game Start ---")
-    print(player)  # Print player stats
-    player.cast_spell("fireball", enemy1)
-    print(enemy1)
-    player.cast_spell("heal", player)
+def run_level_up_demonstration():
+    """Shows the level-up system in action."""
+    print("\n--- Level-Up and Ability Learning Demonstration ---")
+    player = Player(name="Hero")
+    enemy = Enemy(name="Goblin", xp_value=80)
+    print("\n--- Initial State ---")
     print(player)
-    player.cast_spell("fireball", enemy2) #use mana
-    print(enemy2)
-    player.cast_spell("heal", player)
+    print(f"Unlocked abilities: {[a.name for a in player.unlocked_abilities]}")
+    print(f"\n--- {player.name} defeats {enemy.name}! ---")
+    player.gain_xp(enemy.xp_value)
     print(player)
-    game.start() #start the game loop.
+    print("\n--- Hero completes a major quest! ---")
+    player.gain_xp(740)
+    print(player)
+    print(f"Unlocked abilities: {[a.name for a in player.unlocked_abilities]}")
+    assert "Power Strike" in [a.name for a in player.unlocked_abilities]
+    assert "Fireball" in [a.name for a in player.unlocked_abilities]
+    print("\nDemonstration complete. Abilities learned as expected.")
 
 if __name__ == "__main__":
-    run_game()
+    run_level_up_demonstration()

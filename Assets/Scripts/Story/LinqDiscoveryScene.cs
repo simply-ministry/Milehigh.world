@@ -3,36 +3,29 @@ using System.Collections;
 
 /// <summary>
 /// Manages the discovery scene in the ruins of Lîŋq,
-/// featuring Micah, Omega.one, and Cirrus. This script controls the dialogue
-/// and the reveal of the Onalym Nexus.
+/// featuring Micah, Omega.one, and Cirrus.
 /// </summary>
 public class LinqDiscoveryScene : MonoBehaviour
 {
-    /// <summary>
-    /// A reference to the Micah character component.
-    /// </summary>
+    [Header("Character References")]
+    [Tooltip("Reference to the Micah character in the scene.")]
     public Character micah;
-    /// <summary>
-    /// A reference to the Omega.one character component.
-    /// </summary>
+    [Tooltip("Reference to the Omega.one character in the scene.")]
     public Character omegaOne;
-    /// <summary>
-    /// A reference to the Cirrus character component.
-    /// </summary>
+    [Tooltip("Reference to the Cirrus character in the scene.")]
     public Character cirrus;
-    /// <summary>
-    /// The GameObject representing the Onalym Nexus, which is revealed during the scene.
-    /// </summary>
+
+    [Header("Scene Objects")]
+    [Tooltip("The GameObject representing the Onalym Nexus.")]
     public GameObject onalymNexus;
 
-    /// <summary>
-    /// The time in seconds to pause between each line of dialogue.
-    /// </summary>
+    [Header("Scene Settings")]
+    [Tooltip("The pause duration in seconds between lines of dialogue.")]
     public float dialoguePause = 2.5f;
 
     /// <summary>
     /// Called when the script instance is being loaded.
-    /// Initializes the scene by hiding the Nexus and starting the sequence.
+    /// Ensures the Onalym Nexus is hidden and starts the scene sequence.
     /// </summary>
     void Start()
     {
@@ -44,7 +37,7 @@ public class LinqDiscoveryScene : MonoBehaviour
     }
 
     /// <summary>
-    /// Coroutine that controls the step-by-step flow of the narrative scene.
+    /// The main coroutine that controls the flow of the narrative scene.
     /// </summary>
     /// <returns>An IEnumerator to be used by StartCoroutine.</returns>
     IEnumerator SceneSequence()

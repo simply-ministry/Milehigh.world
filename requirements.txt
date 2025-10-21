@@ -1,1 +1,5 @@
+# Python libraries required for the USD asset pipeline.
+# Add libraries like 'pytest' for testing or 'usd-core' if needed.
+pytest
 usd-core
+google-generativeai

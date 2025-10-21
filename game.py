@@ -1,27 +1,59 @@
-import time
-import random
+"""A Python-based prototype of the game's core mechanics.
+
+This script defines the fundamental classes and logic for a text-based RPG,
+including game objects, characters, items, combat, and dialogue systems. It
+serves as a testing ground for game mechanics before they are implemented in
+the main C# Unity project.
+"""
+
+import json
 import math
+import random
+import sys
+import time
+
+import database  # Import the new database module
+
+
+# --- Helper to provide class definitions to the database module ---
+def get_class_by_name(class_name):
+    """Returns a class object from the global scope by its string name.
+
+    Args:
+        class_name (str): The name of the class to retrieve.
+
+    Returns:
+        type: The class object corresponding to the given name, or None if not found.
+    """
+    return globals().get(class_name)
+
+
+# Inject this function into the database module
+database.set_class_loader(get_class_by_name)
+
 
 class GameObject:
-    """
-    Base class for all game objects.  Provides fundamental attributes and methods.
-    """
-    def __init__(self, name="GameObject", x=0, y=0, z=0, health=100, speed=1, visible=True, solid=True, defense=0):
-        """
-        Constructor for GameObject.
+    """The base class for all objects in the game world.
 
-        Args:
-            name (str): The name of the object.
-            x (float): The x-coordinate of the object's position.
-            y (float): The y-coordinate of the object's position.
-            z (float): The z-coordinate of the object's position (for 3D).
-            health (int): The health of the object.
-            speed (float): The speed of the object.
-            visible (bool): Whether the object is visible.
-            solid (bool): Whether the object is solid (can collide with other objects).
-            defense (int): The defense of the object.
-        """
+    Attributes:
+        name (str): The name of the object.
+        symbol (str): The character used to represent the object on the map.
+        x (int): The x-coordinate of the object.
+        y (int): The y-coordinate of the object.
+        z (int): The z-coordinate of the object (for 3D positioning).
+        health (int): The current health of the object.
+        speed (int): The movement speed of the object.
+        visible (bool): Whether the object is visible on the map.
+        solid (bool): Whether the object blocks movement.
+        defense (int): The base defense value of the object.
+        attributes (dict): A dictionary for storing additional attributes.
+        status_effects (dict): A dictionary for storing active status effects.
+    """
+
+    def __init__(self, name="Object", symbol='?', x=0, y=0, z=0, state=None, health=100, speed=1, visible=True,
+                 solid=True, defense=0):
         self.name = name
+        self.symbol = symbol
         self.x = x
         self.y = y
         self.z = z
@@ -29,22 +61,20 @@ class GameObject:
         self.speed = speed
         self.visible = visible
         self.solid = solid
-        self.strength = 10
-        self.dexterity = 10
-        self.intelligence = 10
         self.defense = defense
         self.attributes = {}  # Dictionary for storing additional attributes.
         self.status_effects = {}  # e.g., {'sleep': 6, 'slow': 8}
 
     def __repr__(self):
-        """
-        Returns a string representation of the GameObject.  Useful for debugging.
+        """Returns a string representation of the GameObject, useful for debugging.
+
+        Returns:
+            str: A string representation of the object.
         """
         return f"{self.name}(x={self.x}, y={self.y}, z={self.z}, health={self.health})"
 
     def distance_to(self, other):
-        """
-        Calculates the distance to another GameObject.
+        """Calculates the distance to another GameObject.
 
         Args:
             other (GameObject): The other GameObject.
@@ -58,8 +88,7 @@ class GameObject:
         return math.sqrt(dx * dx + dy * dy + dz * dz)
 
     def move(self, dx, dy, dz=0):
-        """
-        Moves the object by the specified amount.
+        """Moves the object by the specified amount.
 
         Args:
             dx (float): The change in x-coordinate.
@@ -71,109 +100,160 @@ class GameObject:
         self.z += dz
 
     def take_damage(self, damage):
-        """
-        Reduces the object's health after factoring in defense.
+        """Reduces the object's health after factoring in defense.
+
+        This method calculates the actual damage taken by subtracting the
+        object's defense from the incoming damage. It also checks for status
+        effects like 'armor_break' that may modify defense.
 
         Args:
             damage (int): The amount of incoming damage.
         """
-        actual_damage = max(0, damage - self.defense)
+        total_defense = self.defense
+        # Check if the object has an equipment manager
+        if hasattr(self, 'equipment'):
+            equipped_stats = self.equipment.get_total_stats()
+            total_defense += equipped_stats["defense"]
+
+        if 'armor_break' in self.status_effects:
+            print(f"{self.name} is armor broken! Defense is negated.")
+            total_defense = 0
+
+        actual_damage = max(0, damage - total_defense)
         self.health -= actual_damage
         if actual_damage > 0:
             print(f"{self.name} takes {actual_damage} damage.")
         else:
             print(f"{self.name}'s defense holds strong!")
 
-        if self.health <= 0:
-            self.die()
+    def update(self, scene_manager):
+        """Placeholder for object-specific logic that runs each turn."""
+        self.update_status_effects()
 
-    def heal(self, amount):
-        """
-        Increases the object's health.
+    def apply_status_effect(self, effect_name, duration, **kwargs):
+        """Applies a status effect to the object."""
+        self.status_effects[effect_name] = {'duration': duration, **kwargs}
+        print(f"{self.name} is now affected by {effect_name}.")
 
-        Args:
-            amount (int): The amount to heal.
-        """
-        self.health += amount
-        if self.health > 100:  # Assuming max health is 100
-            self.health = 100
+    def update_status_effects(self):
+        """Updates status effects each turn."""
+        effects_to_remove = []
+        for effect, data in self.status_effects.items():
+            if effect == 'poison':
+                potency = data.get('potency', 1)
+                self.take_damage(potency)
+                print(f"{self.name} takes {potency} damage from poison.")
 
-    def die(self):
-        """
-        Handles the object's death.  This can be overridden in subclasses.
-        """
-        self.visible = False
-        self.solid = False
-        print(f"{self.name} has died.")
+            data['duration'] -= 1
+            if data['duration'] <= 0:
+                effects_to_remove.append(effect)
 
-    def update_status_effects(self, delta_time):
-        """Updates status effects, applying their effects and decrementing timers."""
-        # Using list() to create a copy, allowing modification during iteration
-        for effect, duration in list(self.status_effects.items()):
-            # Decrement timer
-            new_duration = duration - delta_time
-            if new_duration > 0:
-                self.status_effects[effect] = new_duration
-            else:
-                del self.status_effects[effect]
-                print(f"{self.name}'s {effect} has worn off.")
-                continue # Skip to next effect once it's removed
+        for effect in effects_to_remove:
+            del self.status_effects[effect]
+            print(f"{self.name} is no longer {effect}.")
 
-            # Apply passive effects
-            if effect == 'psychic_damage':
-                dot_damage = 5 * delta_time # 5 damage per second
-                print(f"{self.name} is taking psychic damage.")
-                self.take_damage(dot_damage)
 
-    def update(self, delta_time):
-        """
-        Updates the object's state.  This method is called every frame.
-        This is meant to be overridden in subclasses.
-        Args:
-           delta_time: Time since the last frame in seconds.
-        """
-        pass
+class Item(GameObject):
+    """Represents items that can be picked up or used.
 
-    def draw(self):
+    This class serves as a base for all items in the game, including weapons,
+    armor, and consumables.
+    """
+
+    def __init__(self, name="Item", symbol='*', x=0, y=0):
+        super().__init__(name, symbol, x, y)
+
+
+class Interactable(GameObject):
+    """Represents objects that can be examined for a description.
+
+    Attributes:
+        description (str): The text displayed when the object is examined.
+    """
+
+    def __init__(self, name, symbol, x, y, description):
+        super().__init__(name, symbol, x, y)
+        self.description = description
+
+    def on_examine(self):
+        """Returns the description of the object.
+
+        Returns:
+            str: The description of the object.
         """
-        Draws the object.  This method is called every frame.
-        This is meant to be overridden in subclasses, using a graphics library.
-        """
-        if self.visible:
-            print(f"Drawing {self.name} at ({self.x}, {self.y}, {self.z})") # Basic drawing for now.
+        return self.description
+
 
 class Player(GameObject):
+    """Represents the player character.
+
+    This class manages the player's stats, inventory, equipment, and actions,
+    such as attacking, using items, and casting spells.
+
+    Attributes:
+        inventory (list): A list of items in the player's inventory.
+        inventory_capacity (int): The maximum number of items the player can carry.
+        level (int): The player's current level.
+        experience (int): The player's current experience points.
+        max_health (int): The player's maximum health.
+        mana (int): The player's current mana.
+        max_mana (int): The player's maximum mana.
+        mana_regeneration_rate (float): The amount of mana regenerated per second.
+        strength (int): The player's strength stat.
+        dexterity (int): The player's dexterity stat.
+        intelligence (int): The player's intelligence stat.
+        equipment (Equipment): The player's equipment manager.
     """
-    Represents the player character.
-    """
-    def __init__(self, name="Player", x=0, y=0, z=0):
+
+    def __init__(self, name="Player", x=0, y=0, z=0, inventory_capacity=10):
         super().__init__(name=name, x=x, y=y, z=z, health=100, speed=5)
-        self.weapon = None
         self.inventory = []
+        self.inventory_capacity = inventory_capacity
         self.level = 1
         self.experience = 0
         self.max_health = 100
         self.mana = 100
         self.max_mana = 100
         self.mana_regeneration_rate = 1.5  # Mana per second
+        self.strength = 10
+        self.dexterity = 10
+        self.intelligence = 10
+        self.equipment = Equipment(owner=self)
 
-    def update(self, delta_time):
+    def drop_item(self, item_name, scene):
+        """Drops an item from the inventory onto the ground.
+
+        Args:
+            item_name (str): The name of the item to drop.
+            scene (Scene): The scene to drop the item into.
         """
-        Updates the player's state, including mana regeneration.
-        """
-        super().update(delta_time)
-        self.update_status_effects(delta_time)
-        self.mana += self.mana_regeneration_rate * delta_time
-        if self.mana > self.max_mana:
-            self.mana = self.max_mana
+        for i, item in enumerate(self.inventory):
+            if item.name.lower() == item_name.lower():
+                dropped_item = self.inventory.pop(i)
+                dropped_item.x = self.x
+                dropped_item.y = self.y
+                dropped_item.visible = True
+                dropped_item.solid = False
+                scene.add_object(dropped_item)
+                print(f"{self.name} dropped {dropped_item.name}.")
+                return
+        print(f"'{item_name}' not found in inventory.")
 
     def attack(self, target):
-        """
-        Attacks another GameObject, with damage influenced by strength and dexterity.
+        """Attacks another GameObject.
+
+        Damage is calculated based on the player's strength and equipped weapon.
+        The attack can miss or be a critical hit based on the player's dexterity.
 
         Args:
             target (GameObject): The target to attack.
         """
+        # --- Evasion Check ---
+        if 'evasion' in target.status_effects:
+            if random.uniform(0, 100) < 50:  # 50% chance to miss against evasion
+                print(f"{self.name}'s attack was evaded by {target.name}!")
+                return
+
         # --- Critical Hit/Miss Logic (based on dexterity) ---
         miss_chance = max(0, 5 - self.dexterity / 4)
         if random.uniform(0, 100) < miss_chance:
@@ -183,17 +263,13 @@ class Player(GameObject):
         crit_chance = 5 + self.dexterity / 2
         is_critical = random.uniform(0, 100) < crit_chance
 
-        # --- Damage Calculation (based on strength) ---
-        if self.weapon:
-            base_damage = self.weapon.damage
-            strength_bonus = self.strength // 2
-            total_damage = base_damage + strength_bonus
-            attack_source = self.weapon.name
-        else:
-            base_damage = 2  # Low base damage for bare hands
-            strength_bonus = self.strength // 2
-            total_damage = base_damage + strength_bonus
-            attack_source = "bare hands"
+        # --- Damage Calculation (based on strength and equipment) ---
+        equipped_stats = self.equipment.get_total_stats()
+        weapon_damage = equipped_stats["damage"]
+        strength_bonus = self.strength // 2
+        total_damage = weapon_damage + strength_bonus
+
+        attack_source = self.equipment.slots["weapon"].name if self.equipment.slots["weapon"] else "bare hands"
 
         if is_critical:
             total_damage *= 2  # Double damage on a critical hit
@@ -203,24 +279,45 @@ class Player(GameObject):
 
         target.take_damage(total_damage)
 
-    def equip_weapon(self, weapon):
-        """
-        Equips a weapon.
+    def equip_item(self, item_name):
+        """Finds an item in the inventory and equips it.
 
         Args:
-            weapon (Weapon): The weapon to equip.
+            item_name (str): The name of the item to equip.
         """
-        if isinstance(weapon, Weapon):
-            self.weapon = weapon
-            print(f"{self.name} equipped {weapon.name}.")
+        item_to_equip = None
+        for item in self.inventory:
+            if item.name.lower() == item_name.lower():
+                item_to_equip = item
+                break
+
+        if item_to_equip:
+            self.equipment.equip(item_to_equip)
         else:
-            print(f"{self.name} cannot equip {weapon.name}.  It is not a weapon.")
+            print(f"'{item_name}' not found in inventory.")
+
+    def update(self, scene_manager):
+        """
+        Updates the player's state, including mana regeneration per turn.
+        """
+        super().update(scene_manager)
+        # Regenerate 2 mana per turn
+        self.mana = min(self.max_mana, self.mana + 2)
 
     def pickup_item(self, item):
+        """Picks up an item and adds it to the inventory.
+
+        If the item is a consumable and a stack of the same item already
+        exists in the inventory, the quantity is increased. Otherwise, the
+        item is added as a new entry.
+
+        Args:
+            item (Item): The item to pick up.
         """
-        Picks up an item. If it's a consumable and one of the same
-        name already exists, it stacks. Otherwise, it's added as a new item.
-        """
+        if len(self.inventory) >= self.inventory_capacity:
+            print("Inventory is full. Cannot pick up.")
+            return
+
         if isinstance(item, Consumable):
             for inventory_item in self.inventory:
                 if inventory_item.name == item.name and isinstance(inventory_item, Consumable):
@@ -237,30 +334,45 @@ class Player(GameObject):
         item.solid = False
         print(f"{self.name} picked up {item.name}.")
 
-    def use_item(self, item_name):
+    def use_item(self, item_name, target):
         """
-        Uses an item from the inventory. If the item is a consumable,
-        it decreases its quantity and removes it if the quantity is zero.
+        Uses an item from the inventory on a target. Handles stackable and non-stackable items.
         """
+        item_to_use = None
+        item_index = -1
         for i, item in enumerate(self.inventory):
-            if item.name == item_name:
-                if isinstance(item, Consumable):
-                    item.use(self)  # Apply the effect
-                    item.quantity -= 1
-                    print(f"{self.name} used a {item.name}. {item.quantity} remaining.")
-                    if item.quantity <= 0:
-                        self.inventory.pop(i)  # Remove the item if quantity is zero
-                        print(f"The last {item.name} was used.")
-                    return True # Indicate success
+            # Find the item by name, case-insensitive
+            if item.name.lower() == item_name.lower():
+                item_to_use = item
+                item_index = i
+                break
+
+        if not item_to_use:
+            # Using print here since the Player doesn't have a direct link to the game log
+            print(f"'{item_name}' not found in inventory.")
+            return False
+
+        if isinstance(item_to_use, Consumable):
+            item_to_use.use(target)
+            # If the item is stackable, decrement quantity and remove if empty.
+            if hasattr(item_to_use, 'quantity'):
+                item_to_use.quantity -= 1
+                if item_to_use.quantity <= 0:
+                    self.inventory.pop(item_index)
+                    print(f"Used the last {item_to_use.name}.")
                 else:
-                    print(f"{self.name} cannot use {item.name} as a consumable.")
-                    return False
-        print(f"{self.name} does not have '{item_name}' in their inventory.")
-        return False
+                    print(f"Used {item_to_use.name}. {item_to_use.quantity} remaining.")
+            else:
+                # If not stackable (no quantity attribute), just remove it.
+                self.inventory.pop(item_index)
+                print(f"Used {item_to_use.name}.")
+            return True
+        else:
+            print(f"You can't 'use' a {item_to_use.name} in that way.")
+            return False
 
     def gain_experience(self, amount):
-        """
-        Gains experience points.
+        """Adds experience points to the player and checks for level up.
 
         Args:
             amount (int): The amount of experience to gain.
@@ -270,20 +382,29 @@ class Player(GameObject):
         self.check_level_up()
 
     def check_level_up(self):
-        """
-        Checks if the player has enough experience to level up.
+        """Checks if the player has enough experience to level up.
+
+        If the player has enough experience, their level is increased, stats
+        are improved, and their health is fully restored.
         """
         # Example leveling curve: 100 * level * level
         required_experience = 100 * self.level * self.level
         if self.experience >= required_experience:
             self.level += 1
             self.max_health += 10
-            self.health = self.max_health # Fully heal on level up.
-            self.speed *= 1.1 # Increase speed by 10%
+            self.health = self.max_health  # Fully heal on level up.
+            self.speed *= 1.1  # Increase speed by 10%
             print(f"{self.name} leveled up to level {self.level}!")
 
     def cast_spell(self, spell_name, target):
-        """Casts a spell, with power influenced by intelligence."""
+        """Casts a spell on a target.
+
+        The power of the spell is influenced by the player's intelligence.
+
+        Args:
+            spell_name (str): The name of the spell to cast.
+            target (GameObject): The target of the spell.
+        """
         if spell_name == "fireball":
             mana_cost = 20
             if self.mana >= mana_cost:
@@ -305,40 +426,337 @@ class Player(GameObject):
         else:
             print(f"{self.name} does not know the spell {spell_name}.")
 
+    def heal(self, amount):
+        """Restores the player's health.
 
-class Character(Player):
+        Args:
+            amount (int): The amount of health to restore.
+        """
+        self.health = min(self.max_health, self.health + amount)
+
+
+class Anastasia(Player):
+    """Implementation of Anastasia the Dreamer.
+
+    Anastasia is a battlefield controller and disruptor who uses a unique
+    resource called Dream Weave to power her abilities. Her ultimate ability,
+    Lucid Dream, transforms the battlefield and enhances her other skills.
     """
-    An intermediary class for specialized characters.
-    It allows for setting health and state during initialization.
+
+    def __init__(self, name="Anastasia", x=0, y=0, z=0):
+        super().__init__(name=name, x=x, y=y, z=z)
+        self.mana = 150
+        self.max_mana = 150
+        self.health = 100
+        self.max_health = 100
+
+        # Unique Mechanic: The Dream Weave
+        self.max_dream_weave = 100
+        self.dream_weave = 0
+
+        # Lucid Dream State
+        self.is_lucid_dream_active = False
+        self.lucid_dream_duration = 15  # in game ticks/seconds
+        self.lucid_dream_timer = 0
+
+    def update(self, delta_time):
+        """Called every game tick to update Anastasia's state.
+
+        This method handles her passive Dream Weave generation and manages
+        the duration of her Lucid Dream state.
+
+        Args:
+            delta_time (float): The time elapsed since the last update.
+        """
+        # First, call the Player's update for mana regen and status effects
+        super().update(delta_time)
+
+        # Passively build a small amount of Dream Weave
+        self.build_dream_weave(0.5 * delta_time)
+
+        if self.is_lucid_dream_active:
+            self.lucid_dream_timer -= delta_time
+            if self.lucid_dream_timer <= 0:
+                self.is_lucid_dream_active = False
+                self.lucid_dream_timer = 0
+                print("\n-- Anastasia's Lucid Dream fades. The world returns to normal. --\n")
+
+    def build_dream_weave(self, amount):
+        """Increases the Dream Weave meter.
+
+        Args:
+            amount (float): The amount of Dream Weave to generate.
+        """
+        if not self.is_lucid_dream_active:
+            self.dream_weave += amount
+            if self.dream_weave > self.max_dream_weave:
+                self.dream_weave = self.max_dream_weave
+
+    def activate_lucid_dream(self):
+        """Activates the Lucid Dream state if the meter is full.
+
+        Returns:
+            bool: True if Lucid Dream was activated, False otherwise.
+        """
+        if self.dream_weave >= self.max_dream_weave:
+            print("\n** Anastasia activates LUCID DREAM! The battlefield warps! **\n")
+            self.is_lucid_dream_active = True
+            self.lucid_dream_timer = self.lucid_dream_duration
+            self.dream_weave = 0
+            return True
+        else:
+            print("Dream Weave is not full yet!")
+            return False
+
+    def lulling_whisper(self, targets):
+        """Puts one or more targets to sleep.
+
+        If Lucid Dream is active, this ability affects all targets.
+
+        Args:
+            targets (list of GameObject): The potential targets of the spell.
+        """
+        cost = 20
+        if self.mana < cost:
+            print("Not enough mana!")
+            return
+
+        self.mana -= cost
+        print(f"{self.name} uses Lulling Whisper.")
+
+        if self.is_lucid_dream_active:
+            print("The whisper becomes a wave, affecting all targets!")
+            for target in targets:
+                target.status_effects['sleep'] = 6
+                print(f"{target.name} has fallen asleep.")
+        else:
+            if targets:
+                target = targets[0]  # Affect only the first target
+                target.status_effects['sleep'] = 6
+                print(f"{target.name} has fallen asleep.")
+
+        self.build_dream_weave(15)
+
+    def phantasmal_grasp(self, target):
+        """Slows a target and deals minor damage over time.
+
+        If Lucid Dream is active, the slow effect is enhanced.
+
+        Args:
+            target (GameObject): The target of the spell.
+        """
+        cost = 25
+        if self.mana < cost:
+            print("Not enough mana!")
+            return
+
+        self.mana -= cost
+        print(f"{self.name} uses Phantasmal Grasp on {target.name}.")
+
+        target.status_effects['slow'] = 8
+        target.status_effects['psychic_damage'] = 8  # Represents the DoT effect
+        print(f"{target.name} is slowed by shadowy tendrils.")
+
+        if self.is_lucid_dream_active:
+            print("The grasp erupts from the target, slowing nearby enemies!")
+            # In a real game, you'd find nearby enemies. Here we just simulate it.
+            target.status_effects['slow'] += 4
+
+        self.build_dream_weave(15)
+
+    def fleeting_vision(self, allies):
+        """Grants evasion to one or more allies.
+
+        If Lucid Dream is active, this ability affects all allies.
+
+        Args:
+            allies (list of GameObject): The potential targets of the spell.
+        """
+        cost = 30
+        if self.mana < cost:
+            print("Not enough mana!")
+            return
+
+        self.mana -= cost
+        print(f"{self.name} uses Fleeting Vision.")
+
+        if self.is_lucid_dream_active:
+            print("The vision is shared with the entire party!")
+            for ally in allies:
+                ally.status_effects['evasion'] = 5
+                print(f"{ally.name} is granted enhanced evasion!")
+        else:
+            if allies:
+                ally = allies[0]  # Affect only the first ally
+                ally.status_effects['evasion'] = 5
+                print(f"{ally.name} is granted enhanced evasion!")
+
+    def oneiric_collapse(self, enemies, allies):
+        """Ultimate Ability: Pulls the battlefield into the Dreamscape.
+
+        This ability can only be used during Lucid Dream. It debuffs all
+        enemies and buffs all allies.
+
+        Args:
+            enemies (list of GameObject): All enemies on the battlefield.
+            allies (list of GameObject): All allies on the battlefield.
+        """
+        if not self.is_lucid_dream_active:
+            print("Must be in Lucid Dream to use Oneiric Collapse!")
+            return
+
+        print(f"\n!!! {self.name} unleashes her ultimate: ONEIRIC COLLAPSE !!!")
+        print("The area is pulled into the Dreamscape!")
+
+        for enemy in enemies:
+            enemy.status_effects['confusion'] = 10
+            enemy.status_effects['armor_break'] = 10
+            print(f"{enemy.name} is confused and vulnerable!")
+
+        for ally in allies:
+            ally.status_effects['empowered'] = 10  # Simulate faster cooldowns
+            print(f"{ally.name} feels empowered by the dream!")
+
+        self.is_lucid_dream_active = False
+        self.lucid_dream_timer = 0
+
+
+class Reverie(Player):
+    """Represents Reverie, a powerful and unpredictable Mage/Controller.
+
+    Reverie builds a unique resource, Enigma, by casting elemental spells.
+    When her Enigma is full, she can unleash a powerful, random ultimate
+    attack called Chaos Unleashed.
     """
-    def __init__(self, name, x=0, y=0, z=0, health=100, state=None):
+
+    def __init__(self, name="Reverie", x=0, y=0, z=0):
+        # Initialize the parent Player class with Reverie's stats
         super().__init__(name, x, y, z)
-        self.health = health
-        self.max_health = health
-        self.state = state
+        self.health = 110
+        self.max_health = 110
+        self.mana = 150  # Standard mana pool for her basic spells
+        self.max_mana = 150
 
-    def update(self):
+        # Reverie's unique resource
+        self.enigma = 0
+        self.max_enigma = 100
+
+        # Her elemental spells build Enigma
+        self.spells = {}
+        self.spells["fire_blast"] = {"cost": 30, "damage": 25}
+        self.spells["ice_shard"] = {"cost": 20, "damage": 15}
+        self.spells["lightning_jolt"] = {"cost": 25, "damage": 20}
+
+    def cast_spell(self, spell_name, target):
+        """Casts one of her elemental spells.
+
+        This consumes mana, deals damage to the target, and builds Enigma.
+
+        Args:
+            spell_name (str): The name of the spell to cast.
+            target (GameObject): The target of the spell.
+
+        Returns:
+            bool: True if the spell was cast successfully, False otherwise.
         """
-        The character update method. It calls the parent `Player` update
-        with a delta_time of 0 to prevent unintended real-time effects
-        for turn-based characters.
+        if spell_name in self.spells:
+            spell = self.spells[spell_name]
+            if self.mana >= spell["cost"]:
+                self.mana -= spell["cost"]
+                target.take_damage(spell["damage"])
+
+                # Casting a spell builds Enigma, proportional to mana cost
+                enigma_gain = spell["cost"] // 2
+                self.enigma = min(self.max_enigma, self.enigma + enigma_gain)
+
+                print(f"{self.name} casts {spell_name} on {target.name}, dealing {spell['damage']} damage.")
+                print(f"{self.name} gains {enigma_gain} Enigma. (Total: {self.enigma}/{self.max_enigma})")
+                return True
+            else:
+                print(f"{self.name} does not have enough mana for {spell_name}.")
+                return False
+        else:
+            # This is a bit of a hack to reuse the parent's cast_spell method.
+            # In a real refactor, we would make the spell system more robust.
+            super().cast_spell(spell_name, target)
+            return False
+
+    def chaos_unleashed(self, target):
+        """Unleashes her ultimate ability when Enigma is at max.
+
+        This ability consumes all Enigma and produces a powerful, random effect.
+
+        Args:
+            target (GameObject): The primary target of the ultimate.
+
+        Returns:
+            bool: True if the ultimate was used, False otherwise.
         """
-        super().update(0)
+        if self.enigma >= self.max_enigma:
+            print(f"{self.name} unleashes CHAOS UNLEASHED!")
+            self.enigma = 0  # Reset Enigma after use
+
+            # Determine the random, powerful effect
+            possible_effects = [
+                "massive_damage",
+                "full_heal_and_mana",
+                "double_damage_debuff",
+                "mana_drain"
+            ]
+            effect = random.choice(possible_effects)
+
+            if effect == "massive_damage":
+                damage = random.randint(100, 200)
+                print(f"A torrent of pure chaotic energy strikes {target.name} for {damage} damage!")
+                target.take_damage(damage)
+            elif effect == "full_heal_and_mana":
+                print(f"The chaotic energy surges inward, restoring {self.name} to full power!")
+                self.health = self.max_health
+                self.mana = self.max_mana
+            elif effect == "double_damage_debuff":
+                print(f"The chaotic energy latches onto {target.name}, making them vulnerable.")
+                # The take_damage method already checks for and applies this effect
+                if "vulnerable" in target.status_effects:
+                    target.status_effects["vulnerable"]["duration"] += 2
+                else:
+                    target.status_effects["vulnerable"] = {"duration": 2}
+            elif effect == "mana_drain":
+                drained_mana = 0
+                if hasattr(target, 'mana'):
+                    drained_mana = target.mana
+                    target.mana = 0
+                print(f"{self.name} drains all of {target.name}'s {drained_mana} mana!")
+                self.mana = min(self.max_mana, self.mana + drained_mana)
+
+            return True
+        else:
+            print(f"{self.name} needs more Enigma to use Chaos Unleashed. ({self.enigma}/{self.max_enigma})")
+            return False
 
 
 class Enemy(GameObject):
+    """Represents an enemy character.
+
+    Enemies have simple AI that causes them to attack the player when they
+    are within their aggro range.
+
+    Attributes:
+        type (str): The type of the enemy (e.g., "Goblin", "Orc").
+        attack_damage (int): The amount of damage the enemy deals.
+        aggro_range (int): The range at which the enemy will start attacking.
+        xp_value (int): The amount of experience awarded for defeating the enemy.
     """
-    Represents an enemy character.
-    """
-    def __init__(self, name="Enemy", x=0, y=0, z=0, type="Generic", health=50):
-        super().__init__(name=name, x=x, y=y, z=z, health=health, speed=2)
-        self.type = type  # e.g., "Goblin", "Orc", "Dragon"
-        self.attack_damage = 10
-        self.aggro_range = 10  # Range at which the enemy will start attacking.
+
+    def __init__(self, name="Enemy", x=0, y=0, z=0, type="Generic", health=50, speed=2, attack_damage=10, xp_value=0):
+        super().__init__(name=name, x=x, y=y, z=z, health=health, speed=speed)
+        self.type = type
+        self.attack_damage = attack_damage
+        self.aggro_range = 10
+        self.xp_value = xp_value
+        self.state = 'idle'  # Possible states: 'idle', 'chasing', 'attacking'
 
     def attack(self, target):
-        """
-        Attacks another GameObject.
+        """Attacks another GameObject.
 
         Args:
             target (GameObject): The target to attack.
@@ -346,1407 +764,855 @@ class Enemy(GameObject):
         print(f"{self.name} attacks {target.name} for {self.attack_damage} damage.")
         target.take_damage(self.attack_damage)
 
-    def update(self, delta_time, player):
-        """
-        Updates the enemy's state.  This is called every frame.
-
-        Args:
-            delta_time (float): Time since last frame.
-            player (Player): The player object.
-        """
-        self.update_status_effects(delta_time)
-
-        if 'sleep' in self.status_effects:
-            print(f"{self.name} is asleep and cannot act.")
+    def update(self, scene_manager):
+        """AI logic for the enemy's turn."""
+        # --- Start of Turn ---
+        # Check for effects that prevent action BEFORE doing anything else.
+        if 'stun' in self.status_effects or 'sleep' in self.status_effects:
+            print(f"{self.name} is stunned and cannot act.")
+            # Still need to update status effects so stun wears off.
+            super().update(scene_manager)
             return
 
-        if self.distance_to(player) < self.aggro_range:
-            current_speed = self.speed
-            if 'slow' in self.status_effects:
-                print(f"{self.name} is slowed!")
-                current_speed /= 2
-            # Move towards the player
-            dx = player.x - self.x
-            dy = player.y - self.y
-            dz = player.z - self.z
-            distance = self.distance_to(player)
-            if distance > 0:
-              self.move(dx / distance * current_speed * delta_time, dy / distance * current_speed * delta_time, dz/distance * current_speed * delta_time)
-            # Attack the player if close enough.
-            if self.distance_to(player) < 1:  # Attack range
-                self.attack(player)
+        # --- Action Phase ---
+        player = scene_manager.scene.player_character
+        if player and player.health > 0:
+            # Basic AI: move towards player and attack if adjacent
+            if self.distance_to(player) < self.aggro_range:
+                if self.distance_to(player) < 1.5:  # Attack if adjacent
+                    self.attack(player)
+                else:  # Move towards player
+                    dx = player.x - self.x
+                    dy = player.y - self.y
+                    # Move one step in the direction of the player
+                    if abs(dx) > abs(dy):
+                        self.move(1 if dx > 0 else -1, 0)
+                    else:
+                        self.move(0, 1 if dy > 0 else -1)
 
-class Weapon(GameObject):
+        # --- End of Turn ---
+        # Status effects are updated after the action is taken.
+        super().update(scene_manager)
+
+
+# --- Item System ---
+
+class Item(GameObject):
+    """Base class for all items (weapons, consumables, armor, etc.)."""
+    pass
+
+
+class Weapon(Item):
+    """Represents a weapon that can be equipped.
+
+    Attributes:
+        damage (int): The amount of damage the weapon deals.
+        weapon_type (str): The type of the weapon (e.g., "Melee", "Ranged").
     """
-    Represents a weapon.
-    """
-    def __init__(self, name="Weapon", x=0, y=0, z=0, damage=10, weapon_type="Melee"):
-        super().__init__(name=name, x=x, y=y, z=z, visible=False, solid=False)  # Weapons are not solid by default.
+
+    def __init__(self, name, description, damage, weapon_type="Melee"):
+        super().__init__(name)
+        self.description = description
         self.damage = damage
-        self.weapon_type = weapon_type # e.g., "Melee", "Ranged", "Magic"
+        self.weapon_type = weapon_type
 
-class Consumable(GameObject):
+    def __str__(self):
+        return f"{self.name} (Weapon, {self.damage} DMG): {self.description}"
+
+
+class Consumable(Item):
+    """Represents a consumable item that can be used for an effect.
+
+    Attributes:
+        effect (str): A description of the item's effect.
+        quantity (int): The number of items in the stack.
     """
-    Represents a consumable item.
-    """
-    def __init__(self, name="Consumable", x=0, y=0, z=0, effect="None"):
-        super().__init__(name=name, x=x, y=y, z=z, visible=False, solid=False)
+
+    def __init__(self, name, description, effect="None"):
+        super().__init__(name, description)
         self.effect = effect
         self.quantity = 1
 
     def use(self, target):
-        """
-        Applies the consumable's effect to the target.  Must be overridden.
+        """Applies the consumable's effect to the target.
 
         Args:
-            target (GameObject): The target of the consumable's effect.
+            target (GameObject): The target of the consumable.
         """
-        print(f"{self.name} used on {target.name}.  Effect: {self.effect}") # default
+        print(f"Using {self.name} on {target.name}.")
+
 
 class HealthPotion(Consumable):
-    def __init__(self, name="Health Potion", x=0, y=0, z=0, amount=20):
-        super().__init__(name=name, x=x, y=y, z=z, effect=f"Heals {amount} HP")
+    """A potion that restores health.
+
+    Attributes:
+        amount (int): The amount of health restored.
+    """
+
+    def __init__(self, name="Health Potion", description="A potion that restores 20 HP.", amount=20):
+        super().__init__(name, description, effect=f"Heals {amount} HP")
         self.amount = amount
 
     def use(self, target):
-        """Heals the target."""
-        if isinstance(target, GameObject):
-            target.heal(self.amount)
-            print(f"{target.name} healed for {self.amount} HP.")
-        else:
-            print(f"{self.name} cannot be used on {target}.")
+        """Heals the target.
+
+        Args:
+            target (GameObject): The target to heal.
+        """
+        super().use(target)
+        target.heal(self.amount)
+        print(f"{target.name} restored {self.amount} HP.")
+
 
 class ManaPotion(Consumable):
-    def __init__(self, name="Mana Potion", x=0, y=0, z=0, amount=30):
-        super().__init__(name=name, x=x, y=y, z=z, effect=f"Restores {amount} Mana")
+    """A potion that restores mana.
+
+    Attributes:
+        amount (int): The amount of mana restored.
+    """
+
+    def __init__(self, name="Mana Potion", description="A potion that restores 30 Mana.", amount=30):
+        super().__init__(name, description, effect=f"Restores {amount} Mana")
         self.amount = amount
 
     def use(self, target):
-        """Restore mana of the target.  Assumes target has a mana attribute."""
-        if hasattr(target, 'mana'):
-            target.mana += self.amount
-            print(f"{target.name} restored for {self.amount} mana.")
-        else:
-            print(f"{target.name} does not have mana.")
+        """Restores mana to the target.
 
-class Game:
+        Args:
+            target (GameObject): The target to restore mana to.
+        """
+        super().use(target)
+        if hasattr(target, 'mana'):
+            target.mana = min(target.max_mana, target.mana + self.amount)
+            print(f"{target.name} restored {self.amount} Mana.")
+        else:
+            print(f"{target.name} has no mana to restore.")
+
+
+class PoisonDart(Consumable):
+    """A dart that poisons the target."""
+
+    def __init__(self, name="Poison Dart", potency=5, duration=4):
+        description = f"Poisons a target for {potency} damage over {duration} turns."
+        super().__init__(name, description, effect="poison")
+        self.potency = potency
+        self.duration = duration
+
+    def use(self, target):
+        """Poisons the target."""
+        super().use(target)
+        if isinstance(target, GameObject):
+            target.apply_status_effect('poison', self.duration, potency=self.potency)
+
+
+class Armor(Item):
+    """A type of item that can be equipped to provide defense.
+
+    Attributes:
+        defense (int): The amount of defense the armor provides.
     """
-    Represents the game engine.  Handles game logic, object management, and the game loop.
+
+    def __init__(self, name, description, defense):
+        super().__init__(name)
+        self.description = description
+        self.defense = defense
+
+    def __str__(self):
+        return f"{self.name} (Armor, +{self.defense} DEF): {self.description}"
+
+
+class Equipment:
+    """Manages a character's equipped items in different slots.
+
+    Attributes:
+        owner (GameObject): The character who owns the equipment.
+        slots (dict): A dictionary representing the equipment slots.
     """
-    def __init__(self):
-        self.objects = []
-        self.player = None
-        self.running = False
-        self.last_time = time.time()
-        self.game_time = 0 # Keep track of total game time.
+
+    def __init__(self, owner):
+        self.owner = owner
+        self.slots = {
+            "weapon": None,
+            "shield": None,
+            "armor": None
+        }
+
+    def equip(self, item):
+        """Equips an item into the appropriate slot.
+
+        Args:
+            item (Item): The item to equip.
+        """
+        if isinstance(item, Weapon):
+            self.slots["weapon"] = item
+            print(f"{self.owner.name} equips the {item.name}.")
+        elif isinstance(item, Armor):
+            # For simplicity, we'll assume any armor goes in the 'armor' slot.
+            self.slots["armor"] = item
+            print(f"{self.owner.name} equips the {item.name}.")
+        else:
+            print(f"'{item.name}' is not an equippable item.")
+
+    def get_total_stats(self):
+        """Calculates the total stat bonuses from all equipped items.
+
+        Returns:
+            dict: A dictionary of total stat bonuses.
+        """
+        total_damage = self.slots["weapon"].damage if self.slots["weapon"] else 0
+        total_defense = self.slots["armor"].defense if self.slots["armor"] else 0
+        return {"damage": total_damage, "defense": total_defense}
+
+    def display(self):
+        """Prints the character's currently equipped items."""
+        print(f"--- {self.owner.name}'s Equipment ---")
+        for slot, item in self.slots.items():
+            print(f"- {slot.capitalize()}: {'Empty' if not item else item.name}")
+        print("--------------------")
+
+
+class DialogueNode:
+    """Represents a single piece of dialogue and potential player choices.
+
+    Attributes:
+        text (str): The text of the dialogue.
+        character_name (str): The name of the character speaking.
+        options (dict): A dictionary of player choices and their target nodes.
+    """
+
+    def __init__(self, text, character_name="Narrator", options=None):
+        self.text = text
+        self.character_name = character_name
+        self.options = options if options else {}
+
+    def to_dict(self):
+        """Converts the DialogueNode to a dictionary for serialization.
+
+        Returns:
+            dict: A dictionary representation of the DialogueNode.
+        """
+        return {
+            "text": self.text,
+            "character_name": self.character_name,
+            "options": self.options,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        """Creates a DialogueNode from a dictionary.
+
+        Args:
+            data (dict): A dictionary containing the DialogueNode's data.
+
+        Returns:
+            DialogueNode: A new DialogueNode instance.
+        """
+        return cls(
+            text=data.get("text"),
+            character_name=data.get("character_name", "Narrator"),
+            options=data.get("options"),
+        )
+
+
+class DialogueManager:
+    """Controls the flow of a single conversation.
+
+    Attributes:
+        nodes (dict): A dictionary of all dialogue nodes in the conversation.
+        current_node_key (str): The key of the current dialogue node.
+    """
+
+    def __init__(self, start_node_key="start"):
+        self.nodes = {}
+        self.current_node_key = start_node_key
+
+    def add_node(self, key, node):
+        """Adds a dialogue node to the manager.
+
+        Args:
+            key (str): The key to identify the node.
+            node (DialogueNode): The dialogue node to add.
+        """
+        self.nodes[key] = node
+
+    def get_current_node(self):
+        """Returns the current dialogue node.
+
+        Returns:
+            DialogueNode: The current dialogue node.
+        """
+        return self.nodes.get(self.current_node_key)
+
+    def select_option(self, choice_index):
+        """Selects a player choice and advances the conversation.
+
+        Args:
+            choice_index (int): The index of the chosen option.
+
+        Returns:
+            bool: True if the option was valid, False otherwise.
+        """
+        node = self.get_current_node()
+        if node and node.options:
+            option_keys = list(node.options.values())
+            if 0 <= choice_index < len(option_keys):
+                self.current_node_key = option_keys[choice_index]
+                return True
+        return False
+
+    def to_dict(self):
+        """Converts the DialogueManager to a dictionary for serialization.
+
+        Returns:
+            dict: A dictionary representation of the DialogueManager.
+        """
+        return {
+            "nodes": {key: node.to_dict() for key, node in self.nodes.items()},
+            "current_node_key": self.current_node_key,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        """Creates a DialogueManager from a dictionary.
+
+        Args:
+            data (dict): A dictionary containing the DialogueManager's data.
+
+        Returns:
+            DialogueManager: A new DialogueManager instance.
+        """
+        manager = cls(start_node_key=data.get("current_node_key", "start"))
+        nodes_data = data.get("nodes", {})
+        for key, node_data in nodes_data.items():
+            manager.add_node(key, DialogueNode.from_dict(node_data))
+        return manager
+
+
+class Character(GameObject):
+    """A base class for all characters, both player and non-player.
+
+    Attributes:
+        dialogue (DialogueManager): The character's dialogue tree.
+    """
+
+    def __init__(self, name="Character", x=0, y=0, health=100, state=None):
+        super().__init__(name, 'C', x, y, state)
+        self.health = health
+        self.max_health = health
+        self.dialogue = None
+
+
+class AnastasiaCharacter(Character):
+    """A simple character class for Anastasia."""
+
+    def __init__(self, name="Anastasia", x=0, y=0, health=120, state=None):
+        super().__init__(name=name, x=x, y=y, health=health, state=state)
+        self.symbol = '@'
+
+
+class ReverieCharacter(Character):
+    """A simple character class for Reverie."""
+
+    def __init__(self, name="Reverie", x=0, y=0, health=100, state=None):
+        super().__init__(name=name, x=x, y=y, health=health, state=state)
+        self.symbol = 'R'
+
+
+class Scene:
+    """Holds all the data for a single game area.
+
+    Attributes:
+        name (str): The name of the scene.
+        width (int): The width of the scene's map.
+        height (int): The height of the scene's map.
+        game_objects (list): A list of all GameObjects in the scene.
+        player_character (Player): The player character in the scene.
+    """
+
+    def __init__(self, name, width=40, height=10):
+        self.name = name
+        self.width = width
+        self.height = height
+        self.game_objects = []
+        self.player_character = None
 
     def add_object(self, obj):
-        """
-        Adds a GameObject to the game.
+        """Adds a GameObject to the scene.
 
         Args:
-            obj (GameObject): The GameObject to add.
+            obj (GameObject): The object to add.
         """
-        self.objects.append(obj)
-        if isinstance(obj, Player):
-            self.player = obj
+        self.game_objects.append(obj)
 
-    def remove_object(self, obj):
-        """
-        Removes a GameObject from the game.
+    def set_player(self, player):
+        """Sets the player character for the scene.
 
         Args:
-            obj (GameObject): The GameObject to remove.
+            player (Player): The player character.
         """
-        self.objects.remove(obj)
+        self.player_character = player
+        self.add_object(player)
 
-    def start(self):
-        """
-        Starts the game loop.
-        """
-        if self.player is None:
-            print("Cannot start game without a Player.")
-            return
-        self.running = True
-        print("Game started.")
-        self.last_time = time.time()  # Initialize last_time here
-        while self.running:
-            self.game_loop()
-
-    def stop(self):
-        """
-        Stops the game loop.
-        """
-        self.running = False
-        print("Game stopped.")
-
-    def handle_input(self, delta_time):
-        """
-        Handles user input.  This is a placeholder and should be implemented
-        using a specific input library (e.g., pygame, keyboard).
+    def get_object_at(self, x, y):
+        """Gets the object at a specific coordinate.
 
         Args:
-            delta_time (float): Time since last frame.
-        """
-        # Example: Move player with arrow keys (using a hypothetical keyboard library)
-        # if keyboard.is_pressed('up'):
-        #     self.player.move(0, -self.player.speed * delta_time)
-        # if keyboard.is_pressed('down'):
-        #     self.player.move(0, self.player.speed * delta_time)
-        # if keyboard.is_pressed('left'):
-        #     self.player.move(-self.player.speed * delta_time, 0)
-        # if keyboard.is_pressed('right'):
-        #     self.player.move(self.player.speed * delta_time, 0)
-        pass #  Do nothing for now.
+            x (int): The x-coordinate.
+            y (int): The y-coordinate.
 
-    def update(self, delta_time):
+        Returns:
+            GameObject: The object at the given coordinates, or None if not found.
         """
-        Updates the game state. This is called every frame.
-        """
-        # Update each object based on its type
-        for obj in self.objects:
-            if isinstance(obj, Enemy):
-                obj.update(delta_time, self.player)  # Enemy update requires the player
-            else:
-                obj.update(delta_time)  # Other objects have a simpler update
+        for obj in self.game_objects:
+            if obj.x == x and obj.y == y:
+                return obj
+        return None
 
-        # Example: Check for collisions (very basic)
-        for i in range(len(self.objects)):
-            for j in range(i + 1, len(self.objects)):
-                obj1 = self.objects[i]
-                obj2 = self.objects[j]
-                if obj1.solid and obj2.solid and obj1.distance_to(obj2) < 1:  # Simple collision check
-                    self.handle_collision(obj1, obj2)
 
-    def handle_collision(self, obj1, obj2):
-        """
-        Handles collisions between two GameObjects.  This is a placeholder.
+class Game:
+    """The main game engine, responsible for the game loop and input handling.
+
+    Attributes:
+        width (int): The width of the game map.
+        height (int): The height of the game map.
+        message_log (list): A list of recent game messages.
+        turn_taken (bool): Whether the player has taken their turn.
+        game_over (bool): Whether the game has ended.
+        in_conversation (bool): Whether the player is in a conversation.
+        dialogue_manager (DialogueManager): The active dialogue manager.
+    """
+
+    def __init__(self, width=40, height=10):
+        self.width = width
+        self.height = height
+        self.message_log = []
+        self.turn_taken = False
+        self.game_over = False
+        self.in_conversation = False
+        self.dialogue_manager = None
+
+    def log_message(self, message):
+        """Adds a message to the game's message log.
 
         Args:
-            obj1 (GameObject): The first GameObject.
-            obj2 (GameObject): The second GameObject.
+            message (str): The message to log.
         """
-        print(f"Collision between {obj1.name} and {obj2.name}")
-        # Example:  Make them bounce
-        obj1.move(-0.5, 0)
-        obj2.move(0.5, 0)
+        self.message_log.append(message)
+        if len(self.message_log) > 5:
+            self.message_log.pop(0)
 
-    def draw(self):
-        """
-        Draws the game objects.  This is a placeholder and should be implemented
-        using a specific graphics library (e.g., pygame, OpenGL).
-        """
-        for obj in self.objects:
-            obj.draw()
-
-    def game_loop(self):
-        """
-        The main game loop. Checks for end-game conditions each frame.
-        """
-        current_time = time.time()
-        delta_time = current_time - self.last_time
-        self.last_time = current_time
-        self.game_time += delta_time
-
-        # Cap delta_time to prevent issues with very large time steps (e.g., if the game freezes)
-        delta_time = min(delta_time, 0.1)
-
-        self.handle_input(delta_time)
-        self.update(delta_time)
-        self.draw()
-
-        # --- Check for Game-End Conditions ---
-        if self.player.health <= 0:
-            print("\n--- GAME OVER ---")
-            self.stop()
-            return
-
-        # Check if any enemies are still alive (visible)
-        if not any(isinstance(obj, Enemy) and obj.visible for obj in self.objects):
-            print("\n--- YOU WIN! ---")
-            print("All enemies have been defeated.")
-            self.stop()
-            return
-
-        time.sleep(0.01)
-
-def run_game():
-    """
-    Main function to set up and run a demonstration of the game.
-    """
-    game = Game()
-
-    # --- 1. Create Player and Set Attributes ---
-    player = Player(name="Hero", x=0, y=0, z=0)
-    player.strength = 15
-    player.dexterity = 12
-    player.intelligence = 18
-    player.defense = 5
-    game.add_object(player)
-    print(f"A {player.name} has appeared! Str: {player.strength}, Dex: {player.dexterity}, Int: {player.intelligence}, Def: {player.defense}")
-
-    # --- 2. Create Enemies ---
-    enemy1 = Enemy(name="Goblin", x=5, y=5, z=0, type="Goblin")
-    enemy1.defense = 2
-    game.add_object(enemy1)
-
-    enemy2 = Enemy(name="Orc", x=-5, y=-5, z=0, type="Orc")
-    enemy2.attack_damage = 15
-    enemy2.defense = 8
-    game.add_object(enemy2)
-    print(f"Enemies have spawned: A {enemy1.name} and an {enemy2.name}!")
-
-    # --- 3. Create and Distribute Items ---
-    sword = Weapon(name="Greatsword", damage=18)
-    health_potion1 = HealthPotion(name="Health Potion", amount=40)
-    health_potion2 = HealthPotion(name="Health Potion", amount=40) # A second potion to test stacking
-    mana_potion = ManaPotion(name="Mana Potion", amount=50)
-
-    # Player finds the items
-    player.pickup_item(sword)
-    player.equip_weapon(sword)
-    player.pickup_item(health_potion1)
-    player.pickup_item(health_potion2) # This should stack
-    player.pickup_item(mana_potion)
-
-    # --- 4. Demonstrate Initial Actions ---
-    print("\n--- Initial Actions ---")
-    print(f"Initial state: Player HP: {player.health}, Mana: {player.mana}")
-
-    # Use a potion
-    player.use_item("Health Potion")
-
-    # Cast a powerful spell, influenced by high intelligence
-    player.cast_spell("fireball", enemy1)
-
-    # A powerful physical attack, influenced by strength
-    player.attack(enemy2)
-
-    print(f"\n--- Starting Game Loop ---")
-    print("Watch as the hero and enemies fight to the death! Mana will regenerate over time.\n")
-
-    # --- 5. Start the Game ---
-    game.start()
-
-class Skyix(Player):
-    """
-    Represents the character Sky.ix, the Bionic Goddess.
-    Inherits from the Player class, adding unique Void-based mechanics.
-    """
-
-    def __init__(self, name="Sky.ix", x=0, y=0, z=0):
-        # Initialize the parent Player class with Sky.ix's specific stats
-        super().__init__(name, x, y, z)
-        self.health = 120  # Overriding the default health
-        self.max_health = 120
-        self.mana = 150    # We'll use 'mana' from the Player class to represent 'VoidEnergy'
-        self.max_mana = 150
-        self.active_drones = 0
-
-        # Add her unique abilities as spells she can cast
-        self.spells = {"void_tech": {"cost": 40, "damage": 50}, "energy_blast": {"cost": 10, "damage": 20}}
-        print(f"'{self.name}' has entered the world, crackling with Void energy.")
-
-    def __str__(self):
-        # Override the string representation to include her unique resource
-        player_info = super().__str__()
-        return f"{player_info} | Drones: {self.active_drones}"
-
-    def deploy_drone(self, drone_type="Attack"):
-        """
-        Deploys a drone to assist in combat.
-        """
-        cost = 25
-        if self.mana >= cost:
-            self.mana -= cost
-            self.active_drones += 1
-            print(f"{self.name} deploys an {drone_type} drone! ({self.active_drones} active). ({self.mana}/{self.max_mana} Void Energy)")
-        else:
-            print(f"{self.name} lacks the Void Energy to deploy a drone.")
-
-    def cast_spell(self, spell_name, target):
-        """
-        Sky.ix's custom spell casting for her Void-based abilities.
-        """
-        if spell_name in self.spells:
-            spell = self.spells[spell_name]
-            cost = spell["cost"]
-            if self.mana >= cost:
-                self.mana -= cost
-                damage = spell["damage"]
-                print(f"{self.name} unleashes {spell_name} on {target.name} for {damage} damage! ({self.mana}/{self.max_mana} Void Energy)")
-                target.take_damage(damage)
-            else:
-                print(f"{self.name} lacks the Void Energy to cast {spell_name}.")
-        else:
-            # Fallback to the parent's cast_spell method if it's a general spell
-            super().cast_spell(spell_name, target)
-
-
-class Anastasia(Player):
-    """
-    Represents Anastasia the Dreamer, a support mage who shapes reality.
-    Inherits from the Player class, with a focus on healing and control abilities.
-    """
-
-    def __init__(self, name="Anastasia", x=0, y=0, z=0):
-        # Initialize the parent Player class with Anastasia's specific stats
-        super().__init__(name, x, y, z)
-        self.health = 90  # As a mage, slightly less durable
-        self.max_health = 90
-        self.mana = 200   # Represents her 'Dream Energy'
-        self.max_mana = 200
-        self.visions = [] # A list to store her prophetic visions
-
-        # Add her spells. Note that "Dream Weaving" is implemented as a custom method
-        # because of its dual nature.
-        self.spells = {"somnus_aura": {"cost": 50}}
-        print(f"'{self.name}' has awoken, her mind filled with prophetic dreams.")
-
-    def __str__(self):
-        # Add her unique properties to the string output
-        player_info = super().__str__()
-        return f"{player_info} | Visions: {len(self.visions)}"
-
-    def weave_dream(self, target, is_healing=True):
-        """
-        A versatile ability that can either heal an ally or create a debuffing
-        illusion on an enemy.
-        """
-        cost = 30
-        if self.mana >= cost:
-            self.mana -= cost
-            if is_healing:
-                # Heal an ally
-                target.heal(25)
-                print(f"{self.name} weaves a soothing dream, healing {target.name} for 25 health. ({self.mana}/{self.max_mana} Dream Energy)")
-            else:
-                # Harm an enemy (represented as direct damage for this example)
-                target.take_damage(20)
-                print(f"{self.name} weaves a nightmare, inflicting 20 psychic damage on {target.name}. ({self.mana}/{self.max_mana} Dream Energy)")
-        else:
-            print(f"{self.name} lacks the Dream Energy to weave the dream.")
-
-    def glimpse_future(self):
-        """
-        A narrative/utility skill that reveals information.
-        """
-        # In a real game, this might reveal an enemy's weakness or a hidden path.
-        new_vision = "A vision reveals the enemy's next move!"
-        self.visions.append(new_vision)
-        print(f"A prophetic vision flashes in {self.name}'s mind: '{new_vision}'")
-
-
-class Micah(Player):
-    """
-    Represents Micah the Unbreakable, a formidable tank and earth-shaper.
-    Inherits from the Player class, with mechanics focused on defense and a
-    unique resource, Fortitude, gained by taking damage.
-    """
-
-    def __init__(self, name="Micah", x=0, y=0, z=0):
-        # Initialize the parent Player class with Micah's tanky stats
-        super().__init__(name, x, y, z)
-        self.health = 200  # High health pool for a tank
-        self.max_health = 200
-        self.mana = 0      # He doesn't use mana; his resource is Fortitude
-        self.max_mana = 0
-
-        # Micah's unique properties
-        self.fortitude = 0
-        self.max_fortitude = 100
-        self.is_adamantine_skin_active = False
-
-        # We'll implement his abilities as custom methods
-        self.spells = {} # Clear the default spells
-        print(f"'{self.name}' stands firm, an unbreakable wall.")
-
-    def __str__(self):
-        # Add his unique resource to the string output
-        player_info = super().__str__()
-        skin_status = "Active" if self.is_adamantine_skin_active else "Inactive"
-        return f"{player_info} | Fortitude: {self.fortitude}/{self.max_fortitude} | Adamantine Skin: {skin_status}"
-
-    def take_damage(self, damage):
-        """
-        Micah takes damage but also gains Fortitude.
-        """
-        # If Adamantine Skin is active, reduce damage taken
-        if self.is_adamantine_skin_active:
-            damage_reduction = 0.5 # 50% damage reduction
-            damage = int(damage * (1-damage_reduction))
-            print(f"{self.name}'s Adamantine Skin reduces the damage!")
-
-        super().take_damage(damage)
-        # Gain fortitude equal to 100% of damage taken
-        fortitude_gain = int(damage * 1.0)
-        self.fortitude = min(self.max_fortitude, self.fortitude + fortitude_gain)
-        print(f"{self.name} gains {fortitude_gain} Fortitude from the blow!")
-
-
-    def activate_adamantine_skin(self):
-        """
-        Activates a defensive stance that reduces incoming damage but consumes
-        Fortitude over time.
-        """
-        cost = 20
-        if self.fortitude >= cost:
-            self.fortitude -= cost
-            self.is_adamantine_skin_active = True
-            print(f"{self.name} activates Adamantine Skin, hardening his defenses!")
-        else:
-            print(f"{self.name} doesn't have enough Fortitude to activate Adamantine Skin.")
-
-    def earthen_smash(self, target):
-        """
-        An attack that consumes Fortitude to deal damage.
-        """
-        cost = 30
-        if self.fortitude >= cost:
-            self.fortitude -= cost
-            damage = 40
-            print(f"{self.name} smashes {target.name} with the force of the earth, dealing {damage} damage!")
-            target.take_damage(damage)
-        else:
-            print(f"{self.name} lacks the Fortitude for an Earthen Smash.")
-
-
-class Cyrus(Enemy):
-    """
-    Represents Cyrus, the tyrannical ruler from another dimension and father of Cirrus.
-    He is the primary antagonist who initiates the invasion of Mîlēhîgh.wørld.
-    """
-    def __init__(self, name="Cyrus", x=0, y=0):
-        # As a final boss, his health is immense.
-        super().__init__(name=name, x=x, y=y, health=300)
-        self.max_health = 300
-
-        self.son_id = None # Would be set to Cirrus's unique ID
-        self.power_source = "The Onalym Nexus"
-        self.max_tyranny = 100
-        # His power is relentless and doesn't need to be generated.
-        self.tyranny = self.max_tyranny
-        self.attack_damage = 25 # Cyrus is a powerful foe
-
-    def __str__(self):
-        """String representation of Cyrus's status."""
-        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
-                f"Tyranny: {self.tyranny}/{self.max_tyranny}")
-
-    def worldbreaker_strike(self, target):
-        """
-        An ability that shatters the defenses of a target, representing his power to break worlds.
-        """
-        print(f"{self.name} strikes with the force of a collapsing dimension, shattering {target.name}'s defenses!")
-        # In-game logic would deal heavy damage and apply a significant defense-reduction debuff.
-        target.take_damage(75) # High base damage
-
-    def dimensional_rift(self):
-        """
-        Tears open an unstable, damaging rift on the battlefield.
-        """
-        cost = 40
-        if self.tyranny >= cost:
-            # While his resource is always full, abilities still have costs and would likely
-            # have cooldowns in a real game to prevent spamming.
-            self.tyranny -= cost
-            print(f"{self.name} tears open a dimensional rift on the battlefield!")
-            # In-game logic to create a hazardous area (AoE).
-            # This is a good place to simulate a cooldown by not resetting tyranny immediately.
-        else:
-            print(f"{self.name} is still recovering his power.")
-
-    def onalym_purge(self, targets_in_line):
-        """
-        An ultimate ability that channels the Onalym Nexus to unleash a devastating beam.
-        """
-        cost = 100
-        if self.tyranny >= cost:
-            self.tyranny = 0 # Consumes all power, initiating a long cooldown.
-            print(f"{self.name} channels the full power of the Onalym Nexus, unleashing a beam of pure destruction!")
-            for target in targets_in_line:
-                 print(f"...The beam obliterates everything in its path, striking {target.name}!")
-                 # ... logic for extremely high, likely lethal, damage ...
-                 target.take_damage(200)
-        else:
-            print(f"{self.name} has not gathered enough power for the Onalym Purge.")
-
-
-class Era(Enemy):
-    """
-    Represents Era, the personification of the corrupted Void.
-    She is a powerful and chaotic entity manipulated by Lucent, and her destiny
-    is intertwined with Sky.ix.
-    """
-    def __init__(self, name="Era, the Corrupted Void", x=0, y=0):
-        # As a personified force, her health is immense.
-        super().__init__(name=name, x=x, y=y, health=500)
-        self.max_health = 500
-
-        self.manipulator_id = None # Would be set to Lucent's unique ID
-        self.destiny_id = None     # Would be set to Sky.ix's unique ID
-        self.battlefield_corruption = 0.0
-
-    def __str__(self):
-        """String representation of Era's status."""
-        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
-                f"Corruption: {self.battlefield_corruption:.0f}%")
-
-    def chaotic_outburst(self, target):
-        """
-        Lashes out with raw chaotic energy from the Void, increasing corruption.
-        """
-        self.battlefield_corruption += 10
-        print(f"{self.name} unleashes a blast of pure chaos at {target.name}!")
-        # In-game logic would deal unpredictable damage.
-        damage = random.randint(20, 60)
-        target.take_damage(damage)
-
-    def spread_the_void(self):
-        """
-        Corrupts a section of the battlefield, creating a permanent hazardous zone.
-        """
-        self.battlefield_corruption += 25
-        print(f"{self.name}'s presence deepens, spreading the Void's corruption across the ground.")
-        # Logic to create a persistent AoE that debuffs heroes.
-
-    def inevitable_collapse(self, all_enemies):
-        """
-        An ultimate ability where the Void attempts to consume everything. Damage
-        is amplified by the level of BattlefieldCorruption.
-        """
-        print(f"{self.name} channels the full, unmaking power of the Void!")
-        # Corruption empowers the attack. A value of 100% might double the damage.
-        corruption_multiplier = 1 + (self.battlefield_corruption / 100.0)
-        base_damage = 80
-        total_damage = int(base_damage * corruption_multiplier)
+    def handle_input(self, scene_manager):
+        """Handles player input and game commands.
 
-        print(f"...The battlefield corruption amplifies the attack to {total_damage} damage!")
-        for enemy in all_enemies:
-            enemy.take_damage(total_damage)
-class Aeron(Player):
-    """
-    Represents Aeron, a noble warrior of Aethelgard and one of the Ɲōvəmîŋāđ.
-    His relationship with his brother, Kane, is a central conflict in his story.
-    """
-    def __init__(self, name="Aeron", x=0, y=0):
-        # Starts in a defensive 'Unyielding' stance
-        super().__init__(name, x, y)
-        self.health = 180
-        self.max_health = 180
-        self.state = "Unyielding" # Using state to manage stance
-
-        self.rival_brother_id = None # Would be set to Kane's unique ID
-        self.max_resolve = 100
-        self.resolve = 0
-
-    @property
-    def stance(self):
-        """A property to get his current combat stance from the state."""
-        return self.state
-
-    def __str__(self):
-        """String representation of Aeron's status."""
-        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
-                f"Resolve: {self.resolve}/{self.max_resolve} | "
-                f"Stance: {self.stance}")
-
-    def switch_stance(self):
-        """
-        Switches Aeron's combat stance, changing the effect of his other abilities.
-        """
-        if self.state == "Unyielding":
-            self.state = "Commanding"
-            print(f"{self.name} switches to a Commanding stance, ready to lead the attack!")
-        else:
-            self.state = "Unyielding"
-            print(f"{self.name} switches to an Unyielding stance, focusing on defense!")
-
-    def valiant_strike(self, target):
-        """
-        A basic melee attack that builds Resolve.
-        """
-        # For simplicity, we'll use the base attack method and then add resolve
-        super().attack(target)
-        resolve_gained = 10
-        self.resolve = min(self.max_resolve, self.resolve + resolve_gained)
-        print(f"{self.name} strikes {target.name} with valor! (+{resolve_gained} Resolve)")
-
-    def lions_roar(self, allies):
-        """
-        A powerful ability whose effect changes based on Aeron's current stance.
-        """
-        cost = 50
-        if self.resolve >= cost:
-            self.resolve -= cost
-            print(f"{self.name} lets out a mighty roar!")
-
-            if self.stance == "Unyielding":
-                # In defensive stance, the roar grants a defensive buff to allies.
-                print("...His roar inspires resilience, granting a defensive shield to his allies!")
-                for ally in allies:
-                    # Let's simulate a shield by giving temporary bonus defense
-                    ally.defense += 10
-                    print(f"{ally.name}'s defense was boosted!")
-            elif self.stance == "Commanding":
-                # In offensive stance, the roar grants an offensive buff.
-                print("...His roar ignites courage, boosting the attack power of his allies!")
-                for ally in allies:
-                    # Let's simulate a damage boost by increasing strength
-                    ally.strength += 10
-                    print(f"{ally.name}'s strength was boosted!")
-        else:
-            print(f"{self.name} does not have enough Resolve.")
-
-    def skyfall_charge(self, target):
-        """
-        An ultimate ability representing a diving attack, leveraging his winged nature.
-        """
-        cost = 90
-        if self.resolve >= cost:
-            self.resolve -= cost
-            print(f"{self.name} soars into the sky and dives down upon {target.name} in a devastating charge!")
-            # High single-target damage
-            target.take_damage(150)
-        else:
-            print(f"{self.name} lacks the Resolve for this attack.")
-
-# We assume the Character and GameObject classes from the previous steps exist.
-import math
-
-class Nyxar(Character):
-    """
-    Represents Nyxar, the ruler of The Shadow Dominion and the original invader
-    responsible for the fragmentation of Mîlēhîgh.wørld. He is a primordial force
-    of darkness, seeking to extend his control over all realities.
-    """
-    def __init__(self, name="Nyxar, Ruler of The Shadow Dominion", x=0, y=0):
-        # As the ultimate antagonist, his power level is immense.
-        super().__init__(name, x, y, health=1000)
-
-        self.realm = "The Shadow Dominion"
-        self.max_dominion = 100
-        self.dominion = 0
-        self.tethered_enemies = [] # Keep track of who is tethered
-
-    def __str__(self):
-        """String representation of Nyxar's status."""
-        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
-                f"Dominion: {self.dominion}/{self.max_dominion}")
-
-    def update(self):
-        """
-        An update method called each game tick.
-        Used here to passively generate Dominion based on tethered enemies.
-        """
-        # His Dominion grows for each enemy currently ensnared.
-        dominion_gain = 5 * len(self.tethered_enemies)
-        self.dominion = min(self.max_dominion, self.dominion + dominion_gain)
-        super().update()
-
-    def shadow_tether(self, target):
-        """
-        Tethers a target with living shadows, slowing them and dealing damage over time.
-        Each tethered enemy increases Dominion generation.
-        """
-        print(f"{self.name} extends a tendril of living shadow, tethering {target.name}!")
-        if target not in self.tethered_enemies:
-            self.tethered_enemies.append(target)
-        # In-game logic would apply a "slow" and "damage-over-time" debuff.
-
-    def create_umbral_clone(self, target):
-        """
-        Consumes Dominion to create a perfect clone of an enemy out of shadow.
-        """
-        cost = 60
-        if self.dominion >= cost:
-            self.dominion -= cost
-            print(f"{self.name} spends Dominion to weave a perfect shadow clone of {target.name}!")
-            # In-game logic to spawn a temporary, hostile copy of the target character.
-        else:
-            print(f"{self.name} lacks the Dominion to create a clone.")
-
-    def worldless_chasm(self):
-        """
-        The ultimate ability. Plunges the battlefield into absolute darkness,
-        blinding enemies and empowering Nyxar.
-        """
-        cost = 100
-        if self.dominion >= cost:
-            self.dominion = 0
-            print(f"{self.name} unleashes his ultimate power, plunging the world into a Worldless Chasm!")
-            print("...All light is extinguished, and only the shadows remain!")
-            # In-game logic for a powerful, battlefield-wide debuff that severely hinders heroes
-            # while providing a massive buff to Nyxar for a limited time.
-        else:
-            print(f"{self.name} has not established enough Dominion to end the world.")
-class Zaia(Player):
-    """
-    Represents Zaia, a swift and lethal member of the Ɲōvəmîŋāđ.
-    She operates as a Rogue/Assassin, specializing in stealth, mobility, and high-precision strikes.
-    """
-    def __init__(self, name="Zaia", x=0, y=0, z=0):
-        super().__init__(name, x, y, z)
-        self.health = 130
-        self.max_health = 130
-        self.aeron_companion_id = None # Would be set to Aeron's unique ID
-        self.max_momentum = 100
-        self.momentum = 0
-        self.is_stealthed = False
-
-    def __str__(self):
-        """String representation of Zaia's status."""
-        stealth_status = "Active" if self.is_stealthed else "Inactive"
-        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
-                f"Momentum: {self.momentum}/{self.max_momentum} | "
-                f"Stealth: {stealth_status}")
-
-    def swift_strike(self, target):
-        """
-        A basic, quick attack that generates Momentum.
-        """
-        damage = 15
-        target.take_damage(damage)
-        momentum_gained = 15
-        self.momentum = min(self.max_momentum, self.momentum + momentum_gained)
-        print(f"{self.name} strikes {target.name} with blinding speed for {damage} damage! (+{momentum_gained} Momentum)")
-
-    def shadow_vanish(self):
-        """
-        Enters a stealth mode, making Zaia invisible to enemies.
-        """
-        cost = 30
-        if self.momentum >= cost:
-            self.momentum -= cost
-            self.is_stealthed = True
-            print(f"{self.name} spends {cost} Momentum to vanish into the shadows.")
-            # In-game logic would make her untargetable by most enemies.
-        else:
-            print(f"{self.name} lacks the Momentum to vanish.")
-
-    def exploit_weakness(self, target):
-        """
-        A high-damage, precision attack that consumes Momentum and breaks stealth for a bonus.
-        """
-        cost = 50
-        if self.momentum >= cost:
-            self.momentum -= cost
-            print(f"{self.name} analyzes {target.name} and strikes at a vital point!")
-
-            if self.is_stealthed:
-                self.is_stealthed = False # Attacking breaks stealth
-                damage = 120
-                print(f"...The attack from the shadows is a devastating critical hit for {damage} damage!")
-                target.take_damage(damage) # High bonus damage
-            else:
-                damage = 60
-                print(f"...The attack deals {damage} damage.")
-                target.take_damage(damage) # Standard high damage
-        else:
-            print(f"{self.name} does not have enough Momentum to exploit a weakness.")
-
-    def evasive_dash(self):
-        """
-        An evasive maneuver for repositioning and avoiding damage.
-        Likely has a cooldown rather than a resource cost.
-        """
-        print(f"{self.name} performs a nimble dash, evading incoming attacks.")
-        # In-game logic would move her character quickly and grant brief invulnerability.
-class DelilahTheDesolate(Player):
-    """
-    Represents Delilah the Desolate, the embodiment of The Omen and an agent of the Void.
-    Born from the darkness expelled from Ingris, she is a being of decay and destruction.
-    """
-    def __init__(self, name="Delilah the Desolate", x=0, y=0):
-        super().__init__(name, x, y)
-        self.health = 160
-        self.max_health = 160
-        self.original_self_id = None # Would be set to Ingris's unique ID
-        self.power_source = "The Omen"
-        self.max_blight = 100
-        self.blight = 25 # Starts with some Blight
-
-    def __str__(self):
-        """String representation of Delilah's status."""
-        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
-                f"Blight: {self.blight}/{self.max_blight}")
-
-    def touch_of_decay(self, target):
-        """
-        A basic ranged attack that applies a "decay" status effect, dealing damage
-        over time and generating Blight.
-        """
-        print(f"{self.name} touches {target.name}, afflicting them with a decaying curse.")
-        # In-game logic would apply a damage-over-time (DoT) effect to the target.
-        # As the DoT deals damage, it would generate Blight for Delilah.
-        blight_gained = 5
-        self.blight = min(self.max_blight, self.blight + blight_gained)
-        print(f"({self.name} gains {blight_gained} Blight.)")
-
-    def summon_omen_avatar(self, target):
-        """
-        Spends Blight to summon a manifestation of The Omen to attack her enemies.
-        """
-        cost = 60
-        if self.blight >= cost:
-            self.blight -= cost
-            print(f"{self.name} spends Blight to summon a terrifying avatar of The Omen to assault {target.name}!")
-            # In-game logic would create a temporary AI-controlled creature.
-        else:
-            print(f"{self.name} does not have enough Blight to summon an avatar.")
-
-    def voidblight_zone(self):
-        """
-        An ultimate ability that corrupts a large area of the battlefield.
-        Enemies within the area take continuous damage and are weakened.
-        """
-        cost = 90
-        if self.blight >= cost:
-            self.blight -= cost
-            print(f"{self.name} unleashes her full power, creating a large Voidblight Zone on the ground!")
-            print("...Enemies inside are weakened and slowly consumed by decay!")
-            # ... logic to create a persistent damaging and debuffing area of effect (AoE) ...
-        else:
-            print(f"{self.name} lacks the Blight to create a Voidblight Zone.")
-class Cirrus(Character):
-    """
-    Represents Cirrus, the Dragon King of Mîlēhîgh.wørld.
-    A powerful and enigmatic ruler, he acts as a mentor and a central figure in the world's power struggles.
-    """
-    def __init__(self, name="Cirrus the Dragon King", x=0, y=0):
-        # Starts in his Humanoid form
-        super().__init__(name, x, y, health=250, state="Humanoid")
-
-        self.fathers_id = None # Would be set to Cyrus's unique ID
-        self.max_sovereignty = 100
-        self.sovereignty = 0
-
-    @property
-    def form(self):
-        """A property to get his current form from the state."""
-        return self.state
-
-    def __str__(self):
-        """String representation of Cirrus's status."""
-        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
-                f"Sovereignty: {self.sovereignty}/{self.max_sovereignty} | "
-                f"Form: {self.form}")
-
-    def update(self):
-        """
-        An update method that could be called each game tick.
-        Used here to passively generate Sovereignty.
-        """
-        # Passively gains Sovereignty over time, representing his authority.
-        sovereignty_gain = 0.5
-        self.sovereignty = min(self.max_sovereignty, self.sovereignty + sovereignty_gain)
-        super().update() # Call parent update if it exists
-
-    def assume_dragon_form(self):
-        """
-        Transforms Cirrus into his true dragon form, consuming all Sovereignty.
-        """
-        if self.sovereignty >= self.max_sovereignty:
-            self.sovereignty = 0
-            self.state = "Dragon"
-            print(f"{self.name} unleashes his true power, transforming into a magnificent dragon!")
-            # In a real game, this would change his character model, stats, and abilities.
-        else:
-            print(f"{self.name} has not accumulated enough Sovereignty to transform.")
-
-    def revert_to_humanoid_form(self):
-        """
-        Reverts Cirrus back to his humanoid form.
-        """
-        if self.form == "Dragon":
-            self.state = "Humanoid"
-            print(f"{self.name} returns to his humanoid form.")
-
-    def kings_decree(self, target):
-        """
-        A commanding ability that marks a target, with different effects based on form.
-        """
-        if self.form == "Humanoid":
-            print(f"{self.name}, in his kingly form, issues a decree against {target.name}, marking them as a priority target!")
-            # In-game logic: apply a "vulnerability" debuff to the target.
-        elif self.form == "Dragon":
-            print(f"{self.name}, in his dragon form, roars a challenge at {target.name}, terrifying them!")
-            # In-game logic: apply a "fear" or "defense reduction" debuff.
-
-    def draconic_breath(self, enemies_in_path):
-        """
-        A powerful breath attack, primarily used in Dragon form.
-        """
-        if self.form == "Dragon":
-            print(f"{self.name} unleashes a torrent of dragon fire!")
-            for enemy in enemies_in_path:
-                print(f"...The fire engulfs {enemy.name}!")
-                # ... logic to apply heavy fire damage ...
-        else:
-            print(f"{self.name} cannot use his full draconic breath in humanoid form.")
-
-
-class OmegaOne(Character):
-    """
-    Represents Omega.one, a powerful entity created by Sky.ix.
-    Its allegiance is ambiguous, and its actions are guided by a cold, inscrutable logic.
-    """
-    def __init__(self, name="Omega.one", x=0, y=0):
-        # Default directive is to protect its creator
-        super().__init__(name, x, y, health=180, state="Guardian")
-        self.max_health = 180
-        self.creator_id = None # Would be set to Sky.ix's unique ID
-        self.max_processing_power = 100
-        self.processing_power = self.max_processing_power
-
-    @property
-    def directive(self):
-        """A property to get its current directive from the state."""
-        return self.state
-
-    def __str__(self):
-        """String representation of Omega.one's status."""
-        return (f"{self.name} | Health: {self.health}/{self.max_health} | "
-                f"Processing Power: {self.processing_power:.0f}/{self.max_processing_power} | "
-                f"Directive: {self.directive}")
-
-    def update(self):
-        """
-        An update method that could be called each game tick.
-        Used here to passively regenerate Processing Power.
-        """
-        power_regen = 1.0 # Regenerates steadily over time
-        self.processing_power = min(self.max_processing_power, self.processing_power + power_regen)
-        super().update()
-
-    def switch_directive(self, new_directive):
-        """
-        Changes Omega.one's operational directive to adapt to new combat situations.
-        Valid directives: Guardian, Analysis, Annihilation
-        """
-        self.state = new_directive
-        print(f"{self.name} switches operational parameters. New directive: {self.directive}.")
-
-    def energy_lance(self, target):
+        Args:
+            scene_manager (SceneManager): The active scene manager.
         """
-        A precise energy beam attack whose effect changes based on the current directive.
-        """
-        cost = 25
-        if self.processing_power >= cost:
-            self.processing_power -= cost
-            print(f"{self.name} fires a concentrated energy lance at {target.name}.")
-
-            if self.directive == "Guardian":
-                print("...Residual energy forms a protective barrier around its creator.")
-                # In a real implementation, this would find the creator and apply a shield.
-                # For now, we'll just print a message.
+        player = scene_manager.scene.player_character
+        if self.in_conversation:
+            choice = input("Choose an option (number): ")
+            if choice.isdigit() and self.dialogue_manager.select_option(int(choice) - 1):
                 pass
-            elif self.directive == "Analysis":
-                print(f"...Target analysis complete. {target.name} is now vulnerable to follow-up attacks.")
-                # In a real implementation, this would apply a defense-down debuff.
-                if hasattr(target, 'defense'):
-                    target.defense -= 10
-            elif self.directive == "Annihilation":
-                print("...The lance burns with extreme intensity, causing massive damage.")
-                target.take_damage(60)
+            else:
+                self.log_message("Invalid choice.")
+            self.turn_taken = True
+            return
+
+        command = input("Action: ").lower().strip()
+        parts = command.split()
+        action = parts[0] if parts else ""
+
+        if action == "move" and len(parts) > 1:
+            direction = parts[1]
+            dx, dy = 0, 0
+            if direction in ["w", "up"]:
+                dy = -1
+            elif direction in ["s", "down"]:
+                dy = 1
+            elif direction in ["a", "left"]:
+                dx = -1
+            elif direction in ["d", "right"]:
+                dx = 1
+
+            new_x, new_y = player.x + dx, player.y + dy
+
+            if 0 <= new_x < self.width and 0 <= new_y < self.height:
+                target = scene_manager.scene.get_object_at(new_x, new_y)
+                if not target or not getattr(target, 'solid', False):
+                    player.x = new_x
+                    player.y = new_y
+                    self.turn_taken = True
+                else:
+                    self.log_message(f"You can't move there. {target.name} is in the way.")
+            else:
+                self.log_message("You can't move off the map.")
+
+        elif action == "examine":
+            target_name = " ".join(parts[1:]) if len(parts) > 1 else None
+            found_something = False
+            if target_name:
+                # Examine a specific object by name
+                target = next((obj for obj in scene_manager.scene.game_objects if
+                               isinstance(obj, Interactable) and obj.name.lower() == target_name.lower()), None)
+                if target:
+                    self.log_message(f"{target.name}: {target.on_examine()}")
+                    found_something = True
+                else:
+                    self.log_message(f"There is no '{target_name}' to examine.")
+            else:
+                # Examine nearby objects
+                for obj in scene_manager.scene.game_objects:
+                    if isinstance(obj, Interactable) and player.distance_to(obj) < 1.5:
+                        self.log_message(f"{obj.name}: {obj.on_examine()}")
+                        found_something = True
+                        break  # Only examine one nearby thing
+                if not found_something:
+                    self.log_message("There is nothing nearby to examine.")
+            self.turn_taken = True
+
+        elif action == "talk" and len(parts) > 1:
+            target_name = " ".join(parts[1:])
+            target = next(
+                (obj for obj in scene_manager.scene.game_objects if obj.name.lower() == target_name.lower()), None)
+            if target and isinstance(target, Character) and target.dialogue:
+                if player.distance_to(target) <= 2:
+                    self.start_conversation(target.dialogue)
+                else:
+                    self.log_message(f"You are too far away to talk to {target.name}.")
+            else:
+                self.log_message(f"'{target_name}' has nothing to say or isn't here.")
+            self.turn_taken = True
+
+        elif action == "attack" and len(parts) > 1:
+            target_name = " ".join(parts[1:])
+            target = next((obj for obj in scene_manager.scene.game_objects if
+                           isinstance(obj, Enemy) and obj.name.lower() == target_name.lower() and obj.health > 0),
+                          None)
+            if target:
+                player.attack(target)
+            else:
+                self.log_message(f"There is no one to attack named '{target_name}'.")
+            self.turn_taken = True
+
+        elif action == "equip" and len(parts) > 1:
+            item_name = " ".join(parts[1:])
+            player.equip_item(item_name)
+            self.turn_taken = True
+
+        elif action == "use" and len(parts) > 2:
+            item_name = parts[1]
+            target_name = " ".join(parts[2:])
+            target = next((obj for obj in scene_manager.scene.game_objects if obj.name.lower() == target_name.lower()), None)
+            if target:
+                player.use_item(item_name, target)
+                self.turn_taken = True
+            else:
+                self.log_message(f"Target '{target_name}' not found.")
+
+        elif action == "drop" and len(parts) > 1:
+            item_name = " ".join(parts[1:])
+            player.drop_item(item_name, scene_manager.scene)
+            self.turn_taken = True
+
+        elif action == "status":
+            self.log_message(f"{player.name} - HP: {player.health}/{player.max_health}, Mana: {int(player.mana)}/{player.max_mana}")
+            for obj in scene_manager.scene.game_objects:
+                if isinstance(obj, Enemy) and obj.health > 0:
+                    self.log_message(f"{obj.name} - HP: {obj.health}")
+            self.turn_taken = False  # Does not consume a turn
+
+        elif action == "save":
+            save_name = parts[1] if len(parts) > 1 else "quicksave"
+            database.save_game(save_name, scene_manager)
+            self.log_message(f"Game saved to slot: {save_name}")
+            self.turn_taken = False
+
+        elif action == "load":
+            save_name = parts[1] if len(parts) > 1 else "quicksave"
+            new_manager = database.load_game(save_name)
+            if new_manager:
+                scene_manager.game = new_manager.game
+                scene_manager.scene = new_manager.scene
+                self.log_message(f"Game loaded from slot: {save_name}")
+            else:
+                self.log_message(f"Failed to load game from slot: {save_name}")
+            self.turn_taken = True
+
+        elif action == "quit":
+            self.game_over = True
+        elif action == "pause":
+            self.log_message("Game paused. Press Enter to continue...")
+            self.draw(scene_manager.scene)
+            input()
+            self.turn_taken = False
         else:
-            print(f"{self.name} has insufficient processing power.")
+            self.log_message(
+                "Unknown command. Try: move [w/a/s/d], talk [name], examine [name], attack [name], equip [item], use [item], status, save/load, pause, quit")
 
-    def system_overload(self, enemies_in_range):
+    def start_conversation(self, dialogue_manager):
+        """Initiates a conversation.
+
+        Args:
+            dialogue_manager (DialogueManager): The dialogue manager for the conversation.
         """
-        A high-risk, high-reward ultimate that overloads its systems for a massive AoE blast.
+        self.in_conversation = True
+        self.dialogue_manager = dialogue_manager
+        self.log_message("A conversation begins.")
+
+    def end_conversation(self):
+        """Ends the current conversation."""
+        self.in_conversation = False
+        self.dialogue_manager = None
+        self.log_message("The conversation ends.")
+
+    def draw(self, scene):
+        """Draws the game state to the console.
+
+        Args:
+            scene (Scene): The scene to draw.
         """
-        health_cost = self.max_health * 0.30 # Costs 30% of its max health
-        self.take_damage(health_cost)
+        # Clear screen
+        print("\033c", end="")
 
-        print(f"{self.name} diverts all power, initiating a system overload! It sacrifices {health_cost:.0f} health.")
-        for enemy in enemies_in_range:
-            print(f"...A massive energy pulse radiates outwards, striking {enemy.name}!")
-            enemy.take_damage(150)
+        print(f"--- {scene.name} ---")
+
+        if self.in_conversation:
+            node = self.dialogue_manager.get_current_node()
+            if not node:
+                self.end_conversation()
+                # Fall through to draw the map on the turn the conversation ends
+            else:
+                print(f"\n--- Conversation with {node.character_name} ---")
+                print(f"> \"{node.text}\"")
+                if node.options:
+                    for i, option_text in enumerate(node.options.keys()):
+                        print(f"  {i + 1}. {option_text}")
+                else:
+                    # If there are no options, the conversation ends on the next player input
+                    self.end_conversation()
+                # Don't draw map while in conversation
+                return
+
+        # --- Draw Map ---
+        grid = [['.' for _ in range(self.width)] for _ in range(self.height)]
+        for obj in sorted(scene.game_objects, key=lambda o: 0 if isinstance(o, Character) else -1):
+            if 0 <= obj.x < self.width and 0 <= obj.y < self.height:
+                grid[obj.y][obj.x] = obj.symbol
+
+        for row in grid:
+            print(" ".join(row))
+
+        # --- Draw Player Status and Message Log ---
+        player = scene.player_character
+        print("-" * (self.width * 2 - 1))
+        print(f"{player.name} | Health: {player.health}/{player.max_health}")
+        print("-- Messages --")
+        for msg in self.message_log:
+            print(f"- {msg}")
+        print("-" * (self.width * 2 - 1))
 
 
-def run_character_demonstration():
+class SceneManager:
+    """Base class for controlling scenes, events, and game logic.
+
+    Attributes:
+        scene (Scene): The scene being managed.
+        game (Game): The main game engine.
+        is_running (bool): Whether the scene is currently running.
     """
-    A new function to demonstrate the unique abilities of the new characters.
-    """
-    print("\n--- Character Demonstration ---")
-
-    # --- 1. Create Characters and an Enemy ---
-    skyix = Skyix(x=0, y=0)
-    anastasia = Anastasia(x=2, y=0)
-    micah = Micah(x=4, y=0)
-    enemy = Enemy(name="Void Beast", x=10, y=0, health=500)
-    enemy.attack_damage = 25 # Increase damage to build Fortitude faster
-
-    print("\n--- Initial State ---")
-    print(skyix)
-    print(anastasia)
-    print(micah)
-    print(enemy)
-
-    # --- 2. Showcase Abilities ---
-    print("\n--- Turn 1: Sky.ix and Anastasia take action ---")
-    skyix.deploy_drone()
-    anastasia.weave_dream(micah, is_healing=True) # Heal Micah to show support role
-    anastasia.weave_dream(enemy, is_healing=False) # Harm the enemy
-
-    print("\n--- Turn 2: Micah takes damage and builds Fortitude ---")
-    enemy.attack(micah) # Enemy attacks Micah
-    enemy.attack(micah) # Attack again to build more Fortitude
-    print(micah)
-
-    print("\n--- Turn 3: Micah retaliates ---")
-    micah.activate_adamantine_skin()
-    micah.earthen_smash(enemy)
-    print(micah)
-    print(enemy)
-
-    print("\n--- Turn 4: Sky.ix unleashes a powerful attack ---")
-    skyix.cast_spell("void_tech", enemy)
-    print(skyix)
-    print(enemy)
-
-    print("\n--- Turn 5: Zaia enters the fray ---")
-    zaia = Zaia(x=0, y=1)
-    print(zaia)
-    zaia.swift_strike(enemy)
-    zaia.swift_strike(enemy)
-    zaia.swift_strike(enemy)
-    zaia.swift_strike(enemy)
-    zaia.swift_strike(enemy)
-    zaia.swift_strike(enemy)
-    print(zaia)
-
-    print("\n--- Turn 6: Zaia uses her Momentum ---")
-    zaia.shadow_vanish()
-    print(zaia)
-    zaia.exploit_weakness(enemy)
-    print(zaia)
-    print(enemy)
-
-
-    print("\n--- Demonstration Complete ---")
-
-
-def run_aeron_demonstration():
-    """
-    A function to demonstrate the unique abilities of Aeron.
-    """
-    print("\n--- Character Demonstration: Aeron ---")
-
-    # --- 1. Create Characters and an Enemy ---
-    aeron = Aeron(x=0, y=0)
-    # An ally to demonstrate buffing abilities
-    ally = Player(name="Cirrus", x=1, y=0)
-    allies = [aeron, ally]
-    enemy = Enemy(name="Shadow Mercenary", x=10, y=0, health=300)
-
-    print("\n--- Initial State ---")
-    print(aeron)
-    print(ally)
-    print(enemy)
-
-    # --- 2. Showcase Abilities ---
-    print("\n--- Turn 1: Aeron builds Resolve ---")
-    aeron.valiant_strike(enemy)
-    aeron.valiant_strike(enemy)
-    aeron.valiant_strike(enemy)
-    aeron.valiant_strike(enemy)
-    aeron.valiant_strike(enemy)
-    print(aeron)
-
-    print("\n--- Turn 2: Aeron uses his defensive stance ability ---")
-    aeron.lions_roar(allies)
-    print(aeron)
-    print(f"Ally defense is now: {ally.defense}")
-
-
-    print("\n--- Turn 3: Aeron switches stances and uses his offensive ability ---")
-    aeron.switch_stance()
-    # Build up resolve again
-    aeron.valiant_strike(enemy)
-    aeron.valiant_strike(enemy)
-    aeron.valiant_strike(enemy)
-    aeron.valiant_strike(enemy)
-    aeron.valiant_strike(enemy)
-    print(aeron)
-    aeron.lions_roar(allies)
-    print(aeron)
-    print(f"Ally strength is now: {ally.strength}")
-
-
-    print("\n--- Turn 4: Aeron unleashes his ultimate ---")
-    # Build up resolve for the ultimate
-    aeron.valiant_strike(enemy)
-    aeron.valiant_strike(enemy)
-    aeron.valiant_strike(enemy)
-    aeron.valiant_strike(enemy)
-    aeron.valiant_strike(enemy)
-    aeron.valiant_strike(enemy)
-    aeron.valiant_strike(enemy)
-    aeron.valiant_strike(enemy)
-    aeron.valiant_strike(enemy)
-    print(aeron)
-    aeron.skyfall_charge(enemy)
-    print(enemy)
-    print(aeron)
-
-
-    print("\n--- Demonstration Complete ---")
-def run_delilah_demonstration():
-    """
-    A function to demonstrate the unique abilities of Delilah the Desolate.
-    """
-    print("\n--- Character Demonstration: Delilah the Desolate ---")
-
-    # --- 1. Create Delilah and an Enemy ---
-    delilah = DelilahTheDesolate(x=0, y=0)
-    enemy = Enemy(name="Void Spawn", x=10, y=0, health=200)
-
-    print("\n--- Initial State ---")
-    print(delilah)
-    print(enemy)
-
-    # --- 2. Showcase Abilities ---
-    print("\n--- Turn 1: Delilah generates Blight ---")
-    delilah.touch_of_decay(enemy)
-    print(delilah)
-
-    print("\n--- Turn 2: Delilah attempts to use an ability without enough Blight ---")
-    delilah.summon_omen_avatar(enemy)
-    print(delilah)
-
-    print("\n--- Turn 3: Delilah generates more Blight ---")
-    # In a real scenario, this would happen over time or through other actions.
-    delilah.blight = 70
-    print(f"(Delilah's Blight is now {delilah.blight})")
-    delilah.summon_omen_avatar(enemy)
-    print(delilah)
-
-    print("\n--- Turn 4: Delilah uses her ultimate ability ---")
-    delilah.blight = 100
-    print(f"(Delilah's Blight is now {delilah.blight})")
-    delilah.voidblight_zone()
-    print(delilah)
-
-
-    print("\n--- Demonstration Complete ---")
-def run_cirrus_demonstration():
-    """
-    A function to demonstrate the unique abilities of Cirrus.
-    """
-    print("\n--- Cirrus Demonstration ---")
-
-    # --- 1. Create Cirrus and an Enemy ---
-    cirrus = Cirrus(x=0, y=0)
-    enemy1 = Enemy(name="Rebel Captain", x=10, y=0, health=150)
-    enemy2 = Enemy(name="Renegade Knight", x=12, y=0, health=180)
-    enemies = [enemy1, enemy2]
-
-    print("\n--- Initial State ---")
-    print(cirrus)
-    print(enemy1)
-    print(enemy2)
-
-    # --- 2. Showcase Humanoid Abilities ---
-    print("\n--- Turn 1: Cirrus asserts his authority ---")
-    cirrus.kings_decree(enemy1)
-    cirrus.draconic_breath(enemies) # Should fail in this form
-
-    # --- 3. Build Sovereignty ---
-    print("\n--- Building Sovereignty... ---")
-    # Simulate time passing to build up his resource
-    for _ in range(200):
-        cirrus.update()
-    print(cirrus)
-
-    # --- 4. Transform and Unleash Dragon Form ---
-    print("\n--- Turn 2: Cirrus transforms! ---")
-    cirrus.assume_dragon_form()
-    print(cirrus)
-
-    # --- 5. Showcase Dragon Abilities ---
-    print("\n--- Turn 3: Cirrus uses his dragon abilities ---")
-    cirrus.kings_decree(enemy2)
-    cirrus.draconic_breath(enemies)
-
-    # --- 6. Revert to Humanoid Form ---
-    print("\n--- Turn 4: The Dragon King returns to his mortal guise ---")
-    cirrus.revert_to_humanoid_form()
-    print(cirrus)
-
-    print("\n--- Cirrus Demonstration Complete ---")
-
-
-def run_cyrus_demonstration():
-    """
-    A function to demonstrate the abilities of the new antagonist, Cyrus.
-    """
-    print("\n--- Cyrus Demonstration ---")
-
-    # --- 1. Create Cyrus and a Player to fight ---
-    cyrus = Cyrus(x=10, y=0)
-    hero = Player(name="Hero", x=0, y=0)
-    # Give the hero more health to survive the demonstration
-    hero.health = 250
-    hero.max_health = 250
-
-    print("\n--- Initial State ---")
-    print(cyrus)
-    print(hero)
-
-    # --- 2. Showcase Cyrus's Abilities ---
-    print("\n--- Turn 1: Cyrus uses a standard attack and a special ability ---")
-    cyrus.attack(hero) # A standard attack
-    cyrus.dimensional_rift()
-    print(cyrus)
-    print(hero)
-
-    print("\n--- Turn 2: Cyrus uses his Worldbreaker Strike ---")
-    cyrus.worldbreaker_strike(hero)
-    print(cyrus)
-    print(hero)
-
-    print("\n--- Turn 3: Cyrus unleashes his ultimate ability ---")
-    # We create another player to demonstrate the line attack
-    hero2 = Player(name="Sidekick", x=-1, y=0)
-    hero2.health = 200
-    targets = [hero, hero2]
-    # To showcase the ultimate, we'll reset his Tyranny as if he has powered up
-    print(f"{cyrus.name} gathers his full power for a final strike!")
-    cyrus.tyranny = cyrus.max_tyranny
-    cyrus.onalym_purge(targets)
-    print(cyrus)
-    print(hero)
-    print(hero2)
-
-    print("\n--- Cyrus Demonstration Complete ---")
-
-
-def run_nyxar_demonstration():
-    """
-    A function to demonstrate the abilities of the antagonist, Nyxar.
-    """
-    print("\n--- Nyxar Demonstration ---")
-
-    # --- 1. Create Nyxar and some heroes to fight ---
-    nyxar = Nyxar(x=0, y=0)
-    hero1 = Player(name="Aeron", x=10, y=5)
-    hero2 = Player(name="Zaia", x=8, y=-5)
-
-    print("\n--- Initial State ---")
-    print(nyxar)
-    print(hero1)
-    print(hero2)
-
-    # --- 2. Showcase Nyxar's Abilities ---
-    print("\n--- Turn 1: Nyxar begins to dominate the field ---")
-    nyxar.shadow_tether(hero1)
-    print(f"(Nyxar's tethered enemies: {[e.name for e in nyxar.tethered_enemies]})")
-    nyxar.update() # Simulate a game tick to generate Dominion
-    print(nyxar)
-
-    print("\n--- Turn 2: Nyxar extends his influence ---")
-    nyxar.shadow_tether(hero2)
-    print(f"(Nyxar's tethered enemies: {[e.name for e in nyxar.tethered_enemies]})")
-
-    print("\n...Time passes, Nyxar's dominion grows...")
-    for _ in range(5): # Simulate a few more ticks
-        nyxar.update()
-    print(nyxar)
-
-
-    print("\n--- Turn 3: Nyxar creates a clone ---")
-    nyxar.create_umbral_clone(hero1)
-    print(nyxar)
-
-    print("\n--- Turn 4: Nyxar gathers his full power ---")
-    # Manually set dominion to max for the ultimate
-    nyxar.dominion = 100
-    print(nyxar)
-    nyxar.worldless_chasm()
-    print(nyxar)
-
-    print("\n--- Nyxar Demonstration Complete ---")
-def run_era_demonstration():
-    """
-    A function to demonstrate the abilities of the new antagonist, Era.
-    """
-    print("\n--- Era Demonstration ---")
-
-    # --- 1. Create Era and a Player to fight ---
-    era = Era(x=10, y=0)
-    hero = Player(name="Hero", x=0, y=0)
-    # Give the hero more health to survive the demonstration
-    hero.health = 400
-    hero.max_health = 400
-    all_heroes = [hero]
-
-    print("\n--- Initial State ---")
-    print(era)
-    print(hero)
-
-    # --- 2. Showcase Era's Abilities ---
-    print("\n--- Turn 1: Era starts spreading corruption ---")
-    era.spread_the_void()
-    print(era)
-
-    print("\n--- Turn 2: Era attacks with chaotic energy ---")
-    era.chaotic_outburst(hero)
-    print(era)
-    print(hero)
-
-    print("\n--- Turn 3: Era unleashes her ultimate ability ---")
-    era.inevitable_collapse(all_heroes)
-    print(era)
-    print(hero)
-
-    print("\n--- Era Demonstration Complete ---")
-def run_omega_one_demonstration():
-    """
-    A function to demonstrate the unique abilities of Omega.one.
-    """
-    print("\n--- Character Demonstration: Omega.one ---")
-
-    # --- 1. Create Omega.one and an Enemy ---
-    omega_one = OmegaOne(x=0, y=0)
-    enemy1 = Enemy(name="Drone Target", x=10, y=0, health=200)
-    enemy2 = Enemy(name="Collateral Target", x=12, y=0, health=200)
-    enemies = [enemy1, enemy2]
-
-    print("\n--- Initial State ---")
-    print(omega_one)
-    print(enemy1)
-    print(enemy2)
-
-
-    # --- 2. Showcase Abilities ---
-    print("\n--- Turn 1: Omega.one uses Energy Lance in its default 'Guardian' directive ---")
-    omega_one.energy_lance(enemy1)
-    print(omega_one)
-
-    print("\n--- Turn 2: Omega.one switches directive and attacks again ---")
-    omega_one.switch_directive("Annihilation")
-    omega_one.energy_lance(enemy1)
-    print(omega_one)
-    print(enemy1)
-
-    print("\n--- Turn 3: Omega.one uses its ultimate ability ---")
-    omega_one.system_overload(enemies)
-    print(omega_one)
-    print(enemy1)
-    print(enemy2)
-
-    print("\n--- Omega.one Demonstration Complete ---")
 
+    def __init__(self, scene, game, setup_scene=True):
+        self.scene = scene
+        self.game = game
+        self.is_running = True
+        if setup_scene:
+            self.setup()
+
+    def setup(self):
+        """Initializes the scene with objects, characters, etc."""
+        raise NotImplementedError
+
+    def update(self):
+        """Runs every game loop, checking for win/loss conditions, etc."""
+        pass
+
+    def run(self):
+        """Main game loop for this scene."""
+        while not self.game.game_over and self.is_running:
+            self.game.draw(self.scene)
+            if self.game.game_over: break
+
+            self.game.turn_taken = False
+            while not self.game.turn_taken and not self.game.game_over:
+                self.game.handle_input(self)
+
+
+class Aeron(Player):
+    """A placeholder class for the character Aeron."""
+
+    def __init__(self, name="Aeron", x=0, y=0, z=0):
+        super().__init__(name, x, y, z)
+        self.symbol = '@'
+
+
+class Kane(Enemy):
+    """A placeholder class for the enemy Kane."""
+
+
+
+    def __init__(self, name="Kane", x=0, y=0, z=0, type="Boss"):
+        super().__init__(name, x, y, z, type)
+        self.symbol = 'K'
+
+
+class AethelgardBattle(SceneManager):
+    """A specific scene manager for the Aeron vs. Kane fight."""
+
+    def setup(self):
+        """Sets up the characters, items, and quest for this specific battle."""
+        # Create characters
+        player = Aeron(name="Aeron", x=5, y=5)
+        enemy = Kane(name="Kane", x=10, y=5)
+        # Let's make Kane a bit tougher for this encounter
+        enemy.health = 250
+        enemy.attack_damage = 20
+        enemy.xp_value = 500  # This would be a new attribute on Enemy
+
+        # Give player items
+        player.pickup_item(Weapon("Valiant Sword", "A blade that shines with honor.", 25))
+        player.pickup_item(Armor("Aethelgard Plate", "Sturdy plate armor of a royal knight.", 15))
+        player.pickup_item(PoisonDart(potency=5, duration=4))
+
+
+        # A simple quest system could be added to the Player class later
+        # player.journal.add_quest(Quest("The Sibling Rivalry", "Defeat Kane.", [{'type': 'defeat', 'target': 'Kane', 'current': 0, 'required': 1}]))
+
+        # Add a test interactable object
+        ancient_statue = Interactable(
+            name="Ancient Statue",
+            x=5,
+            y=4,
+            symbol='S',
+            description="The statue depicts a forgotten king. A faint inscription reads: 'Only the worthy may pass.'"
+        )
+
+        # Add them to the scene
+        self.scene.set_player(player)
+        self.scene.add_object(enemy)
+        self.scene.add_object(ancient_statue)
+        self.game.log_message("Aethelgard stands silent. Your brother, Kane, awaits.")
+        self.game.log_message("You feel the weight of the Aethelgard Plate. Type 'equip Aethelgard Plate' to wear it.")
+
+    def run(self):
+        """Main game loop for this scene."""
+        while not self.game.game_over and self.is_running:
+            self.game.draw(self.scene)
+            if self.game.game_over: break
+
+            self.game.turn_taken = False
+            while not self.game.turn_taken and not self.game.game_over:
+                self.game.handle_input(self)
+
+            # --- AI and World Turn ---
+            if self.game.turn_taken and not self.game.game_over:
+                # Update all other objects in the scene
+                for obj in self.scene.game_objects:
+                    obj.update(self)
+
+        self.update()  # Check for scene-specific win/loss conditions
+
+
+class FirstMeetingScene(SceneManager):
+    """A scene that sets up the game from the loaded JSON data."""
+
+    def __init__(self, scene, game, game_data, setup_scene=True):
+        self.game_data = game_data
+        super().__init__(scene, game, setup_scene)
+
+    def setup(self):
+        """Initializes the scene with objects, characters, etc. from game_data."""
+        # Create player from game_data
+        player_data = self.game_data['player']
+        player = Player(
+            name=player_data['name'],
+            x=player_data['x'],
+            y=player_data['y'],
+            inventory_capacity=player_data['inventory_capacity']
+        )
+        self.scene.set_player(player)
+
+        # Create enemies from game_data
+        for enemy_data in self.game_data['enemies']:
+            enemy = Enemy(
+                name=enemy_data['name'],
+                x=enemy_data['x'],
+                y=enemy_data['y'],
+                type=enemy_data['type'],
+                health=enemy_data['health'],
+                speed=enemy_data['speed'],
+                attack_damage=enemy_data['attack_damage'],
+                xp_value=enemy_data['xp_value']
+            )
+            self.scene.add_object(enemy)
+
+        # Create a weapon and place it in the scene
+        weapon_data = self.game_data['items']['weapons'][0]
+        weapon = Weapon(
+            name=weapon_data['name'],
+            description=weapon_data['description'],
+            damage=weapon_data['damage'],
+            weapon_type=weapon_data['weapon_type']
+        )
+        weapon.x = 2
+        weapon.y = 2
+        self.scene.add_object(weapon)
+
+        # Create a health potion and place it in the scene
+        potion_data = self.game_data['items']['consumables']['health_potions'][0]
+        potion = HealthPotion(
+            name=potion_data['name'],
+            description=potion_data['description'],
+            amount=potion_data['amount']
+        )
+        potion.x = 3
+        potion.y = 3
+        self.scene.add_object(potion)
+
+        self.game.log_message("Welcome to the game! An adventure awaits.")
+        self.game.log_message("You see a sword and a potion nearby. Try 'move d' then 'pickup sword'.")
+
+
+def main():
+    """Sets up and runs the game."""
+    # Load game data from JSON file
+    with open("game_data.json", "r") as f:
+        game_data = json.load(f)
+
+    # Initialize the database first
+    database.init_db()
+
+    # --- Game Start ---
+    # Check for a command-line argument to load a game
+    if len(sys.argv) > 2 and sys.argv[1] == 'load':
+        save_name = sys.argv[2]
+        print(f"Attempting to load game from slot: {save_name}")
+        scene_manager = database.load_game(save_name)
+        if not scene_manager:
+            print(f"Could not load '{save_name}'. Starting a new game.")
+            # Fallback to new game if load fails
+            game_engine = Game()
+            scene = Scene("Monolith Clearing")
+            scene_manager = FirstMeetingScene(scene, game_engine, game_data)
+    else:
+        # Start a new game by default
+        print("Starting a new game.")
+        game_engine = Game()
+        scene = Scene("Monolith Clearing")
+        scene_manager = FirstMeetingScene(scene, game_engine, game_data)
+
+    if scene_manager:
+        scene_manager.run()
+        print("Game over.")
+    return scene_manager
 
 if __name__ == "__main__":
-    # run_game() # You can comment this out to only run the character demo
-    # run_character_demonstration()
-    run_cyrus_demonstration()
-    run_aeron_demonstration()
-    run_delilah_demonstration()
-    run_cirrus_demonstration()
-    run_nyxar_demonstration()
-    run_era_demonstration()
-    run_omega_one_demonstration()
+    main()

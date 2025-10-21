@@ -1,0 +1,73 @@
+{
+  "player": {
+    "name": "Hero",
+    "x": 0,
+    "y": 0,
+    "z": 0,
+    "health": 100,
+    "speed": 5,
+    "inventory_capacity": 10
+  },
+  "enemies": [
+    {
+      "name": "Goblin",
+      "x": 5,
+      "y": 5,
+      "z": 0,
+      "type": "Goblin",
+      "health": 50,
+      "speed": 2,
+      "attack_damage": 10,
+      "xp_value": 25
+    },
+    {
+      "name": "Orc",
+      "x": -5,
+      "y": -5,
+      "z": 0,
+      "type": "Orc",
+      "health": 80,
+      "speed": 1,
+      "attack_damage": 15,
+      "xp_value": 40
+    }
+  ],
+  "items": {
+    "weapons": [
+      {
+        "name": "Sword",
+        "description": "A sharp, well-balanced sword.",
+        "damage": 20,
+        "weapon_type": "Melee"
+      },
+      {
+        "name": "Valiant Sword",
+        "description": "A blade that shines with honor.",
+        "damage": 25
+      }
+    ],
+    "armor": [
+      {
+        "name": "Aethelgard Plate",
+        "description": "Sturdy plate armor of a royal knight.",
+        "defense": 15
+      }
+    ],
+    "consumables": {
+      "health_potions": [
+        {
+          "name": "Health Potion",
+          "description": "A potion that restores 20 HP.",
+          "amount": 20
+        }
+      ],
+      "mana_potions": [
+        {
+          "name": "Mana Potion",
+          "description": "A potion that restores 30 Mana.",
+          "amount": 30
+        }
+      ]
+    }
+  }
+}

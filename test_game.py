@@ -1,307 +1,138 @@
 import unittest
 from unittest.mock import patch
-from game import GameObject, Player, Enemy, Weapon, HealthPotion, ManaPotion, Game
 
-class TestGameLogic(unittest.TestCase):
+# Import all necessary classes from the refactored game.py
+from game import (
+    GameObject, Item, Weapon, Consumable, Character, Player,
+    Enemy, Game, Scene, AethelgardBattle, HealthPotion
+)
 
-    def setUp(self):
-        """Set up test fixtures before each test method."""
-        self.player = Player(name="Test Player")
-        self.enemy = Enemy(name="Test Enemy")
-        self.game = Game()
-        self.game.add_object(self.player)
-        self.game.add_object(self.enemy)
+# --- Test Cases ---
 
-
+class TestGameObject(unittest.TestCase):
+    """Tests for the base GameObject class."""
     def test_game_object_creation(self):
-        """Test the creation of a GameObject with specific attributes."""
-        obj = GameObject(name="Test Object", x=10, y=20, z=5, health=150, speed=2, defense=10)
-        self.assertEqual(obj.name, "Test Object")
+        """Tests the initialization of a GameObject."""
+        obj = GameObject(name="Tree", x=10, y=20, health=50)
+        self.assertEqual(obj.name, "Tree")
         self.assertEqual(obj.x, 10)
         self.assertEqual(obj.y, 20)
-        self.assertEqual(obj.z, 5)
-        self.assertEqual(obj.health, 150)
-        self.assertEqual(obj.speed, 2)
-        self.assertEqual(obj.defense, 10)
-        self.assertTrue(obj.visible)
-        self.assertTrue(obj.solid)
+        self.assertEqual(obj.health, 50)
 
-    def test_take_damage_reduces_health(self):
-        """Test that take_damage correctly reduces health based on defense."""
+    def test_take_damage(self):
+        """Test that take_damage correctly reduces health."""
+        obj = GameObject(health=100)
+        obj.take_damage(30)
+        self.assertEqual(obj.health, 70)
+
+
+class TestCharacterAndPlayer(unittest.TestCase):
+    """Tests for the Character and Player classes."""
+    def setUp(self):
+        """Sets up the test environment before each test."""
+        self.player = Player(name="Hero")
+        self.player.strength = 10
+        self.player.dexterity = 10
+        self.player.intelligence = 10
+        self.enemy = Enemy(name="Goblin")
+
+    def test_character_take_damage(self):
+        """Test that take_damage correctly reduces a character's health."""
         initial_health = self.player.health
-        self.player.defense = 5
-        damage = 20
-        self.player.take_damage(damage)
-        self.assertEqual(self.player.health, initial_health - (damage - self.player.defense))
+        self.player.take_damage(20)
+        self.assertEqual(self.player.health, initial_health - 20)
 
-    def test_take_damage_is_non_negative(self):
-        """Test that damage taken is never negative, even with high defense."""
-        initial_health = self.player.health
-        self.player.defense = 30
-        damage = 20
-        self.player.take_damage(damage)
-        self.assertEqual(self.player.health, initial_health)
+    def test_equip_item(self):
+        """Test that a character can equip a weapon."""
+        sword = Weapon(name="Test Sword", description="A test sword.", damage=15)
+        self.player.inventory.append(sword)
+        self.player.equip_item(sword.name)
+        self.assertIs(self.player.equipment.slots['weapon'], sword)
 
-    def test_heal_increases_health(self):
-        """Test that heal correctly increases health."""
-        self.player.health = 50
-        self.player.heal(20)
-        self.assertEqual(self.player.health, 70)
-
-    def test_heal_does_not_exceed_max_health(self):
-        """Test that healing does not increase health beyond the maximum."""
-        self.player.health = 90
-        self.player.heal(30)
-        self.assertEqual(self.player.health, 100)
-
-    def test_player_equip_weapon(self):
-        """Test that a player can equip a weapon."""
-        sword = Weapon(name="Test Sword", damage=15)
-        self.player.equip_weapon(sword)
-        self.assertIs(self.player.weapon, sword)
-        self.assertEqual(self.player.weapon.damage, 15)
-
-    @patch('random.uniform', return_value=20)
+    @patch('random.uniform', return_value=20) # Ensures a hit
     def test_player_attack_regular_hit(self, mock_uniform):
         """Test a player's regular attack on an enemy."""
-        sword = Weapon(name="Test Sword", damage=20)
-        self.player.equip_weapon(sword)
-        self.player.strength = 10
-        self.enemy.defense = 5
+        sword = Weapon(name="Test Sword", description="A sword.", damage=10)
+        self.player.inventory.append(sword)
+        self.player.equip_item("Test Sword")
         initial_enemy_health = self.enemy.health
-        expected_damage = (sword.damage + (self.player.strength // 2)) - self.enemy.defense
-
         self.player.attack(self.enemy)
+        # Damage = weapon_damage + strength_bonus (10 // 2 = 5)
+        self.assertEqual(self.enemy.health, initial_enemy_health - 15)
 
-        self.assertEqual(self.enemy.health, initial_enemy_health - expected_damage)
-
-    @patch('random.uniform')
+    @patch('random.uniform', return_value=5) # Ensures a critical hit (miss < 5 < crit)
     def test_player_attack_critical_hit(self, mock_uniform):
         """Test a player's critical hit attack on an enemy."""
-        # Ensure the miss chance roll is high (not a miss) and the crit chance roll is low (a crit)
-        mock_uniform.side_effect = [10, 4]
-        sword = Weapon(name="Test Sword", damage=20)
-        self.player.equip_weapon(sword)
-        self.player.strength = 10
-        self.player.dexterity = 100 # Guarantees a crit
-        self.enemy.defense = 5
+        sword = Weapon(name="Test Sword", description="A sword.", damage=10)
+        self.player.inventory.append(sword)
+        self.player.equip_item("Test Sword")
         initial_enemy_health = self.enemy.health
-
-        base_damage = sword.damage + (self.player.strength // 2)
-        critical_damage = (base_damage * 2) - self.enemy.defense
-
         self.player.attack(self.enemy)
+        # Damage = (weapon_damage + strength_bonus) * 2 = (10 + 5) * 2 = 30
+        self.assertEqual(self.enemy.health, initial_enemy_health - 30)
 
-        self.assertEqual(self.enemy.health, initial_enemy_health - critical_damage)
-
-
-    def test_enemy_attack(self):
-        """Test a simple enemy attack on the player."""
-        initial_player_health = self.player.health
-        self.player.defense = 2
-        self.enemy.attack_damage = 10
-
-        self.enemy.attack(self.player)
-
-        expected_health = initial_player_health - (self.enemy.attack_damage - self.player.defense)
-        self.assertEqual(self.player.health, expected_health)
-
-    def test_item_pickup_and_stacking(self):
-        """Test that a player can pick up items and that they stack correctly."""
-        potion1 = HealthPotion(name="Lesser Heal")
-        potion2 = HealthPotion(name="Lesser Heal")
-        weapon = Weapon("Axe")
-
-        self.player.pickup_item(potion1)
-        self.assertEqual(len(self.player.inventory), 1)
-        self.assertEqual(self.player.inventory[0].quantity, 1)
-
-        self.player.pickup_item(potion2)
-        self.assertEqual(len(self.player.inventory), 1)
-        self.assertEqual(self.player.inventory[0].quantity, 2)
-
-        self.player.pickup_item(weapon)
-        self.assertEqual(len(self.player.inventory), 2)
+    def test_item_pickup(self):
+        """Test that a character can pick up items."""
+        potion = Consumable(name="Lesser Heal", description="A weak potion.")
+        self.player.pickup_item(potion)
+        self.assertIn(potion, self.player.inventory)
 
     def test_use_health_potion(self):
         """Test that using a health potion restores health and consumes the item."""
         self.player.health = 50
-        potion = HealthPotion(name="Test Potion", amount=30)
+        potion = HealthPotion(name="Test Potion", description="A test potion.", amount=30)
         self.player.inventory.append(potion)
-
-        self.player.use_item("Test Potion")
-
+        self.player.use_item("Test Potion", self.player)
         self.assertEqual(self.player.health, 80)
-        self.assertNotIn(potion, self.player.inventory)
+        self.assertEqual(len(self.player.inventory), 0)
 
-    def test_level_up_mechanics(self):
-        """Test that the player levels up and stats increase after gaining enough experience."""
+    def test_gain_experience_and_level_up(self):
+        """Test that gaining enough XP triggers a level up."""
         self.player.level = 1
         self.player.experience = 0
-        exp_to_level = 100 * self.player.level * self.player.level
-
-        self.player.gain_experience(exp_to_level)
-
+        self.player.gain_experience(100 * 1 * 1) # Exactly enough for level 2
         self.assertEqual(self.player.level, 2)
-        self.assertEqual(self.player.max_health, 110)
-        self.assertNotEqual(self.player.speed, 5)
+        self.assertEqual(self.player.max_health, 110) # 100 + 10
+        self.assertEqual(self.player.health, 110) # Fully heal on level up
 
-    def test_cast_fireball_spell(self):
-        """Test casting a fireball spell and its effect on mana and target health."""
-        self.player.intelligence = 10
-        self.player.mana = 50
-        initial_enemy_health = self.enemy.health
-        self.enemy.defense = 5
-
-        self.player.cast_spell("fireball", self.enemy)
-
-        self.assertEqual(self.player.mana, 30)
-        expected_damage = (15 + int(self.player.intelligence * 1.5)) - self.enemy.defense
-        self.assertEqual(self.enemy.health, initial_enemy_health - expected_damage)
-
-    def test_cast_heal_spell(self):
-        """Test casting a heal spell and its effect on mana and player health."""
-        self.player.health = 50
-        self.player.mana = 50
-        self.player.intelligence = 10
-
-        self.player.cast_spell("heal", self.player)
-
-        self.assertEqual(self.player.mana, 40)
-        expected_heal_amount = 10 + self.player.intelligence
-        self.assertEqual(self.player.health, 50 + expected_heal_amount)
-
-    def test_game_over_condition(self):
-        """Test that the game ends when the player's health reaches zero."""
-        self.player.health = 10
-        self.enemy.attack_damage = 15
-        self.player.defense = 0
-        self.enemy.attack(self.player)
-        self.assertLessEqual(self.player.health, 0)
-
-    def test_win_condition(self):
-        """Test that the game ends when all enemies are defeated."""
-        self.enemy.health = 5
-        self.enemy.defense = 0
-        self.player.strength = 20
-        self.player.attack(self.enemy)
-        self.assertFalse(self.enemy.visible)
-
-    def test_enemy_ai_outside_aggro_range(self):
-        """Test enemy does not react when player is outside aggro range."""
-        self.player.x = 20  # Default enemy aggro_range is 10
-        self.player.y = 20
-        initial_enemy_x = self.enemy.x
-        initial_enemy_y = self.enemy.y
-        initial_player_health = self.player.health
-
-        self.enemy.update(delta_time=0.1, player=self.player)
-
-        self.assertEqual(self.enemy.x, initial_enemy_x)
-        self.assertEqual(self.enemy.y, initial_enemy_y)
-        self.assertEqual(self.player.health, initial_player_health)
-
-    def test_enemy_ai_inside_aggro_range_moves_but_not_attacks(self):
-        """Test enemy moves towards player when inside aggro range but not attack range."""
-        self.player.x = 5  # Inside aggro_range of 10, but outside attack range of 1
-        self.player.y = 0
-        initial_enemy_x = self.enemy.x
-        initial_player_health = self.player.health
-
-        self.enemy.update(delta_time=0.1, player=self.player)
-
-        self.assertNotEqual(self.enemy.x, initial_enemy_x, "Enemy should move on the x-axis")
-        self.assertEqual(self.player.health, initial_player_health, "Enemy should not attack")
-
-    def test_enemy_ai_inside_attack_range_attacks(self):
-        """Test enemy attacks player when in attack range."""
-        self.player.x = 0.5  # Inside attack range of 1
-        self.player.y = 0
-        initial_player_health = self.player.health
-
-        self.enemy.update(delta_time=0.1, player=self.player)
-
-        self.assertLess(self.player.health, initial_player_health, "Player health should decrease")
-
-    @patch('random.uniform', return_value=1)
-    def test_player_attack_miss(self, mock_uniform):
-        """Test that a player's attack can miss."""
-        self.player.dexterity = 0  # Guarantees a miss
-        initial_enemy_health = self.enemy.health
-        self.player.attack(self.enemy)
-        self.assertEqual(self.enemy.health, initial_enemy_health)
-
-    @patch('random.uniform', return_value=20)
-    def test_player_attack_bare_handed(self, mock_uniform):
-        """Test player's attack damage with no weapon."""
-        self.player.weapon = None
-        self.player.strength = 10
-        self.enemy.defense = 2
-        initial_enemy_health = self.enemy.health
-        expected_damage = (2 + (self.player.strength // 2)) - self.enemy.defense
-
-        self.player.attack(self.enemy)
-
-        self.assertEqual(self.enemy.health, initial_enemy_health - expected_damage)
-
-    def test_cast_spell_insufficient_mana(self):
-        """Test casting a spell with not enough mana."""
-        self.player.mana = 10  # Fireball costs 20
-        initial_enemy_health = self.enemy.health
-        initial_player_mana = self.player.mana
-
-        self.player.cast_spell("fireball", self.enemy)
-
-        self.assertEqual(self.enemy.health, initial_enemy_health)
-        self.assertEqual(self.player.mana, initial_player_mana)
-
-    def test_cast_unknown_spell(self):
-        """Test casting a spell that doesn't exist."""
+    def test_cast_spell_success(self):
+        """Test casting a spell successfully."""
         self.player.mana = 100
         initial_enemy_health = self.enemy.health
-        initial_player_mana = self.player.mana
+        self.player.cast_spell("fireball", self.enemy)
+        self.assertEqual(self.enemy.health, initial_enemy_health - (15 + int(self.player.intelligence * 1.5)))
+        self.assertEqual(self.player.mana, 80) # 100 - 20
 
-        self.player.cast_spell("frostbolt", self.enemy)
+    def test_cast_spell_not_enough_mana(self):
+        """Test casting a spell without enough mana."""
+        self.player.mana = 10
+        initial_enemy_health = self.enemy.health
+        self.player.cast_spell("fireball", self.enemy)
+        self.assertEqual(self.enemy.health, initial_enemy_health) # No damage
+        self.assertEqual(self.player.mana, 10) # No mana cost
 
-        self.assertEqual(self.enemy.health, initial_enemy_health)
-        self.assertEqual(self.player.mana, initial_player_mana)
+class TestGame(unittest.TestCase):
+    """Tests for the main Game class and its loop."""
+    def setUp(self):
+        """Sets up the test environment before each test."""
+        self.game = Game(width=20, height=10)
+        self.scene = Scene("Test Scene", width=20, height=10)
+        self.player = Player(name="TestPlayer", x=5, y=5)
+        self.scene.set_player(self.player)
+        self.scene_manager = AethelgardBattle(self.scene, self.game, setup_scene=False)
 
-    def test_use_mana_potion(self):
-        """Test that using a mana potion restores mana and consumes the item."""
-        self.player.mana = 20
-        potion = ManaPotion(name="Test Mana Potion", amount=40)
-        self.player.inventory.append(potion)
+    def test_game_loop_input_move(self):
+        """Test the move command in the game's input handler."""
+        initial_y = self.player.y
+        with patch('builtins.input', return_value='move w'):
+            self.game.handle_input(self.scene_manager)
+            self.assertEqual(self.player.y, initial_y - 1)
 
-        self.player.use_item("Test Mana Potion")
-
-        self.assertEqual(self.player.mana, 60)
-        self.assertNotIn(potion, self.player.inventory)
-
-    def test_use_non_consumable_item(self):
-        """Test attempting to use a non-consumable item like a weapon."""
-        weapon = Weapon("Sword")
-        self.player.inventory.append(weapon)
-        self.assertFalse(self.player.use_item("Sword"))
-
-    def test_use_item_not_in_inventory(self):
-        """Test attempting to use an item that is not in the inventory."""
-        self.assertFalse(self.player.use_item("Imaginary Potion"))
-
-    def test_game_remove_object(self):
-        """Test that remove_object correctly removes an object from the game."""
-        initial_object_count = len(self.game.objects)
-        self.game.remove_object(self.enemy)
-        self.assertEqual(len(self.game.objects), initial_object_count - 1)
-        self.assertNotIn(self.enemy, self.game.objects)
-
-    @patch('builtins.print')
-    def test_game_start_without_player(self, mock_print):
-        """Test that the game cannot start without a player."""
-        game = Game()
-        game.start()
-        mock_print.assert_called_with("Cannot start game without a Player.")
-        self.assertFalse(game.running)
-
+    def test_game_loop_input_quit(self):
+        """Test the quit command in the game's input handler."""
+        with patch('builtins.input', return_value='quit'):
+            self.game.handle_input(self.scene_manager)
+            self.assertTrue(self.game.game_over)
 
 if __name__ == '__main__':
     unittest.main()

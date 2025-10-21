@@ -1,107 +1,132 @@
 # Milehigh.World: Into the Void
 
-## 1. Overview
+Welcome to the official repository for the science-fantasy RPG, "Milehigh.World: Into the Void." This project is a narrative-driven RPG developed in Unity, supplemented by a suite of Python scripts for asset management, database control, and game logic prototyping.
 
-**Milehigh.World: Into the Void** is a prototype for a Sci-Fi Action RPG developed on the Unity platform, designed for the Meta Quest. This repository contains all source code, design documents, and utilities related to the project.
+## 🎮 Project Overview
 
-The game features a rich narrative, a diverse cast of characters known as the Ɲōvəmîŋāđ, and a unique, server-authoritative architecture.
+**Mîlēhîgh.wørld** is a science-fantasy RPG that explores a universe defined by a central conflict between high-tech advancement and ancient mysticism. The narrative follows the **Ɲōvəmîŋāđ**, a group of ten preordained heroes, as they navigate a fragmented reality to either fulfill or prevent the Lost Prophecy of Lîŋq and achieve **Millenia**—an enduring era of peace.
 
-## 2. Table of Contents
+The inciting event is an invasion by **King Cyrus** through the **Onalym Nexus**, a dimensional bridge, which shatters reality and kicks off the gathering of the Ɲōvəmîŋāđ. The primary antagonist is **The Void**, a corrupting "digital abyss," and its cunning manipulator, **Lucent the Lightweaver**. The game's design is built on the juxtaposition of technologies like cybernetics and quantum teleportation with mystical forces such as Phoenix and Dragon powers.
 
-- [Overview](#1-overview)
-- [Core Concepts](#3-core-concepts)
-- [Repository Structure](#4-repository-structure)
-- [Setup and Installation](#5-setup-and-installation)
-- [How to Run](#6-how-to-run)
-- [Documentation](#7-documentation)
+The project reinforces its digital, cyberpunk roots through a recurring binary motif:
+- **milehigh.world**: `01101101 01101001 01101100 01100101 01101000 01101001 01100111 01101000 00101110 01110111 01101111 01110010 01101100 01100100`
+- **Void**: `01110110 01101111 01101001 01100100`
 
-## 3. Core Concepts
+For a complete narrative and world-building reference, see the [Game Design Document](docs/GDD.md).
 
-This project is built on several key technical and design pillars:
+## 📂 Repository Structure
 
-- **Engine**: The project is developed in **Unity 2022.3.20f1** with C# as the primary scripting language.
-- **Server-Authoritative Architecture**: As outlined in `SECURITY.md`, the game is designed with a server-first security model. The `ServerCombatManager.cs` script is a reference implementation of this, where the server is the source of truth for all combat validation to prevent cheating.
-- **Modular Interaction System**: Player interactions are handled by a flexible system consisting of an `Interactor.cs` script on the player and an abstract `Interactable.cs` base class. This allows for easy creation of new interactable objects like NPCs, teleporters, and launchpads. The `AllianceTowerManager.cs` serves as a central hub for managing these interactions in a scene.
-- **USD-Based Asset Pipeline**: The project utilizes a unique pipeline for defining and importing 3D assets. USD (Universal Scene Description) code snippets are embedded within Markdown documents (like `document.md`), which are then parsed by a Python script (`usd_parser.py`) and can be loaded into Unity at runtime, as demonstrated in `UsdImportExample.cs`.
-
-## 4. Repository Structure
-
-The repository is organized as follows:
+This repository is organized to maintain a clean and scalable workflow between the Unity project and external tools.
 
 ```
 .
 ├── Assets/
-│   ├── Scripts/
-│   │   ├── Character/      # C# scripts for all characters, playable and NPC.
-│   │   ├── Combat/         # C# scripts for combat mechanics (abilities, damage).
-│   │   ├── Core/           # C# scripts for core systems (interaction, scene management).
-│   │   ├── Physics/        # C# scripts for custom physics (collisions, water effects).
-│   │   └── Story/          # C# scripts for managing narrative cutscenes.
-│   └── ...                 # Other standard Unity asset folders (Scenes, Prefabs, etc.).
-├── docs/                   # All design and technical documentation.
+│   ├── Art/
+│   ├── Audio/
+│   ├── Prefabs/
+│   ├── Scenes/
+│   └── Scripts/          # All C# source code for the Unity project.
+│       ├── Character/    # Character-specific logic and abilities.
+│       ├── Combat/       # Combat systems, including damage and AI.
+│       ├── Core/         # Core gameplay systems (inventory, quests, interaction).
+│       ├── Physics/      # Custom physics components.
+│       └── Story/        # Narrative scenes and dialogue management.
+├── blender_scripts/      # Python scripts for Blender automation.
+├── docs/                 # All design and technical documentation.
 ├── .gitignore
-├── README.md               # This file.
-├── requirements.txt        # Python dependencies for utility scripts.
-├── test_usd_validation.py  # Tests for the USD asset pipeline.
-└── usd_parser.py           # Python script to extract USD snippets from Markdown.
+├── README.md             # This file.
+├── requirements.txt      # Python dependencies for utility scripts.
+├── database.py           # Manages the game's SQLite database.
+├── game.py               # A Python-based prototype of the game's core mechanics.
+├── rpg.py                # A more complex, data-driven RPG prototype.
+├── simple_rpg.py         # A simplified RPG for testing specific features.
+├── test_*.py             # Pytest files for all Python scripts.
+└── usd_parser.py         # Extracts USD snippets from Markdown files.
 ```
 
-## 5. Setup and Installation
+### Key Directories & Files:
+
+*   **`Assets/Scripts/`**: Contains all C# source code for the Unity project, organized by system. This is the heart of the game's real-time functionality.
+*   **`blender_scripts/`**: A collection of Python scripts designed to be run within Blender to automate tasks like rendering image sequences to video.
+*   **`docs/`**: A directory for all Game Design Documents (GDDs), technical specifications, and narrative outlines.
+*   **Root Directory**: Contains Python scripts for asset validation, database management, and prototyping, along with project configuration files and this README.
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- **Unity Hub** with **Unity 2022.3.20f1** installed.
-- **Python 3.x**
-- **Git**
+*   **Unity Hub** and a compatible **Unity Editor** version (e.g., 2022.3 LTS or later).
+*   **Python 3.8+** for running utility scripts.
+*   **Blender** (optional, for running scripts in `blender_scripts/`).
+*   **Git** for version control.
 
-### Steps
+### Installation
 
 1.  **Clone the repository:**
     ```bash
-    git clone <repository_url>
-    cd <repository_directory>
+    git clone https://github.com/your-username/milehigh.world.git
+    cd milehigh.world
     ```
-
 2.  **Set up the Python environment:**
-    It is recommended to use a virtual environment.
     ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
     pip install -r requirements.txt
     ```
-
-3.  **Open the Unity Project:**
-    - Open Unity Hub.
-    - Click "Open" -> "Add project from disk".
-    - Navigate to the cloned repository's root directory and select it.
-    - The project will now be available in your Unity Hub project list.
-
-## 6. How to Run
-
-### Running the Game in the Editor
-
-1.  Open the project in Unity.
-2.  In the `Project` window, navigate to the `Assets/Scenes` directory.
-3.  Double-click on a scene file (e.g., a test scene or main menu) to open it.
-4.  Press the **Play** button at the top of the editor to run the scene.
-
-### Running the Python Scripts
-
-Ensure your Python virtual environment is activated.
-
--   **To run the USD parser:**
+3.  **Initialize the game database:**
     ```bash
-    python usd_parser.py
+    python database.py
     ```
--   **To run the Python unit tests:**
-    ```bash
-    python -m unittest discover
-    ```
+4.  **Open the project in Unity:**
+    *   Open Unity Hub.
+    *   Click "Add" or "Open."
+    *   Navigate to the cloned repository folder and select it.
+    *   The project will open in the Unity Editor, ready for development.
 
-## 7. Documentation
+## 🛠️ Python Scripts
 
-The primary design document for the game is the **Game Design Document (GDD)**. It provides a comprehensive overview of the game's concept, mechanics, narrative, and technical specifications.
+This project uses a number of Python scripts for various purposes. Here's a brief overview:
 
-- [**Read the full Game Design Document here](./docs/GDD.md)**
+*   **`database.py`**: Manages the game's SQLite database (`game_content.db`), which stores information about characters, items, quests, and more. Running this script directly will initialize the database with the required schema and some initial data.
+*   **`game.py`**, **`rpg.py`**, **`simple_rpg.py`**: These files are Python-based prototypes of the game's core mechanics. They are used for testing and iterating on game logic before implementing it in C#.
+    *   `simple_rpg.py`: A lightweight prototype for testing specific features like the level-up system.
+    *   `game.py`: A more complete prototype with a game loop, combat, and dialogue.
+    *   `rpg.py`: The most advanced prototype, featuring data-driven character and item loading from the database.
+*   **`usd_parser.py`**: This script is used to parse and extract USD (Universal Scene Description) data snippets from design documents, which is useful for validating the game's assets.
+*   **`test_*.py`**: These files contain unit tests for the Python scripts, written using the `pytest` framework.
 
-Additional technical and design documents can also be found in the `/docs` directory. The source code itself is now fully documented with XML and Google-style docstrings.
+To run the tests, use the following command:
+
+```bash
+pytest
+```
+
+## C# Codebase Overview
+
+The C# codebase is located in the `Assets/Scripts/` directory and is organized by feature. Here's a high-level overview:
+
+*   **`Character/` & `Characters/`**: Contains the base `Character` class and all character-specific implementations, including their unique abilities and attributes.
+*   **`Combat/`**: Holds the logic for the game's combat system, including abilities, damage calculation, and the `CombatManager`.
+*   **`Core/`**: Contains the foundational scripts of the game, such as the `GameManager`, `PlayerController`, and `Interactor`.
+*   **`Physics/`**: A collection of scripts for custom physics effects, such as buoyancy and custom gravity.
+*   **`Story/`**: Contains scripts for managing narrative scenes and quests.
+*   **`UI/`**: Holds the scripts for managing the game's user interface, including health bars, action buttons, and floating damage text.
+
+## 📖 Story & Characters
+
+"Milehigh.World: Into the Void" features a rich narrative and a diverse cast of characters. The story revolves around the Ɲōvəmîŋāđ, a group of ten individuals chosen to save their fragmented universe from the encroaching Void. The main characters include:
+
+*   **Aeron**: A noble warrior and leader of the Ɲōvəmîŋāđ.
+*   **Anastasia**: A powerful support mage who can shape reality through dreams.
+*   **Cirrus**: The Dragon King, an elemental bruiser with immense power.
+*   **Ingris**: The Phoenix Warrior, a self-sustaining bruiser who embodies rebirth and resilience.
+*   **Kai**: A tactical seer who can reveal enemy weaknesses and provide support.
+*   **Kane**: Aeron's rival brother and a formidable antagonist.
+*   **Micah**: A powerful tank and defensive specialist.
+*   **Reverie**: An unpredictable mage who challenges the status quo.
+*   **Sky.ix**: The Bionic Goddess, a key figure in the prophecy.
+*   **Zaia**: A rogue/assassin specializing in stealth and high-precision strikes.
+
+The game's narrative is driven by the interactions between these characters and their struggle against the forces of the Void.
+
+## 🤝 Contributing
+
+We welcome contributions to "Milehigh.World: Into the Void"! If you'd like to contribute, please fork the repository and submit a pull request. We ask that you follow the existing coding conventions and document your code thoroughly.
