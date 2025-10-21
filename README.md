@@ -127,6 +127,16 @@ The C# codebase is located in the `Assets/Scripts/` directory and is organized b
 
 The game's narrative is driven by the interactions between these characters and their struggle against the forces of the Void.
 
+## 📜 Licensing
+
+This project is made available under a triple-license model, allowing you to choose the license that best suits your needs. You may use this software under the terms of any of the following licenses:
+
+- **Boost Software License 1.0** ([LICENSE](LICENSE))
+- **MIT License** ([LICENSE-MIT](LICENSE-MIT))
+- **Apache License 2.0** ([LICENSE-APACHE](LICENSE-APACHE))
+
+You can find the full text of each license in the corresponding files in the root of this repository.
+
 ## 🤝 Contributing
 
 We welcome contributions to "Milehigh.World: Into the Void"! If you'd like to contribute, please fork the repository and submit a pull request. We ask that you follow the existing coding conventions and document your code thoroughly.

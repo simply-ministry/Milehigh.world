@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: (Boost-1.0 OR MIT OR Apache-2.0)
 """A Python-based prototype of the game's core mechanics.
 
 This script defines the fundamental classes and logic for a text-based RPG,

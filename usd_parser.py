@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: (Boost-1.0 OR MIT OR Apache-2.0)
 """Parses Markdown files to extract Universal Scene Description (USD) snippets.
 
 This script provides a utility function to find and extract USD code blocks

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: (Boost-1.0 OR MIT OR Apache-2.0)
 """Manages the SQLite database for the game.
 
 This script handles the creation, initialization, and data access for the
