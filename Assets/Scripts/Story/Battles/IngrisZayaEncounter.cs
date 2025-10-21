@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: (Boost-1.0 OR MIT OR Apache-2.0)
 /// <summary>
 /// Manages a complex story encounter between Ingris and Zaya, involving dialogue, a timed fight, and a final discovery sequence.
 /// This script coordinates animations, attacks, and narrative progression.

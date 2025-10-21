@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: (Boost-1.0 OR MIT OR Apache-2.0)
 """A more complex Python-based RPG prototype.
 
 This script builds upon the concepts in `game.py` to create a more robust

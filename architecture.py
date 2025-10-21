@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: (Boost-1.0 OR MIT OR Apache-2.0)
 # Assuming Observer and Subject abstract base classes are defined in a previous cell
 from abc import ABC, abstractmethod
 import time

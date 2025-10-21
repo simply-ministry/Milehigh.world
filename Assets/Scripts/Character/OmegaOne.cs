@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: (Boost-1.0 OR MIT OR Apache-2.0)
 using System;
 using UnityEngine;
 

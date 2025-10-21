@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: (Boost-1.0 OR MIT OR Apache-2.0)
 """A simplified Python RPG for testing specific features.
 
 This script provides a lightweight implementation of a text-based RPG,

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: (Boost-1.0 OR MIT OR Apache-2.0)
 """A Python-based prototype of the game's core mechanics.
 
 This script defines the fundamental classes and logic for a text-based RPG,
@@ -127,6 +128,30 @@ class GameObject:
             print(f"{self.name}'s defense holds strong!")
 
     def update(self, scene_manager):
+        """Placeholder for object-specific logic that runs each turn."""
+        self.update_status_effects()
+
+    def apply_status_effect(self, effect_name, duration, **kwargs):
+        """Applies a status effect to the object."""
+        self.status_effects[effect_name] = {'duration': duration, **kwargs}
+        print(f"{self.name} is now affected by {effect_name}.")
+
+    def update_status_effects(self):
+        """Updates status effects each turn."""
+        effects_to_remove = []
+        for effect, data in self.status_effects.items():
+            if effect == 'poison':
+                potency = data.get('potency', 1)
+                self.take_damage(potency)
+                print(f"{self.name} takes {potency} damage from poison.")
+
+            data['duration'] -= 1
+            if data['duration'] <= 0:
+                effects_to_remove.append(effect)
+
+        for effect in effects_to_remove:
+            del self.status_effects[effect]
+            print(f"{self.name} is no longer {effect}.")
         """Placeholder for object-specific logic that runs each turn.
 
         Args:
@@ -182,6 +207,7 @@ class Player(GameObject):
 
     Attributes:
         inventory (list): A list of items in the player's inventory.
+        inventory_capacity (int): The maximum number of items the player can carry.
         level (int): The player's current level.
         experience (int): The player's current experience points.
         max_health (int): The player's maximum health.
@@ -194,9 +220,10 @@ class Player(GameObject):
         equipment (Equipment): The player's equipment manager.
     """
 
-    def __init__(self, name="Player", x=0, y=0, z=0):
+    def __init__(self, name="Player", x=0, y=0, z=0, inventory_capacity=10):
         super().__init__(name=name, x=x, y=y, z=z, health=100, speed=5)
         self.inventory = []
+        self.inventory_capacity = inventory_capacity
         self.level = 1
         self.experience = 0
         self.max_health = 100
@@ -207,6 +234,25 @@ class Player(GameObject):
         self.dexterity = 10
         self.intelligence = 10
         self.equipment = Equipment(owner=self)
+
+    def drop_item(self, item_name, scene):
+        """Drops an item from the inventory onto the ground.
+
+        Args:
+            item_name (str): The name of the item to drop.
+            scene (Scene): The scene to drop the item into.
+        """
+        for i, item in enumerate(self.inventory):
+            if item.name.lower() == item_name.lower():
+                dropped_item = self.inventory.pop(i)
+                dropped_item.x = self.x
+                dropped_item.y = self.y
+                dropped_item.visible = True
+                dropped_item.solid = False
+                scene.add_object(dropped_item)
+                print(f"{self.name} dropped {dropped_item.name}.")
+                return
+        print(f"'{item_name}' not found in inventory.")
 
     def attack(self, target):
         """Attacks another GameObject.
@@ -265,17 +311,18 @@ class Player(GameObject):
         else:
             print(f"'{item_name}' not found in inventory.")
 
+    def update(self, scene_manager):
+        """
+        Updates the player's state, including mana regeneration per turn.
     def update(self, delta_time):
         """Updates the player's state, including mana regeneration.
 
         Args:
             delta_time (float): The time elapsed since the last update.
         """
-        super().update(delta_time)
-        self.update_status_effects(delta_time)
-        self.mana += self.mana_regeneration_rate * delta_time
-        if self.mana > self.max_mana:
-            self.mana = self.max_mana
+        super().update(scene_manager)
+        # Regenerate 2 mana per turn
+        self.mana = min(self.max_mana, self.mana + 2)
 
     def pickup_item(self, item):
         """Picks up an item and adds it to the inventory.
@@ -287,6 +334,10 @@ class Player(GameObject):
         Args:
             item (Item): The item to pick up.
         """
+        if len(self.inventory) >= self.inventory_capacity:
+            print("Inventory is full. Cannot pick up.")
+            return
+
         if isinstance(item, Consumable):
             for inventory_item in self.inventory:
                 if inventory_item.name == item.name and isinstance(inventory_item, Consumable):
@@ -303,6 +354,9 @@ class Player(GameObject):
         item.solid = False
         print(f"{self.name} picked up {item.name}.")
 
+    def use_item(self, item_name, target):
+        """
+        Uses an item from the inventory on a target. Handles stackable and non-stackable items.
     def use_item(self, item_name):
         """Uses an item from the inventory.
 
@@ -316,21 +370,38 @@ class Player(GameObject):
         Returns:
             bool: True if the item was used successfully, False otherwise.
         """
+        item_to_use = None
+        item_index = -1
         for i, item in enumerate(self.inventory):
-            if item.name == item_name:
-                if isinstance(item, Consumable):
-                    item.use(self)  # Apply the effect
-                    item.quantity -= 1
-                    print(f"{self.name} used a {item.name}. {item.quantity} remaining.")
-                    if item.quantity <= 0:
-                        self.inventory.pop(i)  # Remove the item if quantity is zero
-                        print(f"The last {item.name} was used.")
-                    return True  # Indicate success
+            # Find the item by name, case-insensitive
+            if item.name.lower() == item_name.lower():
+                item_to_use = item
+                item_index = i
+                break
+
+        if not item_to_use:
+            # Using print here since the Player doesn't have a direct link to the game log
+            print(f"'{item_name}' not found in inventory.")
+            return False
+
+        if isinstance(item_to_use, Consumable):
+            item_to_use.use(target)
+            # If the item is stackable, decrement quantity and remove if empty.
+            if hasattr(item_to_use, 'quantity'):
+                item_to_use.quantity -= 1
+                if item_to_use.quantity <= 0:
+                    self.inventory.pop(item_index)
+                    print(f"Used the last {item_to_use.name}.")
                 else:
-                    print(f"{self.name} cannot use {item.name} as a consumable.")
-                    return False
-        print(f"{self.name} does not have '{item_name}' in their inventory.")
-        return False
+                    print(f"Used {item_to_use.name}. {item_to_use.quantity} remaining.")
+            else:
+                # If not stackable (no quantity attribute), just remove it.
+                self.inventory.pop(item_index)
+                print(f"Used {item_to_use.name}.")
+            return True
+        else:
+            print(f"You can't 'use' a {item_to_use.name} in that way.")
+            return False
 
     def gain_experience(self, amount):
         """Adds experience points to the player and checks for level up.
@@ -708,12 +779,13 @@ class Enemy(GameObject):
         xp_value (int): The amount of experience awarded for defeating the enemy.
     """
 
-    def __init__(self, name="Enemy", x=0, y=0, z=0, type="Generic"):
-        super().__init__(name=name, x=x, y=y, z=z, health=50, speed=2)
+    def __init__(self, name="Enemy", x=0, y=0, z=0, type="Generic", health=50, speed=2, attack_damage=10, xp_value=0):
+        super().__init__(name=name, x=x, y=y, z=z, health=health, speed=speed)
         self.type = type
-        self.attack_damage = 10
+        self.attack_damage = attack_damage
         self.aggro_range = 10
-        self.xp_value = 0
+        self.xp_value = xp_value
+        self.state = 'idle'  # Possible states: 'idle', 'chasing', 'attacking'
 
     def attack(self, target):
         """Attacks another GameObject.
@@ -724,6 +796,41 @@ class Enemy(GameObject):
         print(f"{self.name} attacks {target.name} for {self.attack_damage} damage.")
         target.take_damage(self.attack_damage)
 
+    def update(self, scene_manager):
+        """AI logic for the enemy's turn."""
+        # --- Start of Turn ---
+        # Check for effects that prevent action BEFORE doing anything else.
+        if 'stun' in self.status_effects or 'sleep' in self.status_effects:
+            print(f"{self.name} is stunned and cannot act.")
+            # Still need to update status effects so stun wears off.
+            super().update(scene_manager)
+            return
+
+        # --- Action Phase ---
+        player = scene_manager.scene.player_character
+        if player and player.health > 0:
+            # Basic AI: move towards player and attack if adjacent
+            if self.distance_to(player) < self.aggro_range:
+                if self.distance_to(player) < 1.5:  # Attack if adjacent
+                    self.attack(player)
+                else:  # Move towards player
+                    dx = player.x - self.x
+                    dy = player.y - self.y
+                    # Move one step in the direction of the player
+                    if abs(dx) > abs(dy):
+                        self.move(1 if dx > 0 else -1, 0)
+                    else:
+                        self.move(0, 1 if dy > 0 else -1)
+
+        # --- End of Turn ---
+        # Status effects are updated after the action is taken.
+        super().update(scene_manager)
+
+
+# --- Item System ---
+
+class Item(GameObject):
+    """Base class for all items (weapons, consumables, armor, etc.)."""
     def update(self, delta_time, player):
         """Updates the enemy's state.
 
@@ -740,22 +847,32 @@ class Enemy(GameObject):
             print(f"{self.name} is asleep and cannot act.")
             return
 
-        if self.distance_to(player) < self.aggro_range:
-            current_speed = self.speed
-            if 'slow' in self.status_effects:
-                print(f"{self.name} is slowed!")
-                current_speed /= 2
-            # Move towards the player
-            dx = player.x - self.x
-            dy = player.y - self.y
-            dz = player.z - self.z
-            distance = self.distance_to(player)
-            if distance > 0:
-                self.move(dx / distance * current_speed * delta_time, dy / distance * current_speed * delta_time,
-                          dz / distance * current_speed * delta_time)
-            # Attack the player if close enough.
-            if self.distance_to(player) < 1:  # Attack range
+        distance_to_player = self.distance_to(player)
+
+        if self.state == 'idle':
+            if distance_to_player < self.aggro_range:
+                self.state = 'chasing'
+        elif self.state == 'chasing':
+            if distance_to_player < 1:  # Attack range
+                self.state = 'attacking'
+            else:
+                current_speed = self.speed
+                if 'slow' in self.status_effects:
+                    print(f"{self.name} is slowed!")
+                    current_speed /= 2
+                # Move towards the player
+                dx = player.x - self.x
+                dy = player.y - self.y
+                dz = player.z - self.z
+                distance = self.distance_to(player)
+                if distance > 0:
+                    self.move(dx / distance * current_speed * delta_time, dy / distance * current_speed * delta_time,
+                              dz / distance * current_speed * delta_time)
+        elif self.state == 'attacking':
+            if distance_to_player < 1:
                 self.attack(player)
+            else:
+                self.state = 'chasing'
 
 
 class Weapon(Item):
@@ -842,6 +959,22 @@ class ManaPotion(Consumable):
             print(f"{target.name} restored {self.amount} Mana.")
         else:
             print(f"{target.name} has no mana to restore.")
+
+
+class PoisonDart(Consumable):
+    """A dart that poisons the target."""
+
+    def __init__(self, name="Poison Dart", potency=5, duration=4):
+        description = f"Poisons a target for {potency} damage over {duration} turns."
+        super().__init__(name, description, effect="poison")
+        self.potency = potency
+        self.duration = duration
+
+    def use(self, target):
+        """Poisons the target."""
+        super().use(target)
+        if isinstance(target, GameObject):
+            target.apply_status_effect('poison', self.duration, potency=self.potency)
 
 
 class Armor(Item):
@@ -1236,9 +1369,19 @@ class Game:
             player.equip_item(item_name)
             self.turn_taken = True
 
-        elif action == "use" and len(parts) > 1:
+        elif action == "use" and len(parts) > 2:
+            item_name = parts[1]
+            target_name = " ".join(parts[2:])
+            target = next((obj for obj in scene_manager.scene.game_objects if obj.name.lower() == target_name.lower()), None)
+            if target:
+                player.use_item(item_name, target)
+                self.turn_taken = True
+            else:
+                self.log_message(f"Target '{target_name}' not found.")
+
+        elif action == "drop" and len(parts) > 1:
             item_name = " ".join(parts[1:])
-            player.use_item(item_name)
+            player.drop_item(item_name, scene_manager.scene)
             self.turn_taken = True
 
         elif action == "status":
@@ -1267,9 +1410,14 @@ class Game:
 
         elif action == "quit":
             self.game_over = True
+        elif action == "pause":
+            self.log_message("Game paused. Press Enter to continue...")
+            self.draw(scene_manager.scene)
+            input()
+            self.turn_taken = False
         else:
             self.log_message(
-                "Unknown command. Try: move [w/a/s/d], talk [name], examine [name], attack [name], equip [item], use [item], status, save/load, quit")
+                "Unknown command. Try: move [w/a/s/d], talk [name], examine [name], attack [name], equip [item], use [item], status, save/load, pause, quit")
 
     def start_conversation(self, dialogue_manager):
         """Initiates a conversation.
@@ -1403,6 +1551,8 @@ class AethelgardBattle(SceneManager):
         # Give player items
         player.pickup_item(Weapon("Valiant Sword", "A blade that shines with honor.", 25))
         player.pickup_item(Armor("Aethelgard Plate", "Sturdy plate armor of a royal knight.", 15))
+        player.pickup_item(PoisonDart(potency=5, duration=4))
+
 
         # A simple quest system could be added to the Player class later
         # player.journal.add_quest(Quest("The Sibling Rivalry", "Defeat Kane.", [{'type': 'defeat', 'target': 'Kane', 'current': 0, 'required': 1}]))
@@ -1422,46 +1572,89 @@ class AethelgardBattle(SceneManager):
         self.scene.add_object(ancient_statue)
         self.game.log_message("Aethelgard stands silent. Your brother, Kane, awaits.")
         self.game.log_message("You feel the weight of the Aethelgard Plate. Type 'equip Aethelgard Plate' to wear it.")
-        if self.game.turn_taken:
-            # AI turn logic would go here
-            for obj in self.scene.game_objects:
-                obj.update(self)
+
+    def run(self):
+        """Main game loop for this scene."""
+        while not self.game.game_over and self.is_running:
+            self.game.draw(self.scene)
+            if self.game.game_over: break
+
+            self.game.turn_taken = False
+            while not self.game.turn_taken and not self.game.game_over:
+                self.game.handle_input(self)
+
+            # --- AI and World Turn ---
+            if self.game.turn_taken and not self.game.game_over:
+                # Update all other objects in the scene
+                for obj in self.scene.game_objects:
+                    obj.update(self)
 
         self.update()  # Check for scene-specific win/loss conditions
 
 
 class FirstMeetingScene(SceneManager):
-    """A scene where Anastasia and Reverie meet for the first time."""
+    """A scene that sets up the game from the loaded JSON data."""
 
     def setup(self):
-        """Sets up the characters and dialogue for the scene."""
-        player = Anastasia(name="Anastasia", x=5, y=5)
-        npc = Reverie(name="Reverie", x=7, y=5)
-
-        # Create the dialogue tree for Reverie
-        reverie_dialogue = DialogueManager()
-        reverie_dialogue.add_node("start", DialogueNode(
-            "Another one drawn by these old stones. You have the look of a believer. Are you one of the ten the prophecy speaks of?",
-            "Reverie",
-            {"I am. My name is Anastasia.": "anastasia_intro", "Who's asking?": "who_asking"}
-        ))
-        reverie_dialogue.add_node("anastasia_intro", DialogueNode(
-            "Anastasia the Dreamer. I've heard the whispers. They say you're meant to lead us. I remain unconvinced.",
-            "Reverie"  # Ends conversation
-        ))
-        reverie_dialogue.add_node("who_asking", DialogueNode(
-            "Someone who finds prophecies to be... unreliable. I am Reverie. Now, answer the question.",
-            "Reverie",
-            {"I am Anastasia. And we need to work together.": "anastasia_intro"}
-        ))
-        npc.dialogue = reverie_dialogue
-
+        """Initializes the scene with objects, characters, etc. from game_data."""
+        # Create player from game_data
+        player_data = game_data['player']
+        player = Player(
+            name=player_data['name'],
+            x=player_data['x'],
+            y=player_data['y'],
+            inventory_capacity=player_data['inventory_capacity']
+        )
         self.scene.set_player(player)
-        self.scene.add_object(npc)
-        self.game.log_message("You approach a skeptical-looking woman leaning against a monolith.")
+
+        # Create enemies from game_data
+        for enemy_data in game_data['enemies']:
+            enemy = Enemy(
+                name=enemy_data['name'],
+                x=enemy_data['x'],
+                y=enemy_data['y'],
+                type=enemy_data['type'],
+                health=enemy_data['health'],
+                speed=enemy_data['speed'],
+                attack_damage=enemy_data['attack_damage'],
+                xp_value=enemy_data['xp_value']
+            )
+            self.scene.add_object(enemy)
+
+        # Create a weapon and place it in the scene
+        weapon_data = game_data['items']['weapons'][0]
+        weapon = Weapon(
+            name=weapon_data['name'],
+            description=weapon_data['description'],
+            damage=weapon_data['damage'],
+            weapon_type=weapon_data['weapon_type']
+        )
+        weapon.x = 2
+        weapon.y = 2
+        self.scene.add_object(weapon)
+
+        # Create a health potion and place it in the scene
+        potion_data = game_data['items']['consumables']['health_potions'][0]
+        potion = HealthPotion(
+            name=potion_data['name'],
+            description=potion_data['description'],
+            amount=potion_data['amount']
+        )
+        potion.x = 3
+        potion.y = 3
+        self.scene.add_object(potion)
+
+        self.game.log_message("Welcome to the game! An adventure awaits.")
+        self.game.log_message("You see a sword and a potion nearby. Try 'move d' then 'pickup sword'.")
 
 
+def main():
+    """Sets up and runs the game."""
 if __name__ == "__main__":
+    # Load game data from JSON file
+    with open("game_data.json", "r") as f:
+        game_data = json.load(f)
+
     # Initialize the database first
     database.init_db()
 
@@ -1470,20 +1663,32 @@ if __name__ == "__main__":
     if len(sys.argv) > 2 and sys.argv[1] == 'load':
         save_name = sys.argv[2]
         print(f"Attempting to load game from slot: {save_name}")
-        meeting_manager = database.load_game(save_name)
-        if not meeting_manager:
+        scene_manager = database.load_game(save_name)
+        if not scene_manager:
             print(f"Could not load '{save_name}'. Starting a new game.")
             # Fallback to new game if load fails
             game_engine = Game()
-            meeting_scene = Scene("Monolith Clearing")
-            meeting_manager = FirstMeetingScene(meeting_scene, game_engine)
+            battle_scene = Scene("Aethelgard Battle")
+            scene_manager = AethelgardBattle(battle_scene, game_engine)
+            scene = Scene("Monolith Clearing")
+            scene_manager = FirstMeetingScene(scene, game_engine)
     else:
         # Start a new game by default
         print("Starting a new game.")
         game_engine = Game()
-        meeting_scene = Scene("Monolith Clearing")
-        meeting_manager = FirstMeetingScene(meeting_scene, game_engine)
+        battle_scene = Scene("Aethelgard Battle")
+        scene_manager = AethelgardBattle(battle_scene, game_engine)
 
-    if meeting_manager:
-        meeting_manager.run()
+    if scene_manager:
+        scene_manager.run()
+        print("Game over.")
+
+
+if __name__ == "__main__":
+    main()
+        scene = Scene("Monolith Clearing")
+        scene_manager = FirstMeetingScene(scene, game_engine)
+
+    if scene_manager:
+        scene_manager.run()
         print("Game over.")
