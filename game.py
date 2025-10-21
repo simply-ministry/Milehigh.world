@@ -356,18 +356,6 @@ class Player(GameObject):
     def use_item(self, item_name, target):
         """
         Uses an item from the inventory on a target. Handles stackable and non-stackable items.
-    def use_item(self, item_name):
-        """Uses an item from the inventory.
-
-        If the item is a consumable, its effect is applied, and its quantity
-        is decreased. If the quantity reaches zero, the item is removed from
-        the inventory.
-
-        Args:
-            item_name (str): The name of the item to use.
-
-        Returns:
-            bool: True if the item was used successfully, False otherwise.
         """
         item_to_use = None
         item_index = -1

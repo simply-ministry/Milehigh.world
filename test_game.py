@@ -1,3 +1,5 @@
+"""Unit tests for the core game logic and classes."""
+
 import unittest
 from unittest.mock import patch
 
@@ -135,4 +137,5 @@ class TestGame(unittest.TestCase):
             self.assertTrue(self.game.game_over)
 
 if __name__ == '__main__':
+    """Runs the test suite."""
     unittest.main()

@@ -1,15 +1,18 @@
 using UnityEngine;
 
 /// <summary>
-/// Represents Zia the Just, a diplomatic and moral voice who represents the
+/// Represents Zaia the Just, a diplomatic and moral voice who represents the
 /// common people caught in the war between technology and mysticism.
 /// </summary>
-public class Zia : NoveminaadHero
+public class Zaia : NoveminaadHero
 {
+    /// <summary>
+    /// Initializes Zaia's specific attributes.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();
-        heroName = "Zia the Just";
+        heroName = "Zaia the Just";
         maxHealth = 120;
         maxEnergy = 180; // High energy for supportive abilities
         currentHealth = maxHealth;

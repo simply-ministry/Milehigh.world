@@ -70,6 +70,7 @@ public class QuestManager : MonoBehaviour
             Debug.Log($"[QuestManager] Quest Completed: '{quest.questName}'");
 
             // Grant rewards
+            // NOTE: This assumes the player character has an 'ExperienceHandler' component.
             Debug.Log($"[QuestManager] Rewarding {playerCharacter.characterName}: {quest.experienceReward} XP.");
             playerCharacter.GetComponent<ExperienceHandler>()?.AddXP(quest.experienceReward);
 

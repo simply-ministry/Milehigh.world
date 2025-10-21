@@ -11,7 +11,7 @@ public class Nafaerius : Character
     // --- Narrative Properties ---
 
     /// <summary>
-    /// The source of Nyxar's power and the dimension he rules.
+    /// The source of Nafaerius's power and the dimension he rules.
     /// </summary>
     public string Realm { get; private set; } = "The Shadow Dominion";
 
@@ -19,14 +19,14 @@ public class Nafaerius : Character
     // --- Resource and Combat Properties ---
 
     /// <summary>
-    /// A resource representing Nyxar's control over the battlefield.
+    /// A resource representing Nafaerius's control over the battlefield.
     /// It increases for each enemy currently affected by his shadow abilities.
     /// </summary>
     [field: SerializeField]
     public int Dominion { get; private set; }
 
     /// <summary>
-    /// The maximum Dominion Nyxar can exert.
+    /// The maximum Dominion Nafaerius can exert.
     /// </summary>
     [field: SerializeField]
     public int MaxDominion { get; private set; } = 100;
@@ -34,6 +34,9 @@ public class Nafaerius : Character
 
     // --- Initialization ---
 
+    /// <summary>
+    /// Initializes Nafaerius's specific attributes.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();
@@ -56,7 +59,7 @@ public class Nafaerius : Character
     {
         Debug.Log($"{characterName} extends a tendril of living shadow, tethering {target.characterName}!");
         // In-game logic would apply a "slow" and "damage-over-time" debuff.
-        // For each active tether, Nyxar's Dominion would passively increase.
+        // For each active tether, Nafaerius's Dominion would passively increase.
         Dominion = Mathf.Min(MaxDominion, Dominion + 5); // Example gain
     }
 
@@ -80,9 +83,9 @@ public class Nafaerius : Character
     }
 
     /// <summary>
-    /// The ultimate ability. Nyxar attempts to extinguish all light on the battlefield,
+    /// The ultimate ability. Nafaerius attempts to extinguish all light on the battlefield,
     /// plunging it into absolute darkness. While active, enemies are blinded, and
-    /// Nyxar's power is greatly increased.
+    /// Nafaerius's power is greatly increased.
     /// </summary>
     public void WorldlessChasm()
     {
@@ -92,7 +95,7 @@ public class Nafaerius : Character
             Debug.Log($"{characterName} unleashes his ultimate power, plunging the world into a Worldless Chasm!");
             Debug.Log("...All light is extinguished, and only the shadows remain!");
             // In-game logic for a powerful, battlefield-wide debuff that severely hinders the heroes
-            // while providing a massive buff to Nyxar for a limited time.
+            // while providing a massive buff to Nafaerius for a limited time.
         }
         else
         {

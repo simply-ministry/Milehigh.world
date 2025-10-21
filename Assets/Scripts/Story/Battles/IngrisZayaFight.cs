@@ -57,7 +57,7 @@ public class IngrisZayaFight : MonoBehaviour
     }
 
     /// <summary>
-    /// Handles the logic for Zaya's focus mode.
+    /// Handles the logic for Zaya's focus mode timer.
     /// </summary>
     void HandleZayaFocus()
     {

@@ -8,8 +8,10 @@ using UnityEngine.SceneManagement; // Required for scene management
 public class GameManager : MonoBehaviour
 {
     // --- Singleton Pattern ---
+    /// <summary>The singleton instance of the GameManager.</summary>
     public static GameManager Instance { get; private set; }
 
+    /// <summary>Represents the different states the game can be in.</summary>
     public enum GameState
     {
         MainMenu,
@@ -27,6 +29,9 @@ public class GameManager : MonoBehaviour
     // public CombatManager combatManager;
 
 
+    /// <summary>
+    /// Initializes the singleton pattern and sets the initial game state.
+    /// </summary>
     private void Awake()
     {
         // --- Singleton Implementation ---

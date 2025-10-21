@@ -32,7 +32,7 @@ public class PlayerController : MonoBehaviour
     public Transform cameraTransform;
 
     [Header("Targeting")]
-    [Tooltip("The currently selected target for abilities.")]
+    /// <summary>The currently selected target for abilities.</summary>
     public Character CurrentTarget { get; private set; }
 
     // Public method to allow other systems (like TargetingSystem) to set the target.
@@ -48,6 +48,9 @@ public class PlayerController : MonoBehaviour
     private Interactor interactor;
     private TargetingSystem targetingSystem;
 
+    /// <summary>
+    /// Initializes the component by getting references to required components.
+    /// </summary>
     void Awake()
     {
         // Get the required components attached to this GameObject.
@@ -69,6 +72,9 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Called every frame. Handles either combat or exploration input based on the game state.
+    /// </summary>
     void Update()
     {
         // If combat is active, movement and interaction are typically disabled.
@@ -90,6 +96,9 @@ public class PlayerController : MonoBehaviour
 
     private float lastStaminaUseTime;
 
+    /// <summary>
+    /// Handles camera-relative character movement and sprinting.
+    /// </summary>
     private void HandleMovement()
     {
         float horizontalInput = Input.GetAxis("Horizontal");
@@ -122,6 +131,9 @@ public class PlayerController : MonoBehaviour
         characterController.Move(moveVector * Time.deltaTime);
     }
 
+    /// <summary>
+    /// Handles the regeneration of stamina after a delay.
+    /// </summary>
     private void HandleStaminaRegen()
     {
         // Check if enough time has passed since the last stamina use to start regenerating.

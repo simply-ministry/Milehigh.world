@@ -39,6 +39,9 @@ public class Lucent : Character
 
     // --- Initialization ---
 
+    /// <summary>
+    /// Initializes Lucent's specific attributes.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();

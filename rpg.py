@@ -27,6 +27,17 @@ class GameObject:
         status_effects (dict): A dictionary for storing active status effects.
     """
     def __init__(self, name="Object", symbol='?', x=0, y=0, z=0, health=100, defense=0):
+        """Initializes a new GameObject.
+
+        Args:
+            name (str, optional): The name of the object. Defaults to "Object".
+            symbol (str, optional): The character for map display. Defaults to '?'.
+            x (int, optional): The x-coordinate. Defaults to 0.
+            y (int, optional): The y-coordinate. Defaults to 0.
+            z (int, optional): The z-coordinate. Defaults to 0.
+            health (int, optional): The current health. Defaults to 100.
+            defense (int, optional): The defense value. Defaults to 0.
+        """
         self.name = name
         self.symbol = symbol
         self.x = x
@@ -108,15 +119,37 @@ class Item(GameObject):
         description (str): A description of the item.
     """
     def __init__(self, name, description, x=0, y=0):
+        """Initializes a new Item.
+
+        Args:
+            name (str): The name of the item.
+            description (str): The item's description.
+            x (int, optional): The x-coordinate. Defaults to 0.
+            y (int, optional): The y-coordinate. Defaults to 0.
+        """
         super().__init__(name, symbol='i', x=x, y=y)
         self.description = description
 
     def __str__(self):
+        """Returns a string representation of the item.
+
+        Returns:
+            str: The string representation.
+        """
         return f"{self.name}: {self.description}"
 
 class Interactable(GameObject):
     """Represents objects that can be examined for a description."""
     def __init__(self, name, symbol, x, y, description):
+        """Initializes a new Interactable object.
+
+        Args:
+            name (str): The name of the object.
+            symbol (str): The character for map display.
+            x (int): The x-coordinate.
+            y (int): The y-coordinate.
+            description (str): The text to display on examination.
+        """
         super().__init__(name, symbol, x, y)
         self.description = description
 
@@ -132,11 +165,24 @@ class Weapon(Item):
         weapon_type (str): The type of the weapon (e.g., "Melee", "Ranged").
     """
     def __init__(self, name, description, damage, weapon_type="Melee"):
+        """Initializes a new Weapon.
+
+        Args:
+            name (str): The name of the weapon.
+            description (str): The weapon's description.
+            damage (int): The base damage value.
+            weapon_type (str, optional): The type of weapon. Defaults to "Melee".
+        """
         super().__init__(name, description)
         self.damage = damage
         self.weapon_type = weapon_type
 
     def __str__(self):
+        """Returns a string representation of the weapon.
+
+        Returns:
+            str: The string representation.
+        """
         return f"{self.name} (Weapon, {self.damage} DMG)"
 
 class Armor(Item):
@@ -146,10 +192,22 @@ class Armor(Item):
         defense (int): The amount of defense the armor provides.
     """
     def __init__(self, name, description, defense):
+        """Initializes new Armor.
+
+        Args:
+            name (str): The name of the armor.
+            description (str): The armor's description.
+            defense (int): The defense value.
+        """
         super().__init__(name, description)
         self.defense = defense
 
     def __str__(self):
+        """Returns a string representation of the armor.
+
+        Returns:
+            str: The string representation.
+        """
         return f"{self.name} (Armor, +{self.defense} DEF)"
 
 class Consumable(Item):
@@ -160,6 +218,14 @@ class Consumable(Item):
         value (int): The magnitude of the effect.
     """
     def __init__(self, name, description, effect, value):
+        """Initializes a new Consumable.
+
+        Args:
+            name (str): The name of the consumable.
+            description (str): The consumable's description.
+            effect (str): The effect type (e.g., "heal").
+            value (int): The magnitude of the effect.
+        """
         super().__init__(name, description)
         self.effect = effect
         self.value = value
@@ -183,6 +249,15 @@ class Character(GameObject):
         max_mana (int): The character's maximum mana.
     """
     def __init__(self, name, x=0, y=0, health=100, defense=5):
+        """Initializes a new Character.
+
+        Args:
+            name (str): The name of the character.
+            x (int, optional): The x-coordinate. Defaults to 0.
+            y (int, optional): The y-coordinate. Defaults to 0.
+            health (int, optional): The current health. Defaults to 100.
+            defense (int, optional): The defense value. Defaults to 5.
+        """
         super().__init__(name, symbol='C', x=x, y=y, health=health, defense=defense)
         self.inventory = []
         self.mana = 100
@@ -212,6 +287,13 @@ class Player(Character):
         equipment (dict): A dictionary representing the player's equipped items.
     """
     def __init__(self, name="Player", x=0, y=0):
+        """Initializes a new Player.
+
+        Args:
+            name (str, optional): The name of the player. Defaults to "Player".
+            x (int, optional): The x-coordinate. Defaults to 0.
+            y (int, optional): The y-coordinate. Defaults to 0.
+        """
         super().__init__(name, x, y, health=100, defense=5)
         self.symbol = '@'
         self.level = 1
@@ -290,6 +372,17 @@ class Enemy(Character):
         xp_value (int): The amount of experience awarded for defeating the enemy.
     """
     def __init__(self, name, x=0, y=0, health=50, damage=10, xp_value=10, defense=0):
+        """Initializes a new Enemy.
+
+        Args:
+            name (str): The name of the enemy.
+            x (int, optional): The x-coordinate. Defaults to 0.
+            y (int, optional): The y-coordinate. Defaults to 0.
+            health (int, optional): The current health. Defaults to 50.
+            damage (int, optional): The base attack damage. Defaults to 10.
+            xp_value (int, optional): The experience reward. Defaults to 10.
+            defense (int, optional): The defense value. Defaults to 0.
+        """
         super().__init__(name, x, y, health=health, defense=defense)
         self.symbol = 'E'
         self.attack_damage = damage
@@ -333,6 +426,13 @@ class Scene:
         player_character (Player): The player character in the scene.
     """
     def __init__(self, name, width=40, height=10):
+        """Initializes a new Scene.
+
+        Args:
+            name (str): The name of the scene.
+            width (int, optional): The width of the map. Defaults to 40.
+            height (int, optional): The height of the map. Defaults to 10.
+        """
         self.name = name
         self.width = width
         self.height = height
@@ -381,8 +481,15 @@ class Game:
         game_over (bool): Whether the game has ended.
         in_conversation (bool): Whether the player is in a conversation.
         dialogue_manager (DialogueManager): The active dialogue manager.
+        db_conn: The connection to the SQLite database.
     """
     def __init__(self, width=40, height=10):
+        """Initializes the Game engine.
+
+        Args:
+            width (int, optional): The width of the game map. Defaults to 40.
+            height (int, optional): The height of the game map. Defaults to 10.
+        """
         self.width = width
         self.height = height
         self.message_log = []
@@ -429,6 +536,11 @@ class SceneManager:
         is_running (bool): Whether the scene is currently running.
     """
     def __init__(self, game):
+        """Initializes a new SceneManager.
+
+        Args:
+            game (Game): The main game engine instance.
+        """
         self.game = game
         self.scene = None
         self.is_running = True
@@ -580,6 +692,14 @@ class Aeron(Player):
     This class loads Aeron's stats from the database upon initialization.
     """
     def __init__(self, name="Aeron", x=0, y=0, db_conn=None):
+        """Initializes a new Aeron character.
+
+        Args:
+            name (str, optional): The name of the character. Defaults to "Aeron".
+            x (int, optional): The x-coordinate. Defaults to 0.
+            y (int, optional): The y-coordinate. Defaults to 0.
+            db_conn: The database connection object. Defaults to None.
+        """
         super().__init__(name, x, y)
         self.symbol = '@'
         data = database.get_character_data(name, conn=db_conn)
@@ -598,6 +718,15 @@ class Kane(Enemy):
     This class loads Kane's stats from the database upon initialization.
     """
     def __init__(self, name="Kane", x=0, y=0, type="Boss", db_conn=None):
+        """Initializes a new Kane enemy.
+
+        Args:
+            name (str, optional): The name of the character. Defaults to "Kane".
+            x (int, optional): The x-coordinate. Defaults to 0.
+            y (int, optional): The y-coordinate. Defaults to 0.
+            type (str, optional): The type of enemy. Defaults to "Boss".
+            db_conn: The database connection object. Defaults to None.
+        """
         super().__init__(name, x, y)
         self.symbol = 'K'
         data = database.get_character_data(name, conn=db_conn)
@@ -608,7 +737,14 @@ class Kane(Enemy):
             self.xp_value = 500
 
 def main(argv):
-    """The main function to run the game."""
+    """The main function to run the game.
+
+    Args:
+        argv (list): Command-line arguments passed to the script.
+
+    Returns:
+        SceneManager: The scene manager instance after the game loop finishes.
+    """
     database.init_db()
     game_engine = Game()
 

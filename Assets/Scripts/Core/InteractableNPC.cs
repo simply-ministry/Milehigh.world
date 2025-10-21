@@ -14,11 +14,17 @@ public class InteractableNPC : Interactable
     [TextArea(3, 10)]
     public string dialogue = "Hello, traveler. The Void calls, doesn't it?";
 
+    /// <summary>
+    /// Called when the script instance is being loaded. Sets a custom prompt message using the NPC's name.
+    /// </summary>
     private void Start()
     {
         promptMessage = $"[E] Talk to {npcName}";
     }
 
+    /// <summary>
+    /// Defines the interaction logic for the NPC.
+    /// </summary>
     protected override void Interact()
     {
         if (AllianceTowerManager.Instance != null)

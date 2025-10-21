@@ -4,6 +4,16 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
+/// An enum for selecting the damage calculation formula.
+/// </summary>
+public enum DamageFormula
+{
+    Linear,
+    RatioBased,
+    PercentageReduction
+}
+
+/// <summary>
 /// Manages the state and flow of a turn-based combat encounter.
 /// This class is a singleton.
 /// </summary>
@@ -19,6 +29,13 @@ public class CombatManager : MonoBehaviour
     private bool isCombatActive = false;
     private bool isPlayerTurn = false;
 
+    [Header("Combat Formula Settings")]
+    [Tooltip("The formula to use for damage calculation.")]
+    public DamageFormula damageFormula = DamageFormula.Linear;
+
+    /// <summary>
+    /// Initializes the singleton instance of the CombatManager.
+    /// </summary>
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -241,5 +258,49 @@ public class CombatManager : MonoBehaviour
     public bool IsCombatActive()
     {
         return isCombatActive;
+    }
+
+    /// <summary>
+    /// A static method to calculate damage based on the caster, target, and ability.
+    /// This centralizes damage logic and allows for different formulas.
+    /// </summary>
+    /// <param name="caster">The character performing the action.</param>
+    /// <param name="target">The character receiving the action.</param>
+    /// <param name="ability">The ability being used.</param>
+    /// <returns>The final calculated damage.</returns>
+    public static float CalculateDamage(Character caster, Character target, Ability ability)
+    {
+        // Start with the base power of the ability and add the caster's attack stat.
+        float baseDamage = ability.power + caster.attack;
+
+        // Apply a critical hit multiplier if applicable.
+        bool isCrit = Random.value < ability.critChance;
+        if (isCrit)
+        {
+            baseDamage *= ability.critMultiplier;
+            Debug.Log("Critical Hit!");
+        }
+
+        // Apply a damage reduction formula based on the target's defense.
+        float finalDamage;
+        switch (Instance.damageFormula)
+        {
+            case DamageFormula.Linear:
+                finalDamage = Mathf.Max(1, baseDamage - target.defense);
+                break;
+            case DamageFormula.RatioBased:
+                finalDamage = baseDamage * (100f / (100f + target.defense));
+                break;
+            case DamageFormula.PercentageReduction:
+                // Assuming defense is a percentage, e.g., 20 defense = 20% reduction.
+                float reduction = Mathf.Clamp(target.defense / 100f, 0, 1);
+                finalDamage = baseDamage * (1 - reduction);
+                break;
+            default:
+                finalDamage = baseDamage;
+                break;
+        }
+
+        return Mathf.RoundToInt(finalDamage);
     }
 }

@@ -11,6 +11,9 @@ using UnityEngine.Events;
 //     float MaxHealth { get; }
 // }
 
+/// <summary>
+/// A controller for the Cyrus boss fight, implementing AI, abilities, and health management.
+/// </summary>
 public class CyrusController_V2 : MonoBehaviour, IHealth
 {
     [Header("Core Stats")]
@@ -49,6 +52,9 @@ public class CyrusController_V2 : MonoBehaviour, IHealth
     public UnityEvent OnEnrage;
     public UnityEvent OnDeath;
 
+    /// <summary>
+    /// Initializes the controller, setting health and initial cooldowns.
+    /// </summary>
     void Start()
     {
         currentHealth = maxHealth;
@@ -56,6 +62,9 @@ public class CyrusController_V2 : MonoBehaviour, IHealth
         _secondaryCooldownTimer = 0f;
     }
 
+    /// <summary>
+    /// Called every frame. Manages AI logic if the boss is alive and has a target.
+    /// </summary>
     void Update()
     {
         if (currentHealth <= 0 || target == null) return;
@@ -64,12 +73,18 @@ public class CyrusController_V2 : MonoBehaviour, IHealth
         DecideNextAction();
     }
 
+    /// <summary>
+    /// Reduces the cooldown timers for all abilities.
+    /// </summary>
     private void HandleCooldowns()
     {
         if (_primaryCooldownTimer > 0) _primaryCooldownTimer -= Time.deltaTime;
         if (_secondaryCooldownTimer > 0) _secondaryCooldownTimer -= Time.deltaTime;
     }
 
+    /// <summary>
+    /// The core AI logic that determines which ability to use based on priority and availability.
+    /// </summary>
     private void DecideNextAction()
     {
         // Ultimate is a one-time, high-priority move when health is critical
@@ -96,6 +111,9 @@ public class CyrusController_V2 : MonoBehaviour, IHealth
 
     // --- Abilities ---
 
+    /// <summary>
+    /// Coroutine for the primary telegraphed attack.
+    /// </summary>
     private IEnumerator TelegraphedPrimaryAttack(float windUpTime)
     {
         _primaryCooldownTimer = primaryAbilityCooldown;
@@ -113,6 +131,9 @@ public class CyrusController_V2 : MonoBehaviour, IHealth
         target.GetComponent<IHealth>()?.TakeDamage(primaryAbilityDamage);
     }
 
+    /// <summary>
+    /// Coroutine for the defensive shield ability.
+    /// </summary>
     private IEnumerator UseSecondaryAbility()
     {
         _secondaryCooldownTimer = secondaryAbilityCooldown;
@@ -137,6 +158,9 @@ public class CyrusController_V2 : MonoBehaviour, IHealth
 
 
 
+    /// <summary>
+    /// Executes the ultimate ability.
+    /// </summary>
     private void UseUltimateAbility()
     {
         _hasUsedUltimate = true;
@@ -151,6 +175,10 @@ public class CyrusController_V2 : MonoBehaviour, IHealth
 
     // --- Health and State Management ---
 
+    /// <summary>
+    /// Reduces the character's health and handles the enrage and death states.
+    /// </summary>
+    /// <param name="amount">The amount of damage to take.</param>
     public void TakeDamage(float amount)
     {
         if (_isShielded)
@@ -173,6 +201,9 @@ public class CyrusController_V2 : MonoBehaviour, IHealth
         }
     }
 
+    /// <summary>
+    /// Activates the enrage phase, boosting stats and changing appearance.
+    /// </summary>
     private void EnterEnragePhase()
     {
         _isEnraged = true;
@@ -200,6 +231,9 @@ public class CyrusController_V2 : MonoBehaviour, IHealth
         OnEnrage?.Invoke();
     }
 
+    /// <summary>
+    /// Handles the character's death.
+    /// </summary>
     private void Die()
     {
         Debug.Log("Cyrus has been defeated.");

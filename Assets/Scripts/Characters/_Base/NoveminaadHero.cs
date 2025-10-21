@@ -8,15 +8,25 @@ using UnityEngine;
 public abstract class NoveminaadHero : MonoBehaviour
 {
     [Header("Hero Attributes")]
+    /// <summary>The name of the hero.</summary>
     public string heroName;
+    /// <summary>The maximum health of the hero.</summary>
     public int maxHealth = 100;
+    /// <summary>The current health of the hero.</summary>
     public int currentHealth;
+    /// <summary>The maximum energy for abilities.</summary>
     public int maxEnergy = 100; // For abilities
+    /// <summary>The current energy for abilities.</summary>
     public int currentEnergy;
 
+    /// <summary>An enum representing the hero's possible states.</summary>
     public enum HeroState { Idle, Moving, Attacking, Defending, Dead }
+    /// <summary>The current state of the hero.</summary>
     public HeroState currentState;
 
+    /// <summary>
+    /// Initializes the hero's default values when the script instance is being loaded.
+    /// </summary>
     protected virtual void Awake()
     {
         currentHealth = maxHealth;

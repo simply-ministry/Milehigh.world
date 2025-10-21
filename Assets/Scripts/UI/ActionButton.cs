@@ -3,9 +3,6 @@ using UnityEngine.UI;
 
 /// <summary>
 /// A script for a UI button that represents a character's ability.
-/// </summary>
-/// <summary>
-/// A script for a UI button that represents a character's ability.
 /// It holds a reference to an ability and a caster, and executes the
 /// action via the CombatManager when clicked.
 /// </summary>
@@ -35,12 +32,14 @@ public class ActionButton : MonoBehaviour
     }
 
     /// <summary>
-    /// Handles the button's click event. Finds a target and tells the CombatManager to perform the action.
+    /// Handles the button's click event. It finds a target and tells the
+    /// CombatManager to perform the action. This contains simplified targeting logic for demo purposes.
     /// </summary>
     private void OnButtonClick()
     {
         // For now, let's assume a simple targeting system.
         // Find the first alive enemy to target.
+        // A real implementation would get the current target from a PlayerController or TargetingSystem.
         foreach (var enemy in FindObjectsOfType<Character>())
         {
             if (enemy.CompareTag("Enemy") && enemy.isAlive)

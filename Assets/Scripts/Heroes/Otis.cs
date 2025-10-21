@@ -8,6 +8,9 @@ using UnityEngine;
 /// </summary>
 public class Otis : NoveminaadHero
 {
+    /// <summary>
+    /// Initializes Otis's specific attributes.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();

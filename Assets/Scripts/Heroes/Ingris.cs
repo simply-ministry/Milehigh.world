@@ -8,8 +8,12 @@ using UnityEngine;
 public class Ingris : NoveminaadHero
 {
     [Header("Phoenix Warrior Traits")]
+    /// <summary>Indicates whether the Phoenix Protocol is active.</summary>
     public bool isPhoenixProtocolActive = false;
 
+    /// <summary>
+    /// Initializes Ingris's specific attributes.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();

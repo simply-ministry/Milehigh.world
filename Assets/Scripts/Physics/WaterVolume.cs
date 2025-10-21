@@ -9,6 +9,9 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class WaterVolume : MonoBehaviour
 {
+    /// <summary>
+    /// Initializes the component, ensuring its collider is set to be a trigger.
+    /// </summary>
     private void Start()
     {
         // Ensure the collider is set to be a trigger.

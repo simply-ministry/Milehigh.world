@@ -9,8 +9,12 @@ public class Delilah : ShadowSyndicateVillain
 {
     [Header("Desolate Soul")]
     [TextArea(2, 4)]
+    /// <summary>A line of dialogue Delilah speaks.</summary>
     public string dialogue = "The Phoenix has burned out... only the ashes remain.";
 
+    /// <summary>
+    /// Initializes Delilah's specific attributes.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();

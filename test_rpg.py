@@ -1,3 +1,5 @@
+"""Unit tests for the RPG interaction and command handling."""
+
 import unittest
 from unittest.mock import patch, MagicMock
 import os
@@ -16,7 +18,12 @@ class TestRpgInteraction(unittest.TestCase):
     DB_FILE = "test_rpg.db"
 
     def setUp(self):
-        """Set up a controlled game environment for each test."""
+        """Set up a controlled game environment for each test.
+
+        This method initializes a temporary database, creates instances of the
+        game engine and scene, and mocks the game's message logging function
+        to isolate the tests.
+        """
         init_db(self.DB_FILE)
         self.game = Game()
         self.scene = Scene("Test Scene", width=40, height=10)

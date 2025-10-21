@@ -1,3 +1,10 @@
+"""A Blender script to convert a sequence of images into a video file.
+
+This script uses Blender's Video Sequence Editor (VSE) to import an
+image sequence from a specified folder, configure the output settings,
+and render it as an H.264 MP4 video.
+"""
+
 import bpy
 import os
 

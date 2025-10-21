@@ -8,8 +8,12 @@ public class Kai : NoveminaadHero
 {
     [Header("Prophetic Insight")]
     [TextArea(3, 5)]
+    /// <summary>The current prophecy Kai is murmuring.</summary>
     public string currentProphecy;
 
+    /// <summary>
+    /// Initializes Kai's specific attributes.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();
@@ -42,11 +46,17 @@ public class Kai : NoveminaadHero
     }
 
     // Override combat-oriented methods to reflect his non-combatant role.
+    /// <summary>
+    /// Overridden to reflect Kai's non-combatant role.
+    /// </summary>
     public override void UseSecondaryAbility()
     {
         Debug.Log($"{heroName} does not engage in combat, for his battle is with fate itself.");
     }
 
+    /// <summary>
+    /// Overridden to reflect Kai's non-combatant role.
+    /// </summary>
     public override void UseUltimateAbility()
     {
         Debug.Log($"{heroName}'s power is not for fighting, but for understanding.");
