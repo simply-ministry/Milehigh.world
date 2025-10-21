@@ -33,6 +33,12 @@ def extract_usd_from_markdown(file_path):
         return []
 
 if __name__ == "__main__":
+    """Main execution block for command-line usage.
+
+    This block serves as an example of how to use the module. When the script
+    is run directly, it will attempt to parse the 'docs/GDD.md' file and
+    print any USD snippets it finds to the console.
+    """
     # Example usage:
     snippets = extract_usd_from_markdown("docs/GDD.md")
     if snippets:

@@ -1,3 +1,16 @@
+"""A high-level simulation of the game's software architecture.
+
+This script provides a conceptual model of the game's various systems and
+their interactions. It is not intended to be a functional application but
+rather a design document in code form. The classes and methods defined here
+represent the major components of the game engine, such as the physics
+engine, combat system, and quest management.
+
+The primary purpose of this file is to illustrate the relationships and data
+flow between different parts of the game's architecture. It uses the Observer
+design pattern to demonstrate how systems can communicate and respond to
+events in a decoupled manner.
+"""
 # Assuming Observer and Subject abstract base classes are defined in a previous cell
 from abc import ABC, abstractmethod
 import time

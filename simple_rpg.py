@@ -370,4 +370,5 @@ def run_level_up_demonstration():
     print("\nDemonstration complete. Abilities learned as expected.")
 
 if __name__ == "__main__":
+    """Main execution block to run the level-up demonstration."""
     run_level_up_demonstration()
