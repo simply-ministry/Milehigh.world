@@ -318,15 +318,17 @@ class Player(GameObject):
         # Regenerate 2 mana per turn
         self.mana = min(self.max_mana, self.mana + 2)
 
-    def pickup_item(self, item):
+    def pickup_item(self, item, scene):
         """Picks up an item and adds it to the inventory.
 
         If the item is a consumable and a stack of the same item already
         exists in the inventory, the quantity is increased. Otherwise, the
-        item is added as a new entry.
+        item is added as a new entry. The item is removed from the scene
+        after being picked up.
 
         Args:
             item (Item): The item to pick up.
+            scene (Scene): The scene the item is being picked up from.
         """
         if len(self.inventory) >= self.inventory_capacity:
             print("Inventory is full. Cannot pick up.")
@@ -337,15 +339,13 @@ class Player(GameObject):
                 if inventory_item.name == item.name and isinstance(inventory_item, Consumable):
                     inventory_item.quantity += 1
                     print(f"{self.name} picked up another {item.name}. Quantity: {inventory_item.quantity}")
-                    # Make the picked-up object disappear from the world
-                    item.visible = False
-                    item.solid = False
+                    # Remove the picked-up object from the world
+                    scene.game_objects.remove(item)
                     return  # Exit after stacking
 
         # If no stack was found, or it's not a consumable, add as a new item
         self.inventory.append(item)
-        item.visible = False
-        item.solid = False
+        scene.game_objects.remove(item)
         print(f"{self.name} picked up {item.name}.")
 
     def use_item(self, item_name, target):
@@ -1498,9 +1498,17 @@ class AethelgardBattle(SceneManager):
         enemy.xp_value = 500  # This would be a new attribute on Enemy
 
         # Give player items
-        player.pickup_item(Weapon("Valiant Sword", "A blade that shines with honor.", 25))
-        player.pickup_item(Armor("Aethelgard Plate", "Sturdy plate armor of a royal knight.", 15))
-        player.pickup_item(PoisonDart(potency=5, duration=4))
+        weapon = Weapon("Valiant Sword", "A blade that shines with honor.", 25)
+        self.scene.add_object(weapon)
+        player.pickup_item(weapon, self.scene)
+
+        armor = Armor("Aethelgard Plate", "Sturdy plate armor of a royal knight.", 15)
+        self.scene.add_object(armor)
+        player.pickup_item(armor, self.scene)
+
+        poison_dart = PoisonDart(potency=5, duration=4)
+        self.scene.add_object(poison_dart)
+        player.pickup_item(poison_dart, self.scene)
 
 
         # A simple quest system could be added to the Player class later
