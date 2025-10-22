@@ -74,8 +74,11 @@ class TestCharacterAndPlayer(unittest.TestCase):
     def test_item_pickup(self):
         """Test that a character can pick up items."""
         potion = Consumable(name="Lesser Heal", description="A weak potion.")
-        self.player.pickup_item(potion)
+        scene = Scene("Test Scene")
+        scene.add_object(potion)
+        self.player.pickup_item(potion, scene)
         self.assertIn(potion, self.player.inventory)
+        self.assertNotIn(potion, scene.game_objects)
 
     def test_use_health_potion(self):
         """Test that using a health potion restores health and consumes the item."""
