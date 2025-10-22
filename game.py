@@ -800,10 +800,6 @@ class Enemy(GameObject):
                 if distance_to_player < 1.5:  # Attack range
                     self.state = 'attacking'
                 else:
-                    current_speed = self.speed
-                    if 'slow' in self.status_effects:
-                        print(f"{self.name} is slowed!")
-                        current_speed /= 2
                     # Move towards player
                     dx = player.x - self.x
                     dy = player.y - self.y
