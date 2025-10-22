@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using Milehigh.World.Core;
 
 /// <summary>
 /// A singleton manager for handling all quest-related logic.
@@ -36,22 +37,96 @@ public class QuestManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Starts a new quest if it has not been started before.
+    /// Starts a new quest if it has not been started and all prerequisites are met.
     /// </summary>
     /// <param name="quest">The quest to start.</param>
     public void StartQuest(Quest quest)
     {
         if (quest == null) return;
 
-        if (!questStates.ContainsKey(quest))
+        if (questStates.ContainsKey(quest))
         {
-            questStates.Add(quest, QuestState.InProgress);
-            Debug.Log($"[QuestManager] Quest Started: '{quest.questName}'");
-            // Here you would typically trigger a UI update to show the new quest.
+            Debug.LogWarning($"[QuestManager] Quest '{quest.questName}' has already been started.");
+            return;
         }
-        else
+
+        // Check prerequisites
+        if (quest.prerequisiteQuests.Any(prereq => GetQuestState(prereq) != QuestState.Completed))
         {
-            Debug.LogWarning($"[QuestManager] Tried to start quest '{quest.questName}' which already has a state ({questStates[quest]}).");
+            Debug.LogWarning($"[QuestManager] Prerequisites for quest '{quest.questName}' are not met.");
+            return;
+        }
+
+        // Start the quest
+        questStates.Add(quest, QuestState.InProgress);
+        // Reset objective progress
+        foreach (var objective in quest.objectives)
+        {
+            objective.currentAmount = 0;
+            objective.isCompleted = false;
+        }
+        Debug.Log($"[QuestManager] Quest Started: '{quest.questName}'");
+        // Here you would typically trigger a UI update to show the new quest.
+    }
+
+    // --- Type-Safe Progress Update Methods ---
+    public void UpdateReputationProgress(Faction faction, int amount) => UpdateQuestProgress(QuestObjectiveType.GainReputation, faction.ToString(), amount);
+    public void UpdatePuzzleProgress(string puzzleId) => UpdateQuestProgress(QuestObjectiveType.SolvePuzzle, puzzleId);
+    public void UpdateEnemyDefeatProgress(CharacterID characterId) => UpdateQuestProgress(QuestObjectiveType.DefeatEnemy, characterId.ToString());
+    public void UpdateLocationProgress(string locationId) => UpdateQuestProgress(QuestObjectiveType.GoToLocation, locationId);
+    public void UpdateInteractionProgress(CharacterID characterId) => UpdateQuestProgress(QuestObjectiveType.InteractWith, characterId.ToString());
+
+
+    /// <summary>
+    /// Updates the progress of all active quests based on an event.
+    /// </summary>
+    /// <param name="objectiveType">The type of objective to update.</param>
+    /// <param name="targetId">The identifier of the target (e.g., puzzleID, characterID).</param>
+    /// <param name="amount">The amount to add to the progress.</param>
+    private void UpdateQuestProgress(QuestObjectiveType objectiveType, string targetId, int amount = 1)
+    {
+        foreach (var quest in InProgressQuests)
+        {
+            foreach (var objective in quest.objectives.Where(o => !o.isCompleted && o.type == objectiveType))
+            {
+                bool targetMatch = false;
+                switch (objectiveType)
+                {
+                    case QuestObjectiveType.GainReputation:
+                        targetMatch = objective.targetFaction.ToString() == targetId;
+                        break;
+                    case QuestObjectiveType.SolvePuzzle:
+                        targetMatch = objective.targetPuzzleID == targetId;
+                        break;
+                    case QuestObjectiveType.DefeatEnemy:
+                        targetMatch = objective.targetCharacter.ToString() == targetId;
+                        break;
+                    case QuestObjectiveType.GoToLocation:
+                        targetMatch = objective.targetLocation == targetId;
+                        break;
+                    case QuestObjectiveType.InteractWith:
+                        targetMatch = objective.interactCharacter.ToString() == targetId;
+                        break;
+                }
+
+                if (targetMatch)
+                {
+                    objective.currentAmount += amount;
+                    if (objective.currentAmount >= objective.requiredAmount)
+                    {
+                        objective.isCompleted = true;
+                        Debug.Log($"[QuestManager] Objective completed for '{quest.questName}': {objective.type}");
+                    }
+                }
+            }
+
+            // Check if all objectives for the quest are completed
+            if (quest.objectives.All(o => o.isCompleted))
+            {
+                // For now, we'll auto-complete. In a real game, this might require a final step.
+                // It's assumed a player character reference is available, for example on the GameManager
+                // CompleteQuest(quest, GameManager.Instance.PlayerCharacter);
+            }
         }
     }
 
@@ -71,17 +146,17 @@ public class QuestManager : MonoBehaviour
 
             // Grant rewards
             Debug.Log($"[QuestManager] Rewarding {playerCharacter.characterName}: {quest.experienceReward} XP.");
-            playerCharacter.GetComponent<ExperienceHandler>()?.AddXP(quest.experienceReward);
+            // playerCharacter.GetComponent<ExperienceHandler>()?.AddXP(quest.experienceReward);
 
-            InventorySystem playerInventory = playerCharacter.GetComponent<InventorySystem>();
-            if (playerInventory != null && quest.itemRewards != null)
-            {
-                foreach (var item in quest.itemRewards)
-                {
-                    playerInventory.AddItem(item);
-                    Debug.Log($"[QuestManager] Rewarded item: {item.itemName}.");
-                }
-            }
+            // InventorySystem playerInventory = playerCharacter.GetComponent<InventorySystem>();
+            // if (playerInventory != null && quest.itemRewards != null)
+            // {
+            //     foreach (var item in quest.itemRewards)
+            //     {
+            //         playerInventory.AddItem(item);
+            //         Debug.Log($"[QuestManager] Rewarded item: {item.itemName}.");
+            //     }
+            // }
 
             // Trigger UI update for quest completion.
         }

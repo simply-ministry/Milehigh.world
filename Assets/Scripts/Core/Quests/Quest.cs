@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Milehigh.World.Core;
 
 /// <summary>
 /// Defines the possible states of a quest.
@@ -11,6 +12,51 @@ public enum QuestState
     Completed,
     Failed
 }
+
+/// <summary>
+/// Defines the different types of objectives a quest can have.
+/// </summary>
+public enum QuestObjectiveType
+{
+    GainReputation,
+    SolvePuzzle,
+    DefeatEnemy,
+    GoToLocation,
+    InteractWith
+}
+
+/// <summary>
+/// A class that represents a single, trackable objective within a quest.
+/// </summary>
+[System.Serializable]
+public class QuestObjective
+{
+    [Tooltip("The type of this objective.")]
+    public QuestObjectiveType type;
+
+    [Tooltip("The faction to gain reputation with (if type is GainReputation).")]
+    public Faction targetFaction;
+
+    [Tooltip("The unique ID of the puzzle to solve (if type is SolvePuzzle).")]
+    public string targetPuzzleID;
+
+    [Tooltip("The character to defeat (if type is DefeatEnemy).")]
+    public CharacterID targetCharacter;
+
+    [Tooltip("The target location to reach (if type is GoToLocation).")]
+    public string targetLocation;
+
+    [Tooltip("The character to interact with (if type is InteractWith).")]
+    public CharacterID interactCharacter;
+
+    [Tooltip("The amount required for completion (e.g., reputation amount).")]
+    public int requiredAmount;
+
+    // Internal state for tracking progress
+    [HideInInspector] public int currentAmount;
+    [HideInInspector] public bool isCompleted;
+}
+
 
 /// <summary>
 /// A ScriptableObject that defines the properties and objectives of a quest.
@@ -29,6 +75,14 @@ public class Quest : ScriptableObject
     [TextArea(3, 10)]
     [Tooltip("A detailed description of the quest's story and objectives.")]
     public string description = "Quest Description";
+
+    [Header("Quest Prerequisites")]
+    [Tooltip("A list of quests that must be completed before this one can be started.")]
+    public List<Quest> prerequisiteQuests;
+
+    [Header("Quest Objectives")]
+    [Tooltip("A list of objectives that must be completed for this quest.")]
+    public List<QuestObjective> objectives;
 
     [Header("Quest Rewards")]
     [Tooltip("The amount of experience points awarded upon completion.")]
