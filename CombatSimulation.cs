@@ -108,6 +108,75 @@ namespace MilehighWorld.CombatSimulation
         }
     }
 
+    // --- Aeron's Abilities ---
+    /// <summary>
+    /// Aeron's signature ability that damages a target and has a chance to stun.
+    /// </summary>
+    public class ChronoShift : IAbility
+    {
+        /// <inheritdoc/>
+        public string Name => "Chrono Shift";
+        /// <inheritdoc/>
+        public string Description => "Damages a target and has a 30% chance to stun them for 1 second.";
+        /// <inheritdoc/>
+        public float Cooldown => 4.0f;
+        /// <inheritdoc/>
+        public float CurrentCooldown { get; set; }
+
+        /// <inheritdoc/>
+        public void Execute(ICombatant caster, List<ICombatant> allCombatants)
+        {
+            CombatLog.LogAction(caster.Name, "uses Chrono Shift");
+            var target = allCombatants
+                .Where(c => c.Affiliation != caster.Affiliation && c.IsAlive)
+                .OrderBy(c => Guid.NewGuid()) // Random target
+                .FirstOrDefault();
+
+            if (target != null)
+            {
+                target.TakeDamage(50, DamageType.Void);
+                if (BaseCharacter.Rng.NextDouble() < 0.3)
+                {
+                    if (target is BaseCharacter baseCharacter)
+                    {
+                        baseCharacter.ApplyStun(1.0f);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Represents Aeron, the Timeless. A versatile hero for the Novaminad faction.
+    /// </summary>
+    public class AeronTheTimeless : BaseCharacter
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AeronTheTimeless"/> class.
+        /// </summary>
+        public AeronTheTimeless() : base("Aeron the Timeless", 250, CharacterAffiliation.Novaminad)
+        {
+            Abilities.Add(new ChronoShift());
+        }
+
+        /// <inheritdoc/>
+        public override void PerformAction(List<ICombatant> allCombatants)
+        {
+            if (ActionTimer > 0) return; // Busy
+
+            var chronoShift = Abilities.First(a => a.Name == "Chrono Shift");
+            const float GlobalCooldown = 1.8f;
+
+            // AI: Use Chrono Shift whenever it's available.
+            if (chronoShift.CurrentCooldown == 0)
+            {
+                UseAbility(chronoShift, allCombatants);
+                ActionTimer = GlobalCooldown;
+            }
+            // AI: If the ability is on cooldown, do nothing and wait for the next opportunity.
+        }
+    }
+
     // ==========================================================================
     // ENUMS
     // ==========================================================================
@@ -243,7 +312,7 @@ namespace MilehighWorld.CombatSimulation
         protected float DamageReductionDuration { get; set; }
 
         /// <summary>A shared random number generator for all characters.</summary>
-        protected static Random Rng = new Random();
+        public static Random Rng = new Random();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BaseCharacter"/> class.
@@ -294,6 +363,19 @@ namespace MilehighWorld.CombatSimulation
                 Health = MaxHealth;
             }
             CombatLog.LogHeal(Name, amount);
+        }
+
+        /// <summary>
+        /// Applies a stun effect by increasing the action timer.
+        /// </summary>
+        /// <param name="duration">The duration of the stun in seconds.</param>
+        public void ApplyStun(float duration)
+        {
+            if (IsAlive)
+            {
+                ActionTimer += duration;
+                CombatLog.LogStatus(Name, $"is stunned for {duration:F1}s!");
+            }
         }
 
         /// <inheritdoc/>
@@ -921,6 +1003,7 @@ namespace MilehighWorld.CombatSimulation
             simulator.AddCombatant(new MicahTheUnbreakable());
             simulator.AddCombatant(new AnastasiaTheDreamer());
             simulator.AddCombatant(new SkyixTheBionicGoddess());
+            simulator.AddCombatant(new AeronTheTimeless());
 
             simulator.AddCombatant(new DelilahTheDesolate());
             simulator.AddCombatant(new NefariousTheSovereign());
