@@ -634,14 +634,14 @@ namespace MilehighWorld.CombatSimulation
     }
 
     /// <summary>
-    /// Represents Nefarious, the Sovereign. A damage dealer for the Shadow Dominion faction.
+    /// Represents Nafaerius, the Sovereign. A damage dealer for the Shadow Dominion faction.
     /// </summary>
-    public class NefariousTheSovereign : BaseCharacter
+    public class NafaeriusTheSovereign : BaseCharacter
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="NefariousTheSovereign"/> class.
+        /// Initializes a new instance of the <see cref="NafaeriusTheSovereign"/> class.
         /// </summary>
-        public NefariousTheSovereign() : base("Nefarious the Sovereign", 280, CharacterAffiliation.ShadowDominion)
+        public NafaeriusTheSovereign() : base("Nafaerius the Sovereign", 280, CharacterAffiliation.ShadowDominion)
         {
             Abilities.Add(new ShadowDominionGrasp());
         }
@@ -706,7 +706,7 @@ namespace MilehighWorld.CombatSimulation
         /// <inheritdoc/>
         public string Name => "Adamantine Skin";
         /// <inheritdoc/>
-        public string Description => "Harden's skin, granting 25 damage reduction for 2 turns.";
+        public string Description => "Hardens skin, granting 25 damage reduction for 3 seconds.";
         /// <inheritdoc/>
         public float Cooldown => 4.0f;
         /// <inheritdoc/>
@@ -1006,7 +1006,7 @@ namespace MilehighWorld.CombatSimulation
             simulator.AddCombatant(new AeronTheTimeless());
 
             simulator.AddCombatant(new DelilahTheDesolate());
-            simulator.AddCombatant(new NefariousTheSovereign());
+            simulator.AddCombatant(new NafaeriusTheSovereign());
 
             // 3. Run the fight
             await simulator.RunSimulation();
