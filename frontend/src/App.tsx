@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Header } from './components/Header';
 import { Card } from './components/Card';
 import { CharacterCard } from './components/CharacterCard';
+import { CharacterShowcase } from './components/CharacterShowcase';
 import { ScenarioGenerator } from './components/ScenarioGenerator';
 import { ReputationTracker } from './components/Milehigh.world-main/ReputationTracker';
 import { WorldBuildingChart } from './components/WorldBuildingChart';
@@ -896,11 +897,15 @@ export const App = () => {
         <WorldMap currentTimePeriod={playerState.currentTimePeriod} />
        </Card>
 
-       <Card title="Threat Detection System" index={12} isCollapsible headerGlow>
+       <Card title="Character Showcase" index={12} headerGlow>
+        <CharacterShowcase characters={CHARACTERS} />
+       </Card>
+
+       <Card title="Threat Detection System" index={13} isCollapsible headerGlow>
         <ThreatDetector loreContext={loreContext} />
        </Card>
 
-       <Card title="Full Scenario Generator" index={13} isCollapsible headerGlow>
+       <Card title="Full Scenario Generator" index={14} isCollapsible headerGlow>
         <ScenarioGenerator
          loreContext={loreContext}
          voiceProfiles={INITIAL_VOICE_PROFILES}
@@ -910,24 +915,16 @@ export const App = () => {
         />
        </Card>
 
-       <Card title="Live Conversation" index={14} isCollapsible headerGlow>
+       <Card title="Live Conversation" index={15} isCollapsible headerGlow>
         <LiveConversation loreContext={loreContext} onNewIntel={addIntelToLog} voiceProfiles={INITIAL_VOICE_PROFILES} />
        </Card>
 
-       <Card title="Lore Explorer" index={15} isCollapsible headerGlow>
+       <Card title="Lore Explorer" index={16} isCollapsible headerGlow>
         <LoreExplorer loreContext={loreContext} currentTimePeriod={playerState.currentTimePeriod} />
        </Card>
 
-       <Card title="Manual Intel Injection" index={16} isCollapsible>
+       <Card title="Manual Intel Injection" index={17} isCollapsible>
         <IntelLogger addIntelToLog={addIntelToLog} />
-       </Card>
-
-       <Card title="Characters" index={17} isCollapsible startCollapsed>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-         {CHARACTERS.map((char, i) => (
-          <CharacterCard key={char.name} character={char} loreContext={loreContext} index={i} />
-         ))}
-        </div>
        </Card>
 
         <Card title="Antagonists" index={18} isCollapsible startCollapsed>
