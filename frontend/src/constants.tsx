@@ -43,6 +43,31 @@ export const CopyIcon: React.FC<{ className?: string }> = ({ className = '' }) =
     </svg>
 );
 
+export const PlayIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor" viewBox="0 0 24 24">
+        <path d="M8 5v14l11-7z" />
+    </svg>
+);
+
+export const PauseIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor" viewBox="0 0 24 24">
+        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+    </svg>
+);
+
+export const VolumeUpIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor" viewBox="0 0 24 24">
+        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+    </svg>
+);
+
+export const VolumeOffIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor" viewBox="0 0 24 24">
+        <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+    </svg>
+);
+
+
 export const CORE_GAMEPLAY_LOOP = `The core gameplay loop is structured around three main pillars:
 1.  **EXPLORE:** Players navigate the diverse and sprawling environments of The Verse, uncovering hidden paths, finding valuable resources, and discovering lore fragments that reveal the world's history and secrets.
 2.  **ENGAGE:** Players engage in dynamic, hybrid combat against a variety of foes, from corrupted Void entities to cybernetically enhanced soldiers. They must utilize character-specific abilities, environmental hazards, and strategic teamwork to overcome challenges.
@@ -513,13 +538,15 @@ export const KEY_CONCEPTS: KeyConcept[] = [
 // Fix: Added missing INITIAL_VOICE_PROFILES constant.
 export const INITIAL_VOICE_PROFILES: VoiceProfile[] = [
   // Protagonists
-  { characterName: "Sky.ix", voiceName: "Kore", systemInstruction: "You are Sky.ix, a brilliant and determined cyborg, a mother driven by hope to save her family and the universe." },
-  { characterName: "Anastasia", voiceName: "Puck", systemInstruction: "You are Anastasia, a young, curious, and powerful dreamer, innocent but wise beyond your years." },
-  { characterName: "Reverie", voiceName: "Puck", systemInstruction: "You are Reverie, a tiny, sarcastic, and cocky fairy. Your voice is high-pitched and sharp, filled with biting wit." },
-  { characterName: "Aeron", voiceName: "Fenrir", systemInstruction: "You are Aeron, a majestic and noble lion-like being. Your voice is deep, resonant, and filled with the weight of unjust banishment and a desire for honor." },
+  { characterName: "Sky.ix", voiceName: "Zephyr", systemInstruction: "You are Sky.ix, a brilliant cyborg with a fun, flirty, and confident personality. Despite your determination to save your family, your voice carries a light, engaging tone." },
+  { characterName: "Anastasia", voiceName: "Puck", systemInstruction: "You are Anastasia, a 16-year-old dreamer. Your voice is youthful and filled with a curious, playful energy, yet it holds a wisdom that belies your age." },
+  { characterName: "Reverie", voiceName: "Puck", systemInstruction: "You are Reverie, a 19-year-old fairy who protects Anastasia. Your voice is sharp, sarcastic, and cocky. You are terse and to the point, often coming off as rude, but it's a front to protect the one you care about." },
+  { characterName: "Aeron", voiceName: "Fenrir", systemInstruction: "You are Aeron, a majestic winged lion. Though you are 8 years old, your voice is a deep, resonant rumble, like that of a creature ancient beyond its years, carrying the weight of unjust banishment and a desire for honor." },
   { characterName: "Zaia", voiceName: "Kore", systemInstruction: "You are Zaia, the embodiment of righteous judgment. Your voice is resolute, deliberate, and clear, with no room for doubt." },
-  { characterName: "Micah", voiceName: "Charon", systemInstruction: "You are Micah, a noble and strong warrior. Your voice is the calm and steady anchor for your father, filled with unwavering hope and strength." },
+  { characterName: "Micah", voiceName: "Charon", systemInstruction: "You are Micah, a noble and strong warrior from the inner city. Your voice is deep, calm, and steady, reflecting your education and role as the unwavering anchor of hope for your father, Otis." },
   { characterName: "Otis/X", voiceName: "Fenrir", systemInstruction: "You are Otis, a once-decorated sentinel. Your voice is weary but resolute. When you are X, your voice is distorted, echoing with the Void's influence." },
+  { characterName: "Ingris", voiceName: "Kore", systemInstruction: "You are Ingris, the Phoenix Warrior. Your voice is fiery and passionate, carrying the weight of your internal conflict and fierce determination." },
+  { characterName: "Cirrus", voiceName: "Charon", systemInstruction: "You are Cirrus, the 23-year-old Dragon King. Your voice is noble and steadfast, carrying the authority of a young ruler with immense power and a strong sense of duty." },
   // Antagonists
   { characterName: "Lucent the Lightweaver", voiceName: "Charon", systemInstruction: "You are Lucent, a fallen being of immense pride. Your voice is smooth, persuasive, and condescending, laced with the chilling certainty of your righteous cause." },
   { characterName: "King Cyrus", voiceName: "Fenrir", systemInstruction: "You are King Cyrus, a ruthless and powerful invader. Your voice is a commanding, gravelly baritone that brooks no dissent." },
@@ -538,8 +565,8 @@ export const ENEMY_AI_ARCHETYPES: EnemyAIArchetype[] = [
     coreBehavior: "Prioritizes flanking and attacking vulnerable targets. Will teleport away after taking significant damage to reposition.",
     defense: 20,
     abilities: [
-      { name: "Phase Strike", trigger: "On attack", description: "Teleports behind the target and strikes, dealing moderate Void damage.", damage: 25, effect: { type: 'slow', chance: 0.3, duration: 3 } },
-      { name: "Void Jaunt", trigger: "When health is below 40%", description: "Teleports to a random location away from players and becomes invisible for 3 seconds.", damage: 0 }
+      { name: "Phase Strike", type: 'special', trigger: "On attack", description: "Teleports behind the target and strikes, dealing moderate Void damage.", damage: 25, effect: { type: 'slow', chance: 0.3, duration: 3 } },
+      { name: "Void Jaunt", type: 'special', trigger: "When health is below 40%", description: "Teleports to a random location away from players and becomes invisible for 3 seconds.", damage: 0 }
     ],
     reactions: ["Teleports away when targeted by a powerful single-target ability.", "Becomes aggressive if its allies are defeated."],
     resourceManagement: "Relies on cooldowns for its teleportation abilities. Has no mana.",
@@ -554,8 +581,16 @@ export const ENEMY_AI_ARCHETYPES: EnemyAIArchetype[] = [
     coreBehavior: "Maintains a strong frontline, protecting weaker allies. Uses its shield to absorb damage and retaliates with powerful melee strikes.",
     defense: 50,
     abilities: [
-      { name: "Shield Bash", trigger: "When player is in melee range", description: "Slams its shield into the target, dealing physical damage and stunning them for 1 second.", damage: 15 },
-      { name: "Retaliation Protocol", trigger: "After blocking an attack", description: "Unleashes a quick counter-attack with its energy blade.", damage: 20 }
+      { name: "Shield Bash", type: 'physical', trigger: "When player is in melee range", description: "Slams its shield into the target, dealing physical damage and stunning them for 1 second.", damage: 15 },
+      { name: "Retaliation Protocol", type: 'physical', trigger: "After blocking an attack", description: "Unleashes a quick counter-attack with its energy blade.", damage: 20 },
+      {
+        name: "Suppression Field",
+        type: 'special',
+        trigger: "To control player position or prevent flanking",
+        description: "Slams its weapon into the ground, creating a circular field of crackling energy that persists for a short duration, dealing low damage and slowing enemies within it.",
+        damage: 10,
+        effect: { type: 'slow', chance: 0.9, duration: 5 }
+      }
     ],
     reactions: ["Raises its shield to block incoming projectiles.", "Attempts to taunt players who attack its allies."],
     resourceManagement: "No resources; abilities are based on cooldowns and reactions.",
