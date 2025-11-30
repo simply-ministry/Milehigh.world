@@ -187,6 +187,13 @@ export interface CharacterStatGrowth {
     secondary: string[];
 }
 
+export interface GrandFinaleScenario {
+  title: string;
+  mission: string;
+  narrative: string;
+  dialogue: string;
+  loreDeepDive: string;
+  csharpScript: CSharpScript;
 export interface Character {
   name: string;
   title: string;
