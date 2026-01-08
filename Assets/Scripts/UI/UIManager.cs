@@ -4,16 +4,31 @@ using UnityEngine;
 /// <summary>
 /// A singleton that manages all UI elements for the combat scene.
 /// </summary>
+/// <summary>
+/// A singleton that manages all UI elements for the combat scene,
+/// including character stat panels and action buttons.
+/// </summary>
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
 
-    public GameObject characterUIPanelPrefab; // A prefab for displaying a character's stats
-    public Transform playerPartyPanel;      // The layout group for player UI
-    public Transform enemyPartyPanel;       // The layout group for enemy UI
-    public Transform actionButtonPanel;     // The layout group for the current player's abilities
-    public GameObject actionButtonPrefab;   // A prefab for an ability button
+    [Header("UI Prefabs")]
+    [Tooltip("A prefab for displaying a character's stats.")]
+    public GameObject characterUIPanelPrefab;
+    [Tooltip("A prefab for an ability button.")]
+    public GameObject actionButtonPrefab;
 
+    [Header("UI Panels")]
+    [Tooltip("The layout group for player UI panels.")]
+    public Transform playerPartyPanel;
+    [Tooltip("The layout group for enemy UI panels.")]
+    public Transform enemyPartyPanel;
+    [Tooltip("The layout group for the current player's ability buttons.")]
+    public Transform actionButtonPanel;
+
+    /// <summary>
+    /// Initializes the singleton instance.
+    /// </summary>
     void Awake()
     {
         if (Instance != null && Instance != this)

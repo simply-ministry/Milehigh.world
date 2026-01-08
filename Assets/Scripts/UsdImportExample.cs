@@ -57,17 +57,20 @@ public class UsdImportExample : MonoBehaviour
 
         // Example: Change the position of a prim (if it exists).
         // Replace "/yourPrimPath" with the actual path to a prim in your USD file.
-        UsdPrim prim = _stage.GetPrimAtPath(new Sdf.Path("/yourPrimPath"));
+        UsdPrim prim = _stage.GetPrimAtPath(new UsdPrimPath("/yourPrimPath"));
         if (prim != null)
         {
-            // Get the Xform (transform) of the prim.
-            var xform = new pxr.UsdGeomXform(prim);
-
-            // Create a transform operation to set the translation.
-            var translateOp = xform.AddTranslateOp(pxr.UsdGeomXformOp.Precision.Double);
-            translateOp.Set(new pxr.GfVec3d(5, 0, 0)); // Move it 5 units along the x-axis.
-
-            // Save the changes back to the USD file.
+            //Get the transform
+            Xform xform = prim.GetXform();
+            // Create a TimeSample
+            var timeSamples = new TimeSample<Matrix4x4>();
+            xform.GetLocalToWorld(ref timeSamples);
+            Matrix4x4 currentMatrix = timeSamples.Value;
+            // Modify the matrix (e.g., change the position).
+            currentMatrix.SetColumn(3, new Vector4(5, 0, 0, 1)); // Move it 5 units along the x axis.
+            //Apply the transform
+            timeSamples.Value = currentMatrix;
+            xform.SetLocalToWorld(timeSamples);
             _stage.Save();
             Debug.Log("Prim at path '/yourPrimPath' has been moved and the stage was saved.");
         }

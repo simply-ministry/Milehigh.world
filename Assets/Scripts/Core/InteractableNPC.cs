@@ -1,50 +1,33 @@
 using UnityEngine;
 
 /// <summary>
-/// Represents a non-player character (NPC) that the player can interact with to trigger dialogue.
-/// This class holds the NPC's name and dialogue content.
+/// An interactable component for NPCs. Allows the player to talk to an NPC,
+/// triggering a dialogue event in the AllianceTowerManager.
 /// </summary>
 public class InteractableNPC : Interactable
 {
     [Header("NPC Dialogue")]
-    /// <summary>
-    /// The name of the NPC, which can be displayed in the UI.
-    /// </summary>
+    [Tooltip("The name of the NPC, displayed in the interaction prompt.")]
     public string npcName = "Mysterious Stranger";
-    /// <summary>
-    /// The line of dialogue the NPC will say when interacted with.
-    /// </summary>
-    [TextArea(3, 10)] // Makes the string field bigger in the inspector
+
+    [Tooltip("The dialogue the NPC will say when interacted with.")]
+    [TextArea(3, 10)]
     public string dialogue = "Hello, traveler. The Void calls, doesn't it?";
 
-    /// <summary>
-    /// A reference to the central manager for the tower scene.
-    /// </summary>
-    private AllianceTowerManager towerManager;
-
-    /// <summary>
-    /// Initializes the component by finding the AllianceTowerManager and setting a custom prompt message.
-    /// </summary>
-    void Start()
+    private void Start()
     {
-        towerManager = FindObjectOfType<AllianceTowerManager>();
         promptMessage = $"[E] Talk to {npcName}";
     }
 
-    /// <summary>
-    /// Overrides the base Interact method to define the NPC's specific action.
-    /// It calls the TriggerNPCDialogue method on the AllianceTowerManager.
-    /// </summary>
     protected override void Interact()
     {
-        if (towerManager != null)
+        if (AllianceTowerManager.Instance != null)
         {
-            Debug.Log($"Interacting with {npcName}.");
-            towerManager.TriggerNPCDialogue(npcName, dialogue);
+            AllianceTowerManager.Instance.TriggerNPCDialogue(npcName, dialogue);
         }
         else
         {
-            Debug.LogError("AllianceTowerManager not found in the scene!");
+            Debug.LogError("AllianceTowerManager singleton instance not found in the scene!");
         }
     }
 }

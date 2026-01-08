@@ -19,12 +19,14 @@ public enum CharacterState
 /// Contains core attributes, combat stats, and methods for health/mana management.
 /// Implements an event-driven approach for state changes.
 /// </summary>
-public class Character : MonoBehaviour
+public abstract class Character : MonoBehaviour
 {
     // Events for state changes
     public event Action<float, float> OnHealthChanged; // currentHealth, maxHealth
     public event Action<float, float> OnManaChanged;   // currentMana, maxMana
+    public event Action<float, float> OnStaminaChanged; // currentStamina, maxStamina
     public event Action<float> OnDamageTaken;          // damageAmount
+    public event Action OnDie;
 
     [Header("Core Identification")]
     [Tooltip("A unique identifier for this character instance.")]
@@ -34,7 +36,9 @@ public class Character : MonoBehaviour
     public string characterName = "Character";
     public float maxHealth = 100f;
     public float maxMana = 100f;
+    public float maxStamina = 100f;
     public bool isAlive = true;
+    public bool isCorporeal = true;
 
     // Encapsulated health and mana fields
     private float _currentHealth;
@@ -67,6 +71,21 @@ public class Character : MonoBehaviour
         }
     }
 
+    private float _currentStamina;
+    public float Stamina
+    {
+        get => _currentStamina;
+        private set
+        {
+            float clampedValue = Mathf.Clamp(value, 0, maxStamina);
+            if (_currentStamina != clampedValue)
+            {
+                _currentStamina = clampedValue;
+                OnStaminaChanged?.Invoke(_currentStamina, maxStamina);
+            }
+        }
+    }
+
     [Header("Combat Stats")]
     public int attack = 10;
     public int defense = 5;
@@ -77,14 +96,50 @@ public class Character : MonoBehaviour
         // Set properties directly to trigger initial events
         Health = maxHealth;
         Mana = maxMana;
+        Stamina = maxStamina;
+    }
+
+    /// <summary>
+    /// Reduces character's stamina and returns true if successful.
+    /// </summary>
+    public bool UseStamina(float amount)
+    {
+        if (Stamina >= amount)
+        {
+            Stamina -= amount;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Restores character's stamina.
+    /// </summary>
+    public void RestoreStamina(float amount)
+    {
+        if (!isAlive) return;
+        Stamina += amount;
     }
 
     /// <summary>
     /// Applies damage to the character and invokes damage/health events.
+    /// Integrates with the ComboManager to apply damage multipliers.
     /// </summary>
-    public virtual void TakeDamage(float amount)
+    public virtual void TakeDamage(float amount, Character instigator = null)
     {
-        if (!isAlive) return;
+        if (!isAlive || !isCorporeal) return;
+
+        // If there is an instigator, register the attack for combo tracking.
+        if (instigator != null && ComboManager.Instance != null)
+        {
+            ComboManager.Instance.RegisterAttack(instigator);
+            float multiplier = ComboManager.Instance.GetDamageMultiplier(instigator);
+            amount *= multiplier;
+            if (multiplier > 1.0f)
+            {
+                Debug.Log($"Damage multiplied by {multiplier}x!");
+            }
+        }
 
         float damageTaken = Mathf.Max(1f, amount - defense);
         Health -= damageTaken;
@@ -94,7 +149,7 @@ public class Character : MonoBehaviour
 
         if (Health <= 0)
         {
-            Die();
+            Die(instigator);
         }
     }
 
@@ -124,9 +179,10 @@ public class Character : MonoBehaviour
     /// <summary>
     /// Handles the character's death logic.
     /// </summary>
-    protected virtual void Die()
+    protected virtual void Die(Character killer)
     {
         isAlive = false;
+        OnDie?.Invoke();
         Debug.Log($"{characterName} has been defeated.");
         // We don't disable the GameObject immediately to allow other scripts to react to the death event.
         // Consider a separate manager to handle object cleanup.
