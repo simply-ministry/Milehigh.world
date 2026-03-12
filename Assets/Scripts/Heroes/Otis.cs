@@ -45,8 +45,8 @@ public class Otis : NoveminaadHero
     }
 
     /// <summary>
-    * Unleashes the 'Tempest's Eye', a swirling vortex that pulls in and damages enemies.
-    * This is the awakening of the power inherited from his mentor, Cirrus.
+    /// Unleashes the 'Tempest's Eye', a swirling vortex that pulls in and damages enemies.
+    /// This is the awakening of the power inherited from his mentor, Cirrus.
     /// </summary>
     public override void UseUltimateAbility()
     {
