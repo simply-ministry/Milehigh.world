@@ -6,20 +6,9 @@ from rpg import (
     Reverie,
     Nyxar,
     Enemy,
-    Scene,
-    SceneManager,
     Player,
 )
-
-
-class MockSceneManager(SceneManager):
-    """A minimal SceneManager that doesn't do anything on its own."""
-
-    def setup(self):
-        pass
-
-    def update(self):
-        pass
+from conftest import MockSceneManager, make_test_scene
 
 
 class TestAnastasia(unittest.TestCase):
@@ -27,11 +16,7 @@ class TestAnastasia(unittest.TestCase):
 
     def setUp(self):
         self.anastasia = Anastasia()
-        self.enemy = Enemy(name="Test Dummy", x=1)
-        self.scene = Scene("Test Arena")
-        self.scene.set_player(self.anastasia)
-        self.scene.add_object(self.enemy)
-        self.scene_manager = MockSceneManager(self.scene, game=None, setup_scene=False)
+        self.enemy, self.scene, self.scene_manager = make_test_scene(self.anastasia)
 
     def test_dream_weave_generation(self):
         """Verify that Anastasia's Dream Weave resource is generated correctly."""
@@ -62,11 +47,7 @@ class TestReverie(unittest.TestCase):
 
     def setUp(self):
         self.reverie = Reverie()
-        self.enemy = Enemy(name="Test Dummy", x=1)
-        self.scene = Scene("Test Arena")
-        self.scene.set_player(self.reverie)
-        self.scene.add_object(self.enemy)
-        self.scene_manager = MockSceneManager(self.scene, game=None, setup_scene=False)
+        self.enemy, self.scene, self.scene_manager = make_test_scene(self.reverie)
 
     def test_enigma_generation(self):
         """Verify that Reverie's Enigma resource is generated correctly when casting spells."""
@@ -96,11 +77,7 @@ class TestNyxar(unittest.TestCase):
 
     def setUp(self):
         self.nyxar = Nyxar()
-        self.enemy = Enemy(name="Test Dummy", x=1)
-        self.scene = Scene("Test Arena")
-        self.scene.set_player(self.nyxar)
-        self.scene.add_object(self.enemy)
-        self.scene_manager = MockSceneManager(self.scene, game=None, setup_scene=False)
+        self.enemy, self.scene, self.scene_manager = make_test_scene(self.nyxar)
 
     def test_dominion_generation(self):
         """Verify that Nyxar's Dominion resource is generated when he takes damage."""
@@ -138,11 +115,7 @@ class TestStatusEffects(unittest.TestCase):
 
     def setUp(self):
         self.player = Player(name="Test Player", x=0)
-        self.enemy = Enemy(name="Test Dummy", x=1)
-        self.scene = Scene("Test Arena")
-        self.scene.set_player(self.player)
-        self.scene.add_object(self.enemy)
-        self.scene_manager = MockSceneManager(self.scene, game=None, setup_scene=False)
+        self.enemy, self.scene, self.scene_manager = make_test_scene(self.player)
 
     def test_sleep_effect(self):
         """Verify that an actor with the 'sleep' status effect cannot perform actions."""
