@@ -1,31 +1,52 @@
 using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
 
+/// <summary>
+/// Manages the client-side logic for the Ingris vs. Zaya narrative encounter.
+/// This script handles dialogue, triggers animations, and sends attack requests to a server-side manager.
+/// The actual combat logic (damage, cooldowns) is handled by the ServerCombatManager.
+/// </summary>
 public class IngrisZayaEncounter : MonoBehaviour
 {
-    // --- Public References ---
-    public ServerCombatManager serverCombatManager; // Reference to the server-side logic
-    public GameObject ingris;
-    public GameObject zaya;
-    public Transform ingrisSwordTip;
-    public Transform zayaArrowSpawn;
-    public GameObject arrowPrefab; // Visual-only arrow
-    public GameObject fireTrailPrefab; // Visual-only effect
+    [Header("Network References")]
+    [Tooltip("Reference to the server-side combat logic manager.")]
+    public ServerCombatManager serverCombatManager;
 
-    // --- Control Parameters ---
+    [Header("Character References")]
+    [Tooltip("The GameObject for the Ingris character.")]
+    public GameObject ingris;
+    [Tooltip("The GameObject for the Zaya character.")]
+    public GameObject zaya;
+
+    [Header("Visual Effect References")]
+    [Tooltip("The transform representing the tip of Ingris's sword for VFX.")]
+    public Transform ingrisSwordTip;
+    [Tooltip("The transform from which Zaya's visual-only arrows are spawned.")]
+    public Transform zayaArrowSpawn;
+    [Tooltip("The prefab for the visual-only arrow fired by Zaya.")]
+    public GameObject arrowPrefab;
+    [Tooltip("The prefab for the fire trail visual effect on Ingris's sword.")]
+    public GameObject fireTrailPrefab;
+
+    [Header("Encounter Settings")]
+    [Tooltip("The total duration of the scripted fight sequence in seconds.")]
     public float fightDuration = 20f;
+    [Tooltip("The pause duration in seconds between lines of dialogue.")]
     public float dialoguePause = 2f;
+    [Tooltip("The interval at which attack requests are sent during the fight.")]
     public float attackInterval = 2f;
+    [Tooltip("The speed of the visual-only arrows.")]
     public float arrowSpeed = 20f;
+    [Tooltip("The duration of the fire trail visual effect.")]
     public float ingrisFireTrailDuration = 1f;
 
     // --- Private State ---
-    private float timer;
-    private bool fightActive = false;
     private Animator ingrisAnimator;
     private Animator zayaAnimator;
 
+    /// <summary>
+    /// Initializes the encounter, gets component references, and starts the main sequence.
+    /// </summary>
     void Start()
     {
         ingrisAnimator = ingris.GetComponent<Animator>();
@@ -40,7 +61,10 @@ public class IngrisZayaEncounter : MonoBehaviour
         StartCoroutine(Encounter());
     }
 
-    IEnumerator Encounter()
+    /// <summary>
+    /// The main coroutine that controls the flow of the entire encounter.
+    /// </summary>
+    private IEnumerator Encounter()
     {
         // --- Dialogue Sequence ---
         Debug.Log("[CLIENT] Zaya: That symbol... I've seen it before. In my visions.");
@@ -51,11 +75,8 @@ public class IngrisZayaEncounter : MonoBehaviour
         yield return new WaitForSeconds(dialoguePause);
 
         // --- Initiate Fight ---
-        fightActive = true;
-        timer = fightDuration;
         StartCoroutine(ClientFightSequence());
         yield return new WaitForSeconds(fightDuration);
-        fightActive = false;
 
         // --- Realization Sequence ---
         Debug.Log("[CLIENT] Ingris: You're one of us.");
@@ -67,10 +88,11 @@ public class IngrisZayaEncounter : MonoBehaviour
         Debug.Log("[CLIENT] Zaya: I'd like that, Phoenix Warrior.");
     }
 
-    IEnumerator ClientFightSequence()
+    /// <summary>
+    /// Coroutine that sends attack requests to the server at regular intervals.
+    /// </summary>
+    private IEnumerator ClientFightSequence()
     {
-        // This coroutine now only *requests* attacks from the server.
-        // The server is responsible for cooldowns and validation.
         float fightEndTime = Time.time + fightDuration;
         float nextAttackTime = 0f;
 
@@ -80,60 +102,53 @@ public class IngrisZayaEncounter : MonoBehaviour
             {
                 if (Random.value < 0.5f)
                 {
-                    // Request Ingris's attack
                     IngrisAttackRequest();
                 }
                 else
                 {
-                    // Request Zaya's attack
                     ZayaAttackRequest();
                 }
                 nextAttackTime = Time.time + attackInterval;
             }
-            // Wait for the next frame instead of a fixed duration
             yield return null;
         }
     }
 
-    // --- Client-Side Attack Requests & Visuals ---
-
-    void IngrisAttackRequest()
+    /// <summary>
+    /// Triggers local visual effects for Ingris's attack and sends a request to the server.
+    /// </summary>
+    private void IngrisAttackRequest()
     {
         Debug.Log("[CLIENT] Ingris requests to attack.");
-
-        // Trigger local visual effects immediately for responsiveness.
         ingrisAnimator.SetTrigger("Attack");
         GameObject fireTrail = Instantiate(fireTrailPrefab, ingrisSwordTip.position, ingrisSwordTip.rotation);
         Destroy(fireTrail, ingrisFireTrailDuration);
-
-        // Send the attack request to the server for processing.
         serverCombatManager.HandleIngrisAttack(ingris);
     }
 
-    void ZayaAttackRequest()
+    /// <summary>
+    /// Triggers local visual effects for Zaya's attack and sends a request to the server.
+    /// </summary>
+    private void ZayaAttackRequest()
     {
         Debug.Log("[CLIENT] Zaya requests to attack.");
-
-        // Trigger local visual effects.
         zayaAnimator.SetTrigger("Shoot");
         FireVisualArrow();
-
-        // Send the attack request to the server.
         serverCombatManager.HandleZayaAttack(zaya, zayaArrowSpawn.forward);
     }
 
-    void FireVisualArrow()
+    /// <summary>
+    /// Instantiates a visual-only arrow prefab that does not have collision.
+    /// </summary>
+    private void FireVisualArrow()
     {
-        // This arrow is for visual feedback only. It has no collision or damage logic.
         GameObject arrow = Instantiate(arrowPrefab, zayaArrowSpawn.position, zayaArrowSpawn.rotation);
         Rigidbody arrowRb = arrow.GetComponent<Rigidbody>();
         if (arrowRb != null)
         {
             arrowRb.velocity = zayaArrowSpawn.forward * arrowSpeed;
-            // Disable collision on the client-side arrow
             arrow.GetComponent<Collider>().enabled = false;
         }
-        // The arrow will be destroyed automatically after a few seconds.
         Destroy(arrow, 5f);
     }
 }

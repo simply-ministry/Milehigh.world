@@ -17,12 +17,12 @@ def Skeleton "characterSkeleton"
 {
     def Joint "root"
     {
-        matrix4d xformOp:transform = [...]
+        matrix4d xformOp:transform = ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1))
     }
 
     def Joint "arm"
     {
-        matrix4d xformOp:transform = [...]
+        matrix4d xformOp:transform = ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1))
     }
 }
 ```
@@ -62,4 +62,3 @@ def Mesh "faceMesh"
     }
 }
 ```
-}

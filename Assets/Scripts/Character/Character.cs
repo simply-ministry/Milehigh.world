@@ -20,7 +20,7 @@ public enum CharacterState
 /// and provides an event-driven system for other game systems to subscribe to.
 /// It is intended to be inherited by more specific character types like Novamina (players) or Villains.
 /// </summary>
-public class Character : MonoBehaviour
+public abstract class Character : MonoBehaviour
 {
     // --- Events ---
 
@@ -43,6 +43,12 @@ public class Character : MonoBehaviour
     public event Action<float> OnDamageTaken;
 
     // --- Core Identification ---
+    // Events for state changes
+    public event Action<float, float> OnHealthChanged; // currentHealth, maxHealth
+    public event Action<float, float> OnManaChanged;   // currentMana, maxMana
+    public event Action<float, float> OnStaminaChanged; // currentStamina, maxStamina
+    public event Action<float> OnDamageTaken;          // damageAmount
+    public event Action OnDie;
 
     [Header("Core Identification")]
     [Tooltip("A unique identifier for this character instance, assigned at runtime.")]
@@ -61,7 +67,9 @@ public class Character : MonoBehaviour
     public float maxMana = 100f;
 
     [Tooltip("Indicates whether the character is currently alive.")]
+    public float maxStamina = 100f;
     public bool isAlive = true;
+    public bool isCorporeal = true;
 
     // --- Health & Mana Properties ---
 
@@ -104,6 +112,20 @@ public class Character : MonoBehaviour
     }
 
     // --- Combat Stats ---
+    private float _currentStamina;
+    public float Stamina
+    {
+        get => _currentStamina;
+        private set
+        {
+            float clampedValue = Mathf.Clamp(value, 0, maxStamina);
+            if (_currentStamina != clampedValue)
+            {
+                _currentStamina = clampedValue;
+                OnStaminaChanged?.Invoke(_currentStamina, maxStamina);
+            }
+        }
+    }
 
     [Header("Combat Stats")]
     [Tooltip("The base attack power of the character.")]
@@ -121,6 +143,7 @@ public class Character : MonoBehaviour
         // Set properties directly to trigger initial events for UI, etc.
         Health = maxHealth;
         Mana = maxMana;
+        Stamina = maxStamina;
     }
 
     // --- Public Methods ---
@@ -131,8 +154,46 @@ public class Character : MonoBehaviour
     /// </summary>
     /// <param name="amount">The incoming amount of damage before defense reduction.</param>
     public virtual void TakeDamage(float amount)
+    /// Reduces character's stamina and returns true if successful.
+    /// </summary>
+    public bool UseStamina(float amount)
+    {
+        if (Stamina >= amount)
+        {
+            Stamina -= amount;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Restores character's stamina.
+    /// </summary>
+    public void RestoreStamina(float amount)
     {
         if (!isAlive) return;
+        Stamina += amount;
+    }
+
+    /// <summary>
+    /// Applies damage to the character and invokes damage/health events.
+    /// Integrates with the ComboManager to apply damage multipliers.
+    /// </summary>
+    public virtual void TakeDamage(float amount, Character instigator = null)
+    {
+        if (!isAlive || !isCorporeal) return;
+
+        // If there is an instigator, register the attack for combo tracking.
+        if (instigator != null && ComboManager.Instance != null)
+        {
+            ComboManager.Instance.RegisterAttack(instigator);
+            float multiplier = ComboManager.Instance.GetDamageMultiplier(instigator);
+            amount *= multiplier;
+            if (multiplier > 1.0f)
+            {
+                Debug.Log($"Damage multiplied by {multiplier}x!");
+            }
+        }
 
         // Ensure damage is at least 1 after defense reduction.
         float damageTaken = Mathf.Max(1f, amount - defense);
@@ -143,7 +204,7 @@ public class Character : MonoBehaviour
 
         if (Health <= 0)
         {
-            Die();
+            Die(instigator);
         }
     }
 
@@ -179,9 +240,10 @@ public class Character : MonoBehaviour
     /// Handles the character's death logic. Sets the character's state to not alive.
     /// This method is virtual so that subclasses can add custom death behaviors (e.g., animations, loot drops).
     /// </summary>
-    protected virtual void Die()
+    protected virtual void Die(Character killer)
     {
         isAlive = false;
+        OnDie?.Invoke();
         Debug.Log($"{characterName} has been defeated.");
         // We don't disable the GameObject immediately to allow other scripts (like an encounter manager)
         // to react to the death event before the object is cleaned up.

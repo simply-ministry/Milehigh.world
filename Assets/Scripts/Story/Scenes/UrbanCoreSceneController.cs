@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections;
 
 /// <summary>
-/// Manages the scene logic for the Urban Core, the central hub of Milehigh.World.
+/// Manages the scene logic for Linq, the central hub of Milehigh.World.
 /// This controller handles initial player spawn points, key NPC introductions,
 /// and the primary quest lines that originate in this area.
 /// </summary>
@@ -19,19 +19,19 @@ public class UrbanCoreSceneController : SceneController
     /// </summary>
     protected override void Start()
     {
-        sceneName = "Urban Core";
+        sceneName = "Linq";
         base.Start();
     }
 
     /// <summary>
-    /// Defines the narrative and gameplay sequence for the Urban Core scene.
+    /// Defines the narrative and gameplay sequence for the Linq scene.
     /// This coroutine will guide the player through the initial experience of the area.
     /// </summary>
     protected override IEnumerator SceneSequence()
     {
         // State 1: Initialization
-        UpdateState("Initializing Urban Core");
-        Log("The towering chrome spires of the Urban Core pierce the clouds. Welcome to the heart of the city.");
+        UpdateState("Initializing Linq");
+        Log("The towering chrome spires of Linq pierce the clouds. Welcome to the heart of the city.");
         yield return new WaitForSeconds(2f); // Wait for 2 seconds to let the player take in the view.
 
         // State 2: Introduce a Key NPC (Placeholder)
@@ -48,7 +48,7 @@ public class UrbanCoreSceneController : SceneController
 
         // State 4: Scene is now in an 'Active' or 'Idle' state
         UpdateState("Active");
-        Log("The Urban Core is now fully active. The player is free to explore.");
+        Log("Linq is now fully active. The player is free to explore.");
 
         // The coroutine concludes, but the scene controller remains active for any future events.
     }

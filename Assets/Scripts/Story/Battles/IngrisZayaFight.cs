@@ -1,76 +1,66 @@
 using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
 using Milehigh.World.Core;
 
+/// <summary>
+/// Manages the special abilities and states for Ingris and Zaya during their fight.
+/// This script acts as a state machine for their unique combat mechanics.
+/// </summary>
 public class IngrisZayaFight : MonoBehaviour
 {
-    // These would be linked to the characters in the scene
+    [Header("Character References")]
+    [Tooltip("The Animator component for the Ingris character.")]
     public Animator ingrisAnimator;
+    [Tooltip("The Animator component for the Zaya character.")]
     public Animator zayaAnimator;
+
+    [Header("State Flags")]
+    [Tooltip("Can Ingris currently perform an attack?")]
     public bool ingrisCanAttack = true;
+    [Tooltip("Can Zaya currently perform an attack?")]
     public bool zayaCanAttack = true;
+    [Tooltip("Is the fight sequence currently active?")]
     public bool fightActive = false;
 
     [Header("Ingris Abilities")]
-    public float ingrisChargeAttackRange = 5f;
+    [Tooltip("The damage multiplier for Ingris's charge attack.")]
     public float ingrisChargeAttackDamageMultiplier = 1.5f;
     private bool ingrisCharging = false;
 
     [Header("Zaya Abilities")]
+    [Tooltip("The duration of Zaya's Focus Mode in seconds.")]
     public float zayaFocusModeDuration = 3f;
-    public float zayaFocusModeAccuracyBonus = 0.2f; // Example accuracy bonus
     private float zayaFocusModeTimer = 0f;
     private bool zayaInFocusMode = false;
 
+    /// <summary>
+    /// Called every frame. Manages the state of Ingris's charge and Zaya's focus abilities.
+    /// </summary>
     void Update()
     {
         if (fightActive)
         {
-            HandleIngrisCharge();
             HandleZayaFocus();
         }
     }
 
-    void HandleIngrisCharge()
+    /// <summary>
+    /// Initiates Ingris's charge attack.
+    /// </summary>
+    public void StartIngrisCharge()
     {
-        // Example: Shift key for charge
-        if (ingrisCanAttack && Input.GetKeyDown(KeyCode.LeftShift))
+        if (ingrisCanAttack)
         {
             ingrisCharging = true;
-            ingrisAnimator.SetTrigger("Charge"); // Charge animation
+            ingrisAnimator.SetTrigger("Charge");
             Debug.Log("Ingris is charging!");
-            // In a full implementation, you would start charge movement and visual effects here.
-        }
-
-        if (ingrisCharging)
-        {
-            // In a real game, this would be a coroutine that moves the character
-            // over a short duration. For this script, we'll simulate the end of the charge.
-            Debug.Log("Ingris completes her charge!");
-            // Assume the charge hits if the target is within range.
-            // A real implementation would use Physics.OverlapSphere or similar.
-            // For now, we'll just call the attack method directly.
-            // The IngrisAttack method already contains the logic for increased damage.
-            // We would need a reference to Zaya's GameObject to attack.
-            // This logic is better handled in the main Encounter script.
-            Debug.Log("Charge finished. Attack logic should be triggered in the encounter controller.");
-            ingrisCharging = false; // Reset after the charge is complete
         }
     }
 
+    /// <summary>
+    /// Handles the logic for Zaya's focus mode.
+    /// </summary>
     void HandleZayaFocus()
     {
-        // Example: Space key for focus
-        if (zayaCanAttack && Input.GetKeyDown(KeyCode.Space))
-        {
-            zayaInFocusMode = true;
-            zayaFocusModeTimer = zayaFocusModeDuration;
-            zayaAnimator.SetTrigger("Focus"); // Focus animation
-            Debug.Log("Zaya enters focus mode! Accuracy increased.");
-            // In a full implementation, you would apply the accuracy bonus to her attacks.
-        }
-
         if (zayaInFocusMode)
         {
             zayaFocusModeTimer -= Time.deltaTime;
@@ -78,13 +68,29 @@ public class IngrisZayaFight : MonoBehaviour
             {
                 zayaInFocusMode = false;
                 Debug.Log("Zaya's focus mode has ended.");
-                // Remove accuracy bonus
             }
         }
     }
 
-    // These methods would be called by the main encounter script to deal damage.
-    // They are expanded to consider the special ability states.
+    /// <summary>
+    /// Activates Zaya's focus mode.
+    /// </summary>
+    public void ActivateZayaFocus()
+    {
+        if (zayaCanAttack)
+        {
+            zayaInFocusMode = true;
+            zayaFocusModeTimer = zayaFocusModeDuration;
+            zayaAnimator.SetTrigger("Focus");
+            Debug.Log("Zaya enters focus mode! Accuracy increased.");
+        }
+    }
+
+    /// <summary>
+    /// Executes Ingris's attack, applying bonus damage if charging.
+    /// </summary>
+    /// <param name="zaya">The Zaya character's GameObject.</param>
+    /// <param name="ingrisDamage">The base damage of the attack.</param>
     public void IngrisAttack(GameObject zaya, int ingrisDamage)
     {
         var health = zaya.GetComponent<IHealth>();
@@ -103,22 +109,25 @@ public class IngrisZayaFight : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Executes Zaya's attack, with a conceptual bonus for being in focus mode.
+    /// </summary>
+    /// <param name="ingris">The Ingris character's GameObject.</param>
+    /// <param name="zayaArrowDamage">The base damage of the arrow.</param>
     public void ZayaAttack(GameObject ingris, int zayaArrowDamage)
     {
-        // The actual arrow firing logic would be handled by the Encounter script's
-        // FireArrow method. This script only manages the state.
+        var health = ingris.GetComponent<IHealth>();
+        if (health == null) return;
+
         if (zayaInFocusMode)
         {
-            Debug.Log("Zaya fires a focused, high-precision arrow! (Accuracy bonus applied)");
-            // In a real implementation, this might guarantee a hit or increase damage.
-            var health = ingris.GetComponent<IHealth>();
-            if (health != null) health.TakeDamage((float)zayaArrowDamage);
+            Debug.Log("Zaya fires a focused, high-precision arrow!");
+            health.TakeDamage((float)zayaArrowDamage);
         }
         else
         {
             Debug.Log("Zaya fires a standard arrow.");
-            var health = ingris.GetComponent<IHealth>();
-            if (health != null) health.TakeDamage((float)zayaArrowDamage);
+            health.TakeDamage((float)zayaArrowDamage);
         }
     }
 }
