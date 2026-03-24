@@ -1,5 +1,7 @@
 from unittest.mock import patch
 import unittest
+from rpg import Player, Enemy, Weapon, Armor, HealthPotion, Scene, SceneManager
+from conftest import MockSceneManager
 from rpg import Player, Enemy, Weapon, Armor, Consumable, Scene, SceneManager, Game
 
 class TestCombatAndItems(unittest.TestCase):
@@ -17,6 +19,7 @@ class TestCombatAndItems(unittest.TestCase):
         self.scene.set_player(self.player)
         self.scene.add_object(self.enemy)
 
+        self.scene_manager = MockSceneManager(self.scene, game=None, setup_scene=False)
         # A minimal SceneManager that doesn't do anything on its own
         class MockSceneManager(SceneManager):
             def setup_scene(self):
