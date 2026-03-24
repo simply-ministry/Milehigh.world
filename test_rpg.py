@@ -31,6 +31,7 @@ class TestRpgInteraction(unittest.TestCase):
         self.scene_manager.setup()
         self.game.log_message = MagicMock()
 
+    @patch('builtins.input', side_effect=['examine', ''])
     def tearDown(self):
         """Clean up the temporary database after each test."""
         os.remove(self.DB_FILE)
@@ -43,9 +44,12 @@ class TestRpgInteraction(unittest.TestCase):
         """
         self.game.handle_input(self.scene_manager)
         expected_description = "Ancient Statue: The statue depicts a forgotten king. A faint inscription reads: 'Only the worthy may pass.'"
+
+        # Check that log_message was called with the correct description
+        self.game.log_message.assert_called_with(expected_description)
         self.game.log_message.assert_called_once_with(expected_description)
 
-    @patch('builtins.input', return_value='examine')
+    @patch('builtins.input', side_effect=['examine', ''])
     def test_examine_command_no_object(self, mock_input):
         """
         Tests that the 'examine' command shows the correct message when
@@ -54,6 +58,9 @@ class TestRpgInteraction(unittest.TestCase):
         self.scene.player_character.x = 20
         self.scene.player_character.y = 20
         self.game.handle_input(self.scene_manager)
+
+        # Check that log_message was called with the 'nothing nearby' message
+        self.game.log_message.assert_called_with("There is nothing nearby to examine.")
         self.game.log_message.assert_called_once_with("There is nothing nearby to examine.")
 
 if __name__ == '__main__':

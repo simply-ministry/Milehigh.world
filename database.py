@@ -1,13 +1,16 @@
-"""Manages the SQLite database for the game.
+"""Manages the game's SQLite database for content and saved games.
 
-This script handles the creation, initialization, and data access for the
-game's content database. It defines the schema for all game-related data,
-including characters, items, quests, and more. It also provides functions
-for saving and loading game state.
+This module is responsible for all database operations, including creating the
+database schema, populating it with initial game content, and providing an
+API for querying and modifying game data. It is designed to be the central
+repository for all persistent game information, such as character stats,
+item properties, and quest details.
 
-This module uses a global `_class_loader` to dynamically instantiate game
-object classes, which avoids circular dependencies between the database and
-the main game logic.
+The module also includes placeholder functions for saving and loading game
+states, which are intended to be implemented or mocked for testing purposes.
+To avoid circular dependencies with the main game logic, it uses a dynamic
+class loader (`set_class_loader`) to instantiate game object classes from
+database records.
 """
 
 import sqlite3
@@ -22,14 +25,18 @@ _class_loader: Optional[Callable[[str, Dict[str, Any]], Any]] = None
 
 
 def get_db_connection(db_file: str = DB_FILE) -> sqlite3.Connection:
-    """Establishes a connection to the SQLite database.
+    """Establishes and configures a connection to the SQLite database.
+
+    This function connects to the specified SQLite database file and sets the
+    `row_factory` to `sqlite3.Row`. This allows for accessing query results
+    like dictionaries, which is more convenient than using tuple-based access.
 
     Args:
-        db_file: The path to the database file. Defaults to DB_FILE.
+        db_file (str): The file path for the SQLite database. Defaults to the
+            global `DB_FILE` constant.
 
     Returns:
-        A database connection object with row_factory set to sqlite3.Row,
-        which allows for dictionary-like access to rows.
+        sqlite3.Connection: A database connection object ready for use.
     """
     conn = sqlite3.connect(db_file)
     conn.row_factory = sqlite3.Row
@@ -37,14 +44,16 @@ def get_db_connection(db_file: str = DB_FILE) -> sqlite3.Connection:
 
 
 def create_schema(cursor: sqlite3.Cursor) -> None:
-    """Creates the database schema, defining all tables and relationships.
+    """Defines and creates the database schema.
 
-    This function defines the structure for characters, items, world data,
-    quests, and more. It uses `CREATE TABLE IF NOT EXISTS` to avoid errors
-    if the database has already been initialized.
+    This function executes a series of SQL `CREATE TABLE` statements to build
+    the database structure required for the game. It defines tables for
+    characters, items, quests, and other core game elements. The use of
+    `IF NOT EXISTS` ensures that the function can be run safely multiple
+    times without causing errors.
 
     Args:
-        cursor: The database cursor to execute SQL commands.
+        cursor (sqlite3.Cursor): A database cursor to execute the SQL commands.
     """
     # Core Tables
     cursor.execute("""
@@ -214,14 +223,15 @@ def create_schema(cursor: sqlite3.Cursor) -> None:
 
 
 def populate_initial_data(cursor: sqlite3.Cursor) -> None:
-    """Populates the database with essential game data for a new game.
+    """Populates the database with the initial set of game content.
 
-    This includes creating default characters, items, weapons, and armor
-    to ensure the game world is not empty on first run. It uses
-    `INSERT OR IGNORE` to prevent duplicate entries on subsequent runs.
+    This function inserts the essential data needed to start a new game,
+    such as the main characters and some basic items. Using `INSERT OR IGNORE`
+    prevents duplicate data from being inserted if the function is run more
+    than once.
 
     Args:
-        cursor: The database cursor to execute commands.
+        cursor (sqlite3.Cursor): A database cursor to execute the INSERT commands.
     """
     # Characters
     cursor.execute("INSERT OR IGNORE INTO Characters (name, title, health, mana, strength, agility, intelligence, vitality) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -242,13 +252,15 @@ def populate_initial_data(cursor: sqlite3.Cursor) -> None:
 
 
 def init_db(db_file: str = DB_FILE) -> None:
-    """Initializes the database, creating the schema and populating data.
+    """Initializes the database by creating and populating it.
 
-    This is the main function to set up a new game database. It ensures
-    the schema exists and that it contains the initial set of game content.
+    This function serves as the main entry point for setting up the database.
+    It establishes a connection, creates the schema if it doesn't exist, and
+    populates the tables with initial game data.
 
     Args:
-        db_file: The path to the database file. Defaults to DB_FILE.
+        db_file (str): The file path for the SQLite database. Defaults to the
+            global `DB_FILE` constant.
     """
     conn = get_db_connection(db_file)
     cursor = conn.cursor()
@@ -259,31 +271,33 @@ def init_db(db_file: str = DB_FILE) -> None:
 
 
 def set_class_loader(loader: Callable[[str, Dict[str, Any]], Any]) -> None:
-    """Sets the class loader function for deserializing game objects.
+    """Sets the global function used for dynamically loading classes.
 
-    This function allows the database module to be decoupled from the main
-    game logic. The loader function is responsible for taking a class name
-    and a data dictionary and instantiating the correct Python class.
+    This function is a key part of decoupling the database module from the
+    rest of the game's class structure. The provided loader is called when
+    deserializing game objects, allowing the main game module to control how
+    classes are instantiated from database records.
 
     Args:
-        loader: A function that takes a class name and data dict and
-            returns an instance of a game object class.
+        loader (Callable): A function that accepts a class name (str) and a
+            data dictionary and returns an instance of the corresponding class.
     """
     global _class_loader
     _class_loader = loader
 
 
 def get_character_data(name: str, conn: Optional[sqlite3.Connection] = None) -> Optional[sqlite3.Row]:
-    """Fetches a single character's data from the database by name.
+    """Retrieves all data for a single character from the database by name.
 
     Args:
-        name: The name of the character to retrieve.
-        conn: An existing database connection. If None, a new connection
-            will be established. Defaults to None.
+        name (str): The name of the character to look up.
+        conn (Optional[sqlite3.Connection]): An optional existing database
+            connection. If not provided, a new one will be created.
 
     Returns:
-        A row object containing the character's data, or None if the
-        character is not found.
+        Optional[sqlite3.Row]: A `sqlite3.Row` object containing the
+        character's data, which allows for dictionary-style access to columns.
+        Returns `None` if no character with the given name is found.
     """
     close_conn = False
     if conn is None:
@@ -300,16 +314,16 @@ def get_character_data(name: str, conn: Optional[sqlite3.Connection] = None) -> 
 
 
 def get_item_data(name: str, conn: Optional[sqlite3.Connection] = None) -> Optional[sqlite3.Row]:
-    """Fetches base data for a single item from the Items table.
+    """Retrieves the base data for an item from the `Items` table.
 
     Args:
-        name: The name of the item to retrieve.
-        conn: An existing database connection. If None, a new connection
-            will be established. Defaults to None.
+        name (str): The name of the item to look up.
+        conn (Optional[sqlite3.Connection]): An optional existing database
+            connection.
 
     Returns:
-        A row object containing the item's data, or None if the item is
-        not found.
+        Optional[sqlite3.Row]: A `sqlite3.Row` object with the item's base
+        data (e.g., name, description, value), or `None` if not found.
     """
     close_conn = False
     if conn is None:
@@ -326,16 +340,18 @@ def get_item_data(name: str, conn: Optional[sqlite3.Connection] = None) -> Optio
 
 
 def get_weapon_data(item_id: int, conn: Optional[sqlite3.Connection] = None) -> Optional[sqlite3.Row]:
-    """Fetches specific weapon data from the Weapons table using an item ID.
+    """Retrieves weapon-specific data from the `Weapons` table.
 
     Args:
-        item_id: The ID of the item, which corresponds to a weapon.
-        conn: An existing database connection. If None, a new connection
-            will be established. Defaults to None.
+        item_id (int): The ID of the item, which is a foreign key in the
+            `Weapons` table.
+        conn (Optional[sqlite3.Connection]): An optional existing database
+            connection.
 
     Returns:
-        A row object containing the weapon's specific data, or None if no
-        weapon is found for the given ID.
+        Optional[sqlite3.Row]: A `sqlite3.Row` object with the weapon's
+        stats (e.g., damage, type), or `None` if no weapon with the given
+        ID is found.
     """
     close_conn = False
     if conn is None:
@@ -352,16 +368,18 @@ def get_weapon_data(item_id: int, conn: Optional[sqlite3.Connection] = None) -> 
 
 
 def get_armor_data(item_id: int, conn: Optional[sqlite3.Connection] = None) -> Optional[sqlite3.Row]:
-    """Fetches specific armor data from the Armor table using an item ID.
+    """Retrieves armor-specific data from the `Armor` table.
 
     Args:
-        item_id: The ID of the item, which corresponds to armor.
-        conn: An existing database connection. If None, a new connection
-            will be established. Defaults to None.
+        item_id (int): The ID of the item, which is a foreign key in the
+            `Armor` table.
+        conn (Optional[sqlite3.Connection]): An optional existing database
+            connection.
 
     Returns:
-        A row object containing the armor's specific data, or None if no
-        armor is found for the given ID.
+        Optional[sqlite3.Row]: A `sqlite3.Row` object with the armor's
+        stats (e.g., defense), or `None` if no armor with the given ID is
+        found.
     """
     close_conn = False
     if conn is None:
@@ -386,9 +404,9 @@ def save_game(save_name: str, scene_manager: Any) -> None:
         game objects into the database.
 
     Args:
-        save_name: The name for the save file or slot.
-        scene_manager: The main scene manager object containing the game
-            state to be saved.
+        save_name (str): The identifier for the save slot.
+        scene_manager (Any): The main `SceneManager` object, which contains
+            the complete state of the game to be saved.
     """
     # In a real implementation, this would serialize the scene_manager
     # and store it in the database. For now, we'll just acknowledge it.
@@ -401,15 +419,16 @@ def load_game(save_name: str) -> None:
     Note:
         This is a placeholder function. A full implementation would deserialize
         data from the database and reconstruct the `SceneManager` state. It
-        currently returns None to allow for testing the game's startup
+        currently returns `None` to allow for testing the game's startup
         and loading logic without a full save system.
 
     Args:
-        save_name: The name of the save file or slot to load.
+        save_name (str): The identifier for the save slot to load.
 
     Returns:
-        This function currently returns None to indicate that no save file
-        was loaded.
+        None: This function currently returns `None` to indicate that no save
+        file was loaded, allowing calling code to handle the case of starting
+        a new game.
     """
     # This function is intended to be mocked in tests.
     # Returning None simulates the behavior of a save not being found.

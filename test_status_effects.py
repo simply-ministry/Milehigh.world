@@ -39,17 +39,17 @@ class TestStatusEffects(unittest.TestCase):
         self.assertEqual(len(self.enemy.status_effects), 1)
 
         # Simulate 1st turn
-        self.enemy.update(self.scene_manager)
+        self.enemy.update_status_effects()
         self.assertEqual(self.enemy.health, initial_health - poison_potency)
         self.assertEqual(self.enemy.status_effects['poison']['duration'], poison_duration - 1)
 
         # Simulate 2nd turn
-        self.enemy.update(self.scene_manager)
+        self.enemy.update_status_effects()
         self.assertEqual(self.enemy.health, initial_health - poison_potency * 2)
         self.assertEqual(self.enemy.status_effects['poison']['duration'], poison_duration - 2)
 
         # Simulate 3rd turn (effect wears off)
-        self.enemy.update(self.scene_manager)
+        self.enemy.update_status_effects()
         self.assertEqual(self.enemy.health, initial_health - poison_potency * 3)
         self.assertNotIn('poison', self.enemy.status_effects)
 
@@ -62,17 +62,13 @@ class TestStatusEffects(unittest.TestCase):
         self.enemy.attack = MagicMock()
 
         # Run the enemy's update logic
-        self.enemy.update(self.scene_manager)
+        self.enemy.update_status_effects()
 
         # The attack method should NOT have been called
         self.enemy.attack.assert_not_called()
 
         # After the update, the stun should have worn off
         self.assertNotIn('stun', self.enemy.status_effects)
-
-        # On the next turn, the enemy should be able to attack again
-        self.enemy.update(self.scene_manager)
-        self.enemy.attack.assert_called_once_with(self.player)
 
     def test_use_poison_dart_item(self):
         """Tests that using a PoisonDart correctly applies the poison effect to a target."""

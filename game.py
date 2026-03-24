@@ -127,18 +127,28 @@ class GameObject:
             print(f"{self.name}'s defense holds strong!")
 
     def update(self, scene_manager):
-        """Placeholder for object-specific logic that runs each turn."""
+        """Placeholder for object-specific logic that runs each turn.
+
+        Args:
+            scene_manager (SceneManager): The scene manager controlling the game loop.
+        """
         self.update_status_effects()
 
     def apply_status_effect(self, effect_name, duration, **kwargs):
-        """Applies a status effect to the object."""
+        """Applies a status effect to the object.
+
+        Args:
+            effect_name (str): The name of the status effect.
+            duration (int): The duration of the status effect in turns.
+            **kwargs: Additional keyword arguments for the status effect.
+        """
         self.status_effects[effect_name] = {'duration': duration, **kwargs}
         print(f"{self.name} is now affected by {effect_name}.")
 
     def update_status_effects(self):
-        """Updates status effects each turn."""
+        """Updates status effects each turn, applying their effects and decrementing their duration."""
         effects_to_remove = []
-        for effect, data in self.status_effects.items():
+        for effect, data in list(self.status_effects.items()): # Iterate over a copy
             if effect == 'poison':
                 potency = data.get('potency', 1)
                 self.take_damage(potency)
@@ -149,22 +159,10 @@ class GameObject:
                 effects_to_remove.append(effect)
 
         for effect in effects_to_remove:
-            del self.status_effects[effect]
-            print(f"{self.name} is no longer {effect}.")
-        """Placeholder for object-specific logic that runs each turn.
+            if effect in self.status_effects:
+                del self.status_effects[effect]
+                print(f"{self.name} is no longer {effect}.")
 
-        Args:
-            scene_manager (SceneManager): The scene manager controlling the game loop.
-        """
-        pass
-
-    def update_status_effects(self, delta_time):
-        """Updates the duration of active status effects.
-
-        Args:
-            delta_time (float): The time elapsed since the last update.
-        """
-        pass
 
 
 class Item(GameObject):
@@ -311,27 +309,26 @@ class Player(GameObject):
             print(f"'{item_name}' not found in inventory.")
 
     def update(self, scene_manager):
-        """
-        Updates the player's state, including mana regeneration per turn.
-    def update(self, delta_time):
         """Updates the player's state, including mana regeneration.
 
         Args:
-            delta_time (float): The time elapsed since the last update.
+            scene_manager (SceneManager): The scene manager controlling the game loop.
         """
         super().update(scene_manager)
         # Regenerate 2 mana per turn
         self.mana = min(self.max_mana, self.mana + 2)
 
-    def pickup_item(self, item):
+    def pickup_item(self, item, scene):
         """Picks up an item and adds it to the inventory.
 
         If the item is a consumable and a stack of the same item already
         exists in the inventory, the quantity is increased. Otherwise, the
-        item is added as a new entry.
+        item is added as a new entry. The item is removed from the scene
+        after being picked up.
 
         Args:
             item (Item): The item to pick up.
+            scene (Scene): The scene the item is being picked up from.
         """
         if len(self.inventory) >= self.inventory_capacity:
             print("Inventory is full. Cannot pick up.")
@@ -342,15 +339,13 @@ class Player(GameObject):
                 if inventory_item.name == item.name and isinstance(inventory_item, Consumable):
                     inventory_item.quantity += 1
                     print(f"{self.name} picked up another {item.name}. Quantity: {inventory_item.quantity}")
-                    # Make the picked-up object disappear from the world
-                    item.visible = False
-                    item.solid = False
+                    # Remove the picked-up object from the world
+                    scene.game_objects.remove(item)
                     return  # Exit after stacking
 
         # If no stack was found, or it's not a consumable, add as a new item
         self.inventory.append(item)
-        item.visible = False
-        item.solid = False
+        scene.game_objects.remove(item)
         print(f"{self.name} picked up {item.name}.")
 
     def use_item(self, item_name, target):
@@ -790,17 +785,22 @@ class Enemy(GameObject):
         if 'stun' in self.status_effects or 'sleep' in self.status_effects:
             print(f"{self.name} is stunned and cannot act.")
             # Still need to update status effects so stun wears off.
-            super().update(scene_manager)
+            self.update_status_effects()
             return
 
         # --- Action Phase ---
         player = scene_manager.scene.player_character
         if player and player.health > 0:
-            # Basic AI: move towards player and attack if adjacent
-            if self.distance_to(player) < self.aggro_range:
-                if self.distance_to(player) < 1.5:  # Attack if adjacent
-                    self.attack(player)
-                else:  # Move towards player
+            distance_to_player = self.distance_to(player)
+
+            if self.state == 'idle':
+                if distance_to_player < self.aggro_range:
+                    self.state = 'chasing'
+            elif self.state == 'chasing':
+                if distance_to_player < 1.5:  # Attack range
+                    self.state = 'attacking'
+                else:
+                    # Move towards player
                     dx = player.x - self.x
                     dy = player.y - self.y
                     # Move one step in the direction of the player
@@ -809,57 +809,15 @@ class Enemy(GameObject):
                     else:
                         self.move(0, 1 if dy > 0 else -1)
 
+            elif self.state == 'attacking':
+                if distance_to_player < 1.5:
+                    self.attack(player)
+                else:
+                    self.state = 'chasing'
+
         # --- End of Turn ---
         # Status effects are updated after the action is taken.
-        super().update(scene_manager)
-
-
-# --- Item System ---
-
-class Item(GameObject):
-    """Base class for all items (weapons, consumables, armor, etc.)."""
-    def update(self, delta_time, player):
-        """Updates the enemy's state.
-
-        This method handles the enemy's AI, causing it to move towards and
-        attack the player when they are in range.
-
-        Args:
-            delta_time (float): The time elapsed since the last update.
-            player (Player): The player object.
-        """
-        self.update_status_effects(delta_time)
-
-        if 'sleep' in self.status_effects:
-            print(f"{self.name} is asleep and cannot act.")
-            return
-
-        distance_to_player = self.distance_to(player)
-
-        if self.state == 'idle':
-            if distance_to_player < self.aggro_range:
-                self.state = 'chasing'
-        elif self.state == 'chasing':
-            if distance_to_player < 1:  # Attack range
-                self.state = 'attacking'
-            else:
-                current_speed = self.speed
-                if 'slow' in self.status_effects:
-                    print(f"{self.name} is slowed!")
-                    current_speed /= 2
-                # Move towards the player
-                dx = player.x - self.x
-                dy = player.y - self.y
-                dz = player.z - self.z
-                distance = self.distance_to(player)
-                if distance > 0:
-                    self.move(dx / distance * current_speed * delta_time, dy / distance * current_speed * delta_time,
-                              dz / distance * current_speed * delta_time)
-        elif self.state == 'attacking':
-            if distance_to_player < 1:
-                self.attack(player)
-            else:
-                self.state = 'chasing'
+        self.update_status_effects()
 
 
 class Weapon(Item):
@@ -1536,9 +1494,17 @@ class AethelgardBattle(SceneManager):
         enemy.xp_value = 500  # This would be a new attribute on Enemy
 
         # Give player items
-        player.pickup_item(Weapon("Valiant Sword", "A blade that shines with honor.", 25))
-        player.pickup_item(Armor("Aethelgard Plate", "Sturdy plate armor of a royal knight.", 15))
-        player.pickup_item(PoisonDart(potency=5, duration=4))
+        weapon = Weapon("Valiant Sword", "A blade that shines with honor.", 25)
+        self.scene.add_object(weapon)
+        player.pickup_item(weapon, self.scene)
+
+        armor = Armor("Aethelgard Plate", "Sturdy plate armor of a royal knight.", 15)
+        self.scene.add_object(armor)
+        player.pickup_item(armor, self.scene)
+
+        poison_dart = PoisonDart(potency=5, duration=4)
+        self.scene.add_object(poison_dart)
+        player.pickup_item(poison_dart, self.scene)
 
 
         # A simple quest system could be added to the Player class later
@@ -1637,7 +1603,6 @@ class FirstMeetingScene(SceneManager):
 
 def main():
     """Sets up and runs the game."""
-if __name__ == "__main__":
     # Load game data from JSON file
     with open("game_data.json", "r") as f:
         game_data = json.load(f)
@@ -1655,8 +1620,6 @@ if __name__ == "__main__":
             print(f"Could not load '{save_name}'. Starting a new game.")
             # Fallback to new game if load fails
             game_engine = Game()
-            battle_scene = Scene("Aethelgard Battle")
-            scene_manager = AethelgardBattle(battle_scene, game_engine)
             scene = Scene("Monolith Clearing")
             scene_manager = FirstMeetingScene(scene, game_engine)
     else:
@@ -1673,9 +1636,3 @@ if __name__ == "__main__":
 
 if __name__ == "__main__":
     main()
-        scene = Scene("Monolith Clearing")
-        scene_manager = FirstMeetingScene(scene, game_engine)
-
-    if scene_manager:
-        scene_manager.run()
-        print("Game over.")

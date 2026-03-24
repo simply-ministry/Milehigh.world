@@ -1,9 +1,24 @@
-"""A more complex Python-based RPG prototype.
+"""A data-driven, turn-based RPG prototype.
 
-This script builds upon the concepts in `game.py` to create a more robust
-and data-driven RPG experience. It features a more advanced class structure,
-a turn-based combat system, and deep integration with the `database.py`
-module to load character and item data from a SQLite database.
+This script provides a more complex and robust implementation of a text-based
+RPG compared to `game.py`. It is designed to be data-driven, loading key
+game content such as character stats and item properties from a SQLite
+database managed by the `database.py` module.
+
+The core gameplay is turn-based, where the player issues commands to move,
+attack, and interact with the game world. The game features a scene management
+system, a variety of character and item types, and a simple AI for enemies.
+
+Key Features:
+    - **Data-Driven Design**: Integrates with a SQLite database to load game
+      content, allowing for easy modification and expansion without changing
+      the core game logic.
+    - **Turn-Based Gameplay**: The game loop is structured around player and
+      enemy turns, providing a classic RPG experience.
+    - **Scene Management**: A `SceneManager` class controls the setup,
+      execution, and conclusion of different game areas or encounters.
+    - **Class-Based Architecture**: Uses a clear and extensible class
+      hierarchy for game objects, characters, and items.
 """
 
 import json
@@ -13,18 +28,26 @@ import sys
 import database
 
 class GameObject:
-    """The base class for all objects in the game world.
+    """The base class for all entities in the game world.
+
+    This class provides fundamental attributes and methods for any object that
+    can exist within the game, such as its position, name, and health. It is
+    intended to be subclassed by more specific game entities like `Character`
+    or `Item`.
 
     Attributes:
-        name (str): The name of the object.
-        symbol (str): The character used to represent the object on the map.
-        x (int): The x-coordinate of the object.
-        y (int): The y-coordinate of the object.
-        z (int): The z-coordinate of the object (for 3D positioning).
+        name (str): The name of the object, used for identification.
+        symbol (str): The character used to represent the object on the
+            text-based game map.
+        x (int): The object's horizontal position on the map.
+        y (int): The object's vertical position on the map.
+        z (int): The object's depth position, for potential 3D environments.
         health (int): The current health of the object.
-        max_health (int): The maximum health of the object.
-        defense (int): The base defense value of the object.
-        status_effects (dict): A dictionary for storing active status effects.
+        max_health (int): The maximum health the object can have.
+        defense (int): The object's ability to resist incoming damage.
+        status_effects (dict): A dictionary of any active status effects
+            (e.g., {'poison': 3}) on the object, where the key is the effect
+            name and the value is its remaining duration in turns.
     """
     def __init__(self, name="Object", symbol='?', x=0, y=0, z=0, health=100, defense=0):
         """Initializes a new GameObject.
@@ -49,39 +72,48 @@ class GameObject:
         self.status_effects = {}
 
     def __repr__(self):
-        """Returns a string representation of the GameObject, useful for debugging.
+        """Provides a developer-friendly string representation of the object.
+
+        This is primarily used for debugging purposes to get a quick overview
+        of the object's state.
 
         Returns:
-            str: A string representation of the object.
+            str: A string containing the object's name, coordinates, and health.
         """
         return f"{self.name}(x={self.x}, y={self.y}, health={self.health})"
 
     def distance_to(self, other):
-        """Calculates the distance to another GameObject.
+        """Calculates the Euclidean distance to another GameObject.
 
         Args:
-            other (GameObject): The other GameObject.
+            other (GameObject): The target object to measure the distance to.
 
         Returns:
-            float: The distance to the other GameObject.
+            float: The straight-line distance between this object and the other.
         """
         return math.sqrt((self.x - other.x)**2 + (self.y - other.y)**2)
 
     def move(self, dx, dy):
-        """Moves the object by the specified amount.
+        """Updates the object's position by a given delta.
 
         Args:
-            dx (int): The change in x-coordinate.
-            dy (int): The change in y-coordinate.
+            dx (int): The change in the x-coordinate. A positive value moves
+                the object right, and a negative value moves it left.
+            dy (int): The change in the y-coordinate. A positive value moves
+                the object down, and a negative value moves it up.
         """
         self.x += dx
         self.y += dy
 
     def take_damage(self, damage):
-        """Reduces the object's health after factoring in defense.
+        """Reduces the object's health based on incoming damage and defense.
+
+        The actual damage taken is calculated as the incoming damage minus the
+        object's defense, with a minimum of 0. If the object's health drops
+        to 0 or below, the `die` method is called.
 
         Args:
-            damage (int): The amount of incoming damage.
+            damage (int): The amount of damage to inflict.
         """
         actual_damage = max(0, damage - self.defense)
         self.health -= actual_damage
@@ -91,7 +123,9 @@ class GameObject:
             self.die()
 
     def heal(self, amount):
-        """Heals the object for a given amount.
+        """Restores the object's health.
+
+        Health cannot be restored beyond the object's `max_health`.
 
         Args:
             amount (int): The amount of health to restore.
@@ -100,23 +134,36 @@ class GameObject:
         print(f"{self.name} heals for {amount} HP.")
 
     def die(self):
-        """Handles the object's death."""
+        """Handles the object's death.
+
+        This method is called when the object's health reaches zero. It prints
+        a message and is intended to be the point where the game engine would
+        handle the object's removal from the scene.
+        """
         print(f"{self.name} has been defeated.")
         # This object should be removed from the game by the game engine
 
     def update(self, scene_manager):
-        """Updates the object's state each turn.
+        """A placeholder for turn-based updates to the object's state.
+
+        This method is intended to be overridden by subclasses to implement
+        specific behaviors that occur each game turn, such as AI actions or
+        status effect updates.
 
         Args:
-            scene_manager (SceneManager): The scene manager controlling the game loop.
+            scene_manager (SceneManager): The main scene manager, providing
+                access to the game state and other objects.
         """
         pass
 
 class Item(GameObject):
-    """Base class for all items.
+    """The base class for all items that can be picked up or used.
+
+    Inherits from `GameObject` and serves as a foundation for more specific
+    item types like `Weapon`, `Armor`, and `Consumable`.
 
     Attributes:
-        description (str): A description of the item.
+        description (str): A brief description of the item's purpose or lore.
     """
     def __init__(self, name, description, x=0, y=0):
         """Initializes a new Item.
@@ -135,11 +182,23 @@ class Item(GameObject):
 
         Returns:
             str: The string representation.
+        """Provides a user-friendly string representation of the item.
+
+        Returns:
+            str: A string containing the item's name and description.
         """
         return f"{self.name}: {self.description}"
 
 class Interactable(GameObject):
-    """Represents objects that can be examined for a description."""
+    """Represents an object that the player can examine to get a description.
+
+    These are non-item, non-character objects in the world that provide lore
+    or information when the player uses the 'examine' command.
+
+    Attributes:
+        description (str): The text that is displayed to the player when
+            the object is examined.
+    """
     def __init__(self, name, symbol, x, y, description):
         """Initializes a new Interactable object.
 
@@ -154,15 +213,23 @@ class Interactable(GameObject):
         self.description = description
 
     def on_examine(self):
-        """Returns the description of the object."""
+        """Returns the object's description.
+
+        This method is called by the game engine when the player examines
+        the object.
+
+        Returns:
+            str: The descriptive text of the object.
+        """
         return self.description
 
 class Weapon(Item):
-    """A weapon that can be equipped to increase damage.
+    """Represents a weapon that can be equipped to increase attack damage.
 
     Attributes:
-        damage (int): The amount of damage the weapon deals.
-        weapon_type (str): The type of the weapon (e.g., "Melee", "Ranged").
+        damage (int): The base damage value of the weapon.
+        weapon_type (str): The category of the weapon, such as "Melee" or
+            "Ranged".
     """
     def __init__(self, name, description, damage, weapon_type="Melee"):
         """Initializes a new Weapon.
@@ -182,14 +249,18 @@ class Weapon(Item):
 
         Returns:
             str: The string representation.
+        """Provides a formatted string showing the weapon's stats.
+
+        Returns:
+            str: A string detailing the weapon's name, type, and damage.
         """
         return f"{self.name} (Weapon, {self.damage} DMG)"
 
 class Armor(Item):
-    """Armor that can be equipped to increase defense.
+    """Represents a piece of armor that can be equipped to increase defense.
 
     Attributes:
-        defense (int): The amount of defense the armor provides.
+        defense (int): The amount of damage reduction the armor provides.
     """
     def __init__(self, name, description, defense):
         """Initializes new Armor.
@@ -207,15 +278,23 @@ class Armor(Item):
 
         Returns:
             str: The string representation.
+        """Provides a formatted string showing the armor's stats.
+
+        Returns:
+            str: A string detailing the armor's name, type, and defense value.
         """
         return f"{self.name} (Armor, +{self.defense} DEF)"
 
 class Consumable(Item):
-    """An item that can be used for a one-time effect.
+    """An item that can be used for a single, one-time effect.
+
+    Consumables are typically used to restore health, grant temporary buffs,
+    or inflict status effects.
 
     Attributes:
-        effect (str): The type of effect the consumable has (e.g., "heal").
-        value (int): The magnitude of the effect.
+        effect (str): A string identifier for the item's effect (e.g., "heal").
+        value (int): The numerical magnitude of the effect (e.g., the amount
+            of health to restore).
     """
     def __init__(self, name, description, effect, value):
         """Initializes a new Consumable.
@@ -231,22 +310,28 @@ class Consumable(Item):
         self.value = value
 
     def use(self, character):
-        """Applies the consumable's effect to a character.
+        """Applies the consumable's effect to a target character.
 
         Args:
-            character (Character): The character using the item.
+            character (Character): The character who is using the item and will
+                receive its effects.
         """
         print(f"{character.name} uses {self.name}!")
         if self.effect == "heal":
             character.heal(self.value)
 
 class Character(GameObject):
-    """Base class for all characters in the game.
+    """A base class for all player and non-player characters.
+
+    Inherits from `GameObject` and adds attributes and methods specific to
+    characters, such as an inventory and the ability to attack.
 
     Attributes:
-        inventory (list): A list of items in the character's inventory.
-        mana (int): The character's current mana.
-        max_mana (int): The character's maximum mana.
+        inventory (list): A list of `Item` objects currently held by the
+            character.
+        mana (int): The character's current resource for casting spells or
+            using abilities.
+        max_mana (int): The maximum amount of mana the character can have.
     """
     def __init__(self, name, x=0, y=0, health=100, defense=5):
         """Initializes a new Character.
@@ -264,27 +349,32 @@ class Character(GameObject):
         self.max_mana = 100
 
     def attack(self, target, damage):
-        """A generic attack method.
+        """Performs a basic attack on a target.
+
+        This method serves as a generic attack action, applying a specified
+        amount of damage to a target `GameObject`.
 
         Args:
-            target (GameObject): The target of the attack.
-            damage (int): The amount of damage to deal.
+            target (GameObject): The `GameObject` to be attacked.
+            damage (int): The amount of damage to deal to the target.
         """
         print(f"{self.name} attacks {target.name} for {damage} damage.")
         target.take_damage(damage)
 
 class Player(Character):
-    """The player character.
+    """Represents the player-controlled character.
 
-    This class manages the player's stats, equipment, and progression.
+    This class extends `Character` with features specific to the player,
+    such as leveling, experience, stats, and equipment management.
 
     Attributes:
         level (int): The player's current level.
-        experience (int): The player's current experience points.
-        strength (int): The player's strength stat.
-        dexterity (int): The player's dexterity stat.
-        intelligence (int): The player's intelligence stat.
-        equipment (dict): A dictionary representing the player's equipped items.
+        experience (int): The player's accumulated experience points.
+        strength (int): A stat that typically influences physical damage.
+        dexterity (int): A stat that can affect accuracy, evasion, or speed.
+        intelligence (int): A stat that usually influences magical abilities.
+        equipment (dict): A dictionary that holds the player's equipped
+            items, with keys like "weapon" and "armor".
     """
     def __init__(self, name="Player", x=0, y=0):
         """Initializes a new Player.
@@ -306,8 +396,12 @@ class Player(Character):
     def attack(self, target):
         """Attacks a target, with damage modified by stats and equipment.
 
+        Calculates total damage based on the equipped weapon and the player's
+        strength. After the attack, it checks if the target was defeated and,
+        if so, grants experience to the player.
+
         Args:
-            target (GameObject): The target of the attack.
+            target (GameObject): The `GameObject` to be attacked.
         """
         weapon_damage = self.equipment["weapon"].damage if self.equipment["weapon"] else 5
         total_damage = weapon_damage + self.strength // 2
@@ -317,10 +411,13 @@ class Player(Character):
                 self.gain_experience(target.xp_value)
 
     def equip(self, item):
-        """Equips an item.
+        """Equips an item from the inventory.
+
+        If the item is a `Weapon` or `Armor`, it is placed in the corresponding
+        equipment slot. Equipping armor also updates the player's defense stat.
 
         Args:
-            item (Item): The item to equip.
+            item (Item): The `Item` to be equipped.
         """
         if isinstance(item, Weapon):
             self.equipment["weapon"] = item
@@ -331,19 +428,19 @@ class Player(Character):
             print(f"Equipped {item.name}.")
 
     def pickup_item(self, item):
-        """Picks up an item and adds it to the inventory.
+        """Adds an item to the player's inventory.
 
         Args:
-            item (Item): The item to pick up.
+            item (Item): The `Item` to be picked up from the game world.
         """
         self.inventory.append(item)
         print(f"Picked up {item.name}.")
 
     def gain_experience(self, amount):
-        """Gains experience and checks for level up.
+        """Adds experience points and checks for a level up.
 
         Args:
-            amount (int): The amount of experience to gain.
+            amount (int): The amount of experience points to add.
         """
         self.experience += amount
         print(f"Gained {amount} experience.")
@@ -352,7 +449,11 @@ class Player(Character):
             self.level_up()
 
     def level_up(self):
-        """Levels up the character, increasing stats and restoring health."""
+        """Handles the player's level progression.
+
+        Increments the player's level, increases their maximum health and other
+        stats, and fully restores their health.
+        """
         self.level += 1
         self.max_health += 10
         self.health = self.max_health
@@ -362,14 +463,16 @@ class Player(Character):
         print(f"Leveled up to level {self.level}!")
 
 class Enemy(Character):
-    """An enemy character.
+    """Represents a non-player character that is hostile to the player.
 
-    Enemies have simple AI that causes them to attack the player when they
-    are within range.
+    This class extends `Character` with attributes and AI logic for combat.
+    Enemies can attack the player and award experience points when defeated.
 
     Attributes:
-        attack_damage (int): The amount of damage the enemy deals.
-        xp_value (int): The amount of experience awarded for defeating the enemy.
+        attack_damage (int): The amount of damage the enemy deals with a
+            standard attack.
+        xp_value (int): The amount of experience points the player receives
+            for defeating this enemy.
     """
     def __init__(self, name, x=0, y=0, health=50, damage=10, xp_value=10, defense=0):
         """Initializes a new Enemy.
@@ -389,21 +492,23 @@ class Enemy(Character):
         self.xp_value = xp_value
 
     def attack(self, target):
-        """The enemy's attack method.
+        """Performs an attack on a target.
 
         Args:
-            target (GameObject): The target of the attack.
+            target (GameObject): The `GameObject` to be attacked.
         """
         super().attack(target, self.attack_damage)
 
     def update(self, scene_manager):
-        """The enemy's AI logic.
+        """Defines the enemy's behavior for a single game turn.
 
-        If the player is within range, the enemy will attack. Otherwise, it
-        will move towards the player.
+        The AI is simple: if the player is within a certain range (1.5 units),
+        the enemy will attack. Otherwise, it will move one step closer to the
+        player's position.
 
         Args:
-            scene_manager (SceneManager): The scene manager controlling the game loop.
+            scene_manager (SceneManager): The main scene manager, providing
+                access to the player's location and other game state.
         """
         player = scene_manager.scene.player_character
         if self.distance_to(player) < 1.5:
@@ -416,14 +521,18 @@ class Enemy(Character):
                 self.move(round(dx / dist), round(dy / dist))
 
 class Scene:
-    """Holds all the data for a single game area.
+    """Manages all the game objects and data for a specific game area.
+
+    This class acts as a container for all the `GameObject` instances that
+    exist in a particular level, room, or zone.
 
     Attributes:
-        name (str): The name of the scene.
-        width (int): The width of the scene's map.
-        height (int): The height of the scene's map.
-        game_objects (list): A list of all GameObjects in the scene.
-        player_character (Player): The player character in the scene.
+        name (str): The name of the scene (e.g., "Troll Cave").
+        width (int): The width of the scene's grid-based map.
+        height (int): The height of the scene's grid-based map.
+        game_objects (list): A list of all `GameObject` instances in the scene.
+        player_character (Player): A direct reference to the player object
+            in the scene.
     """
     def __init__(self, name, width=40, height=10):
         """Initializes a new Scene.
@@ -440,31 +549,34 @@ class Scene:
         self.player_character = None
 
     def add_object(self, obj):
-        """Adds a game object to the scene.
+        """Adds a `GameObject` to the scene.
 
         Args:
-            obj (GameObject): The object to add.
+            obj (GameObject): The game object to add to the scene's list.
         """
         self.game_objects.append(obj)
 
     def set_player(self, player):
-        """Sets the player character for the scene.
+        """Assigns the player character for the scene.
+
+        This also adds the player to the scene's list of game objects.
 
         Args:
-            player (Player): The player character.
+            player (Player): The `Player` object.
         """
         self.player_character = player
         self.add_object(player)
 
     def get_object_at(self, x, y):
-        """Gets the object at a given coordinate.
+        """Retrieves the game object at a specific map coordinate.
 
         Args:
-            x (int): The x-coordinate.
-            y (int): The y-coordinate.
+            x (int): The x-coordinate to check.
+            y (int): The y-coordinate to check.
 
         Returns:
-            GameObject: The object at the given coordinates, or None if not found.
+            Optional[GameObject]: The `GameObject` at the specified
+            coordinates, or `None` if no object is found there.
         """
         for obj in self.game_objects:
             if obj.x == x and obj.y == y:
@@ -472,7 +584,10 @@ class Scene:
         return None
 
 class Game:
-    """The main game engine, responsible for the game loop and drawing.
+    """The core game engine, responsible for the main loop and rendering.
+
+    This class handles the overall game state, such as whether the game is
+    over, and manages the process of drawing the game world to the console.
 
     Attributes:
         width (int): The width of the game map.
@@ -482,6 +597,16 @@ class Game:
         in_conversation (bool): Whether the player is in a conversation.
         dialogue_manager (DialogueManager): The active dialogue manager.
         db_conn: The connection to the SQLite database.
+        width (int): The width of the console display area for the map.
+        height (int): The height of the console display area for the map.
+        message_log (list): A list of recent messages to be displayed to the
+            player.
+        game_over (bool): A flag indicating whether the game has ended.
+        in_conversation (bool): A flag for whether the player is currently in
+            a dialogue.
+        dialogue_manager (DialogueManager): The active dialogue manager, if
+            `in_conversation` is True.
+        db_conn (sqlite3.Connection): A connection to the game's database.
     """
     def __init__(self, width=40, height=10):
         """Initializes the Game engine.
@@ -499,20 +624,181 @@ class Game:
         self.db_conn = database.get_db_connection()
 
     def log_message(self, message):
-        """Adds a message to the game log.
+        """Adds a message to the game's message log.
+
+        The log maintains a fixed size, discarding the oldest messages as
+        new ones are added.
 
         Args:
-            message (str): The message to log.
+            message (str): The text message to add to the log.
         """
         self.message_log.append(message)
         if len(self.message_log) > 5:
             self.message_log.pop(0)
 
+    def handle_input(self, scene_manager):
+        """
+        Handles player input for core actions like moving, attacking, and using items.
+        This simplified version focuses on a basic command structure.
+        """
+        # Get player and scene from the scene_manager
+        player = scene_manager.scene.player_character
+        scene = scene_manager.scene
+
+        # If the player is in a conversation, handle dialogue choices
+        if self.in_conversation:
+            # Get the current dialogue node
+            node = self.dialogue_manager.get_current_node()
+            if not node or not node.options:
+                # End conversation if there's no node or no options
+                self.end_conversation()
+                self.turn_taken = True
+                return
+
+            # Display dialogue and prompt for choice
+            try:
+                choice = int(input("Choose an option (number): ")) - 1
+                if self.dialogue_manager.select_option(choice):
+                    self.turn_taken = True
+                else:
+                    self.log_message("Invalid choice.")
+            except (ValueError, IndexError):
+                self.log_message("Invalid input. Please enter a number.")
+            return
+
+        # Main command loop
+        command = input("What do you want to do? (move, attack, use, talk, quit) > ").lower().strip()
+
+        if command == "quit":
+            self.game_over = True
+            self.turn_taken = True
+
+        elif command == "move":
+            direction = input("Move where? (w/a/s/d) > ").lower().strip()
+            dx, dy = 0, 0
+            if direction == 'w': dy = -1
+            elif direction == 's': dy = 1
+            elif direction == 'a': dx = -1
+            elif direction == 'd': dx = 1
+            else:
+                self.log_message("Invalid direction.")
+                self.turn_taken = False # Don't lose a turn for a typo
+                return
+
+            new_x, new_y = player.x + dx, player.y + dy
+
+            # Boundary and collision check
+            if not (0 <= new_x < self.width and 0 <= new_y < self.height):
+                self.log_message("You can't move off the map.")
+            else:
+                target_object = scene.get_object_at(new_x, new_y)
+                if target_object and getattr(target_object, 'solid', False):
+                    self.log_message(f"You can't move there. {target_object.name} is in the way.")
+                else:
+                    player.move(dx, dy)
+                    self.log_message(f"You move to ({player.x}, {player.y}).")
+                    self.turn_taken = True
+
+        elif command == "attack":
+            target_name = input("Attack who? > ").lower().strip()
+            # Find the target in the current scene
+            target = next((obj for obj in scene.game_objects if obj.name.lower() == target_name and isinstance(obj, Enemy)), None)
+
+            if target:
+                if target.health > 0:
+                    player.attack(target)
+                    self.turn_taken = True
+                else:
+                    self.log_message(f"{target.name} is already defeated.")
+            else:
+                self.log_message(f"There is no one here named '{target_name}'.")
+
+        elif command == "use":
+            item_name = input("Use what? > ").lower().strip()
+            if player.use_item(item_name):
+                self.turn_taken = True
+            # The use_item method prints its own messages, so no need for else here.
+
+        elif command == "talk":
+            target_name = input("Talk to who? > ").lower().strip()
+            # Find any character (NPC or otherwise) with dialogue
+            target = next((obj for obj in scene.game_objects if obj.name.lower() == target_name), None)
+
+            if target and hasattr(target, 'dialogue') and target.dialogue:
+                if player.distance_to(target) < 3: # A bit more lenient for talking
+                    self.start_conversation(target.dialogue)
+                    self.turn_taken = True
+                else:
+                    self.log_message(f"You need to get closer to {target.name}.")
+            else:
+                self.log_message(f"'{target_name}' has nothing to say, or isn't here.")
+
+        elif command == "examine":
+            target_name = input("Examine what? (or leave blank for nearby) > ").lower().strip()
+            if target_name:
+                target = next((obj for obj in scene.game_objects if obj.name.lower() == target_name and isinstance(obj, Interactable)), None)
+                if target:
+                    self.log_message(f"{target.name}: {target.on_examine()}")
+                else:
+                    self.log_message(f"There is no '{target_name}' to examine.")
+            else:
+                found_something = False
+                for obj in scene.game_objects:
+                    if isinstance(obj, Interactable) and player.distance_to(obj) < 1.5:
+                        self.log_message(f"{obj.name}: {obj.on_examine()}")
+                        found_something = True
+                        break
+                if not found_something:
+                    self.log_message("There is nothing nearby to examine.")
+            self.turn_taken = True
+
+        elif command == "equip":
+            item_name = input("Equip what? > ").lower().strip()
+            player.equip_item(item_name)
+            self.turn_taken = True
+
+        elif command == "status":
+            self.log_message(f"{player.name} - HP: {player.health}/{player.max_health}, Mana: {int(player.mana)}/{player.max_mana}")
+            for obj in scene.game_objects:
+                if isinstance(obj, Enemy) and obj.health > 0:
+                    self.log_message(f"{obj.name} - HP: {obj.health}")
+            self.turn_taken = False
+
+        elif command == "save":
+            save_name = input("Save name? (default: quicksave) > ").lower().strip() or "quicksave"
+            database.save_game(save_name, scene_manager)
+            self.log_message(f"Game saved to slot: {save_name}")
+            self.turn_taken = False
+
+        elif command == "load":
+            save_name = input("Load from what save? (default: quicksave) > ").lower().strip() or "quicksave"
+            new_manager = database.load_game(save_name)
+            if new_manager:
+                scene_manager.game = new_manager.game
+                scene_manager.scene = new_manager.scene
+                self.log_message(f"Game loaded from slot: {save_name}")
+            else:
+                self.log_message(f"Failed to load game from slot: {save_name}")
+            self.turn_taken = True
+
+        else:
+            self.log_message("Unknown command. Try: move, attack, use, talk, examine, equip, status, save, load, quit")
+            self.turn_taken = False # Does not consume a turn
+
+
+    def start_conversation(self, dialogue_manager):
+        """Initiates a conversation."""
+        self.in_conversation = True
+        self.dialogue_manager = dialogue_manager
+        self.log_message("A conversation begins.")
     def draw(self, scene):
-        """Draws the game world to the console.
+        """Renders the current game state to the console.
+
+        This method clears the console and draws the scene's map, character
+        symbols, player stats, and the message log.
 
         Args:
-            scene (Scene): The scene to draw.
+            scene (Scene): The `Scene` object to be rendered.
         """
         print("\033c", end="")
         print(f"--- {scene.name} ---")
@@ -528,12 +814,17 @@ class Game:
             print(f"- {msg}")
 
 class SceneManager:
-    """Controls scenes, events, and game logic.
+    """An abstract base class for controlling scene logic, events, and flow.
+
+    This class is designed to be subclassed for each specific scene in the
+    game. It provides the core structure for loading a scene, running its
+    main loop, and handling input and updates.
 
     Attributes:
-        game (Game): The main game engine.
-        scene (Scene): The active scene.
-        is_running (bool): Whether the scene is currently running.
+        game (Game): A reference to the main `Game` engine object.
+        scene (Scene): The `Scene` object that this manager controls.
+        is_running (bool): A flag to control the execution of the scene's
+            main loop.
     """
     def __init__(self, game):
         """Initializes a new SceneManager.
@@ -546,20 +837,28 @@ class SceneManager:
         self.is_running = True
 
     def load_scene(self, scene):
-        """Loads a new scene.
+        """Loads a new scene and triggers its setup.
 
         Args:
-            scene (Scene): The scene to load.
+            scene (Scene): The `Scene` instance to be loaded and managed.
         """
         self.scene = scene
         self.setup_scene()
 
     def setup_scene(self):
-        """Sets up the current scene. Must be implemented by subclasses."""
+        """Initializes the scene with its required objects and state.
+
+        This method must be implemented by subclasses to populate the scene
+        with characters, items, and any other necessary game elements.
+        """
         raise NotImplementedError
 
     def run(self):
-        """The main game loop for this scene."""
+        """Contains the main game loop for the scene.
+
+        This loop continuously draws the scene, handles player input, and
+        updates the game state until the game is over or the scene ends.
+        """
         while not self.game.game_over and self.is_running:
             self.game.draw(self.scene)
             if self.game.game_over: break
@@ -570,26 +869,35 @@ class SceneManager:
                 self.update()
 
     def handle_input(self):
-        """Handles player input.
+        """Handles player input for the scene.
 
-        This method should be implemented by subclasses to define the specific
-        input handling for a scene.
+        This method must be implemented by subclasses to define how the
+        scene responds to player commands.
         """
         raise NotImplementedError
 
     def update(self):
-        """Updates the state of the scene.
+        """Updates the state of the scene each turn.
 
-        This method should be implemented by subclasses to define the specific
-        update logic for a scene, such as checking for win/loss conditions.
+        This method must be implemented by subclasses to process game logic,
+        such as AI turns, status effect updates, and checking for win or
+        loss conditions.
         """
         raise NotImplementedError
 
 class TrollCaveScene(SceneManager):
-    """A specific scene manager for the Troll Cave."""
+    """A concrete `SceneManager` for the Troll Cave encounter.
+
+    This class implements the setup, input handling, and update logic for a
+    specific battle scene where the player fights a troll.
+    """
 
     def setup_scene(self):
-        """Sets up the characters, items, and enemies for the Troll Cave."""
+        """Populates the scene with the player, a troll, and items.
+
+        This method demonstrates the data-driven approach by creating the
+        player character (`Aeron`) and loading their items from the database.
+        """
         # Create characters
         player = Aeron(name="Aeron", x=5, y=5, db_conn=self.game.db_conn)
         enemy = Enemy(name="Troll", x=10, y=5, health=150, damage=25, xp_value=200)
@@ -623,7 +931,11 @@ class TrollCaveScene(SceneManager):
         self.game.log_message("You enter the dark and damp troll cave.")
 
     def handle_input(self):
-        """Handles player input for the battle scene."""
+        """Handles player commands for the Troll Cave scene.
+
+        This method parses player input for actions like moving, attacking,
+        equipping items, and quitting the game.
+        """
         player = self.scene.player_character
         # In a test environment, we don't want to block on input()
         if "pytest" in sys.modules:
@@ -669,7 +981,11 @@ class TrollCaveScene(SceneManager):
             self.game.log_message("Unknown command. Try: move, attack, equip, quit.")
 
     def update(self):
-        """Updates the scene, handling AI turns and checking for win/loss conditions."""
+        """Updates the scene's state after the player's turn.
+
+        This method handles the AI's turn, removes any defeated enemies from
+        the scene, and checks for win or loss conditions.
+        """
         # AI turn
         for obj in self.scene.game_objects:
             if isinstance(obj, Enemy):
@@ -687,9 +1003,11 @@ class TrollCaveScene(SceneManager):
             self.is_running = False
 
 class Aeron(Player):
-    """A specific implementation of the Player class for the character Aeron.
+    """A specific `Player` subclass for the character Aeron.
 
-    This class loads Aeron's stats from the database upon initialization.
+    This class demonstrates how to create a unique character by extending the
+    `Player` class. Upon initialization, it fetches Aeron's specific stats
+    from the database, making the character data-driven.
     """
     def __init__(self, name="Aeron", x=0, y=0, db_conn=None):
         """Initializes a new Aeron character.
@@ -713,9 +1031,10 @@ class Aeron(Player):
             self.intelligence = data['intelligence']
 
 class Kane(Enemy):
-    """A specific implementation of the Enemy class for the character Kane.
+    """A specific `Enemy` subclass for the character Kane.
 
-    This class loads Kane's stats from the database upon initialization.
+    Similar to the `Aeron` class, this creates a unique enemy by extending
+    the base `Enemy` class and loading its stats from the database.
     """
     def __init__(self, name="Kane", x=0, y=0, type="Boss", db_conn=None):
         """Initializes a new Kane enemy.
@@ -744,6 +1063,18 @@ def main(argv):
 
     Returns:
         SceneManager: The scene manager instance after the game loop finishes.
+    """The main entry point for the game.
+
+    This function initializes the database, sets up the game engine, and
+    starts the main game loop. It also includes logic for loading a saved
+    game from the command line.
+
+    Args:
+        argv (list): A list of command-line arguments passed to the script.
+
+    Returns:
+        SceneManager: The scene manager instance after the game loop has
+        concluded, which can be useful for testing.
     """
     database.init_db()
     game_engine = Game()

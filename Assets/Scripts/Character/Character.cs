@@ -16,11 +16,33 @@ public enum CharacterState
 
 /// <summary>
 /// The base class for all characters in Milehigh.World.
-/// Contains core attributes, combat stats, and methods for health/mana management.
-/// Implements an event-driven approach for state changes.
+/// This class manages core attributes like health and mana, handles combat calculations,
+/// and provides an event-driven system for other game systems to subscribe to.
+/// It is intended to be inherited by more specific character types like Novamina (players) or Villains.
 /// </summary>
 public abstract class Character : MonoBehaviour
 {
+    // --- Events ---
+
+    /// <summary>
+    /// Fired when the character's health changes.
+    /// Provides the current and maximum health values.
+    /// </summary>
+    public event Action<float, float> OnHealthChanged;
+
+    /// <summary>
+    /// Fired when the character's mana changes.
+    /// Provides the current and maximum mana values.
+    /// </summary>
+    public event Action<float, float> OnManaChanged;
+
+    /// <summary>
+    /// Fired when the character takes damage.
+    /// Provides the final damage amount taken after calculations.
+    /// </summary>
+    public event Action<float> OnDamageTaken;
+
+    // --- Core Identification ---
     // Events for state changes
     public event Action<float, float> OnHealthChanged; // currentHealth, maxHealth
     public event Action<float, float> OnManaChanged;   // currentMana, maxMana
@@ -29,18 +51,33 @@ public abstract class Character : MonoBehaviour
     public event Action OnDie;
 
     [Header("Core Identification")]
-    [Tooltip("A unique identifier for this character instance.")]
+    [Tooltip("A unique identifier for this character instance, assigned at runtime.")]
     public Guid CharacterId { get; private set; }
 
+    // --- Core Attributes ---
+
     [Header("Core Attributes")]
+    [Tooltip("The display name of the character.")]
     public string characterName = "Character";
+
+    [Tooltip("The maximum health of the character.")]
     public float maxHealth = 100f;
+
+    [Tooltip("The maximum mana or resource of the character.")]
     public float maxMana = 100f;
+
+    [Tooltip("Indicates whether the character is currently alive.")]
     public float maxStamina = 100f;
     public bool isAlive = true;
+    public bool isCorporeal = true;
 
-    // Encapsulated health and mana fields
+    // --- Health & Mana Properties ---
+
     private float _currentHealth;
+    /// <summary>
+    /// The current health of the character. Setting this value is clamped between 0 and maxHealth.
+    /// Triggers the OnHealthChanged event when its value changes.
+    /// </summary>
     public float Health
     {
         get => _currentHealth;
@@ -56,6 +93,10 @@ public abstract class Character : MonoBehaviour
     }
 
     private float _currentMana;
+    /// <summary>
+    /// The current mana of the character. Setting this value is clamped between 0 and maxMana.
+    /// Triggers the OnManaChanged event when its value changes.
+    /// </summary>
     public float Mana
     {
         get => _currentMana;
@@ -70,6 +111,7 @@ public abstract class Character : MonoBehaviour
         }
     }
 
+    // --- Combat Stats ---
     private float _currentStamina;
     public float Stamina
     {
@@ -86,19 +128,32 @@ public abstract class Character : MonoBehaviour
     }
 
     [Header("Combat Stats")]
+    [Tooltip("The base attack power of the character.")]
     public int attack = 10;
+
+    [Tooltip("The base defense value of the character, used to reduce incoming damage.")]
     public int defense = 5;
 
+    /// <summary>
+    /// Initializes the character's stats and unique ID when the script instance is being loaded.
+    /// </summary>
     protected virtual void Awake()
     {
         CharacterId = Guid.NewGuid();
-        // Set properties directly to trigger initial events
+        // Set properties directly to trigger initial events for UI, etc.
         Health = maxHealth;
         Mana = maxMana;
         Stamina = maxStamina;
     }
 
+    // --- Public Methods ---
+
     /// <summary>
+    /// Applies a specified amount of damage to the character after factoring in defense.
+    /// Triggers the OnDamageTaken event and handles death if health reaches zero.
+    /// </summary>
+    /// <param name="amount">The incoming amount of damage before defense reduction.</param>
+    public virtual void TakeDamage(float amount)
     /// Reduces character's stamina and returns true if successful.
     /// </summary>
     public bool UseStamina(float amount)
@@ -126,7 +181,7 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     public virtual void TakeDamage(float amount, Character instigator = null)
     {
-        if (!isAlive) return;
+        if (!isAlive || !isCorporeal) return;
 
         // If there is an instigator, register the attack for combo tracking.
         if (instigator != null && ComboManager.Instance != null)
@@ -140,6 +195,7 @@ public abstract class Character : MonoBehaviour
             }
         }
 
+        // Ensure damage is at least 1 after defense reduction.
         float damageTaken = Mathf.Max(1f, amount - defense);
         Health -= damageTaken;
 
@@ -153,8 +209,9 @@ public abstract class Character : MonoBehaviour
     }
 
     /// <summary>
-    /// Heals the character for a given amount.
+    /// Heals the character for a given amount, up to their maximum health.
     /// </summary>
+    /// <param name="amount">The amount of health to restore.</param>
     public void Heal(float amount)
     {
         if (!isAlive) return;
@@ -163,8 +220,10 @@ public abstract class Character : MonoBehaviour
     }
 
     /// <summary>
-    /// Reduces character's mana and returns true if successful.
+    /// Attempts to consume a specified amount of mana.
     /// </summary>
+    /// <param name="amount">The amount of mana to use.</param>
+    /// <returns>True if the character had enough mana and it was consumed, false otherwise.</returns>
     public bool UseMana(float amount)
     {
         if (Mana >= amount)
@@ -175,16 +234,18 @@ public abstract class Character : MonoBehaviour
         return false;
     }
 
+    // --- Protected Methods ---
+
     /// <summary>
-    /// Handles the character's death logic.
+    /// Handles the character's death logic. Sets the character's state to not alive.
+    /// This method is virtual so that subclasses can add custom death behaviors (e.g., animations, loot drops).
     /// </summary>
     protected virtual void Die(Character killer)
     {
         isAlive = false;
         OnDie?.Invoke();
         Debug.Log($"{characterName} has been defeated.");
-        // We don't disable the GameObject immediately to allow other scripts to react to the death event.
-        // Consider a separate manager to handle object cleanup.
-        // gameObject.SetActive(false);
+        // We don't disable the GameObject immediately to allow other scripts (like an encounter manager)
+        // to react to the death event before the object is cleaned up.
     }
 }
