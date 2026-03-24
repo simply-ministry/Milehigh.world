@@ -37,6 +37,9 @@ public class Era : Character
 
     // --- Initialization ---
 
+    /// <summary>
+    /// Initializes Era's specific attributes.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();
@@ -74,6 +77,7 @@ public class Era : Character
 
     [Header("Abilities")]
     [Tooltip("The ScriptableObject defining the 'Inevitable Collapse' ability.")]
+    /// <summary>The ScriptableObject defining the 'Inevitable Collapse' ability.</summary>
     public Ability inevitableCollapseAbility;
 
     /// <summary>
@@ -96,6 +100,7 @@ public class Era : Character
         foreach (var enemy in allEnemies)
         {
             Debug.Log($"The Void surges towards {enemy.characterName}, amplifying damage by {damageMultiplier:P0}!");
+            // NOTE: This assumes a 'TakeDamage' overload that accepts a damage multiplier.
             // Directly call TakeDamage on each enemy, passing the custom multiplier.
             enemy.TakeDamage(this, inevitableCollapseAbility, CombatManager.DamageFormula.Linear, damageMultiplier);
         }

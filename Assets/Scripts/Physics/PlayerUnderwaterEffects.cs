@@ -24,6 +24,9 @@ public class PlayerUnderwaterEffects : MonoBehaviour
     [Tooltip("The particle system for bubbles, activated when underwater.")]
     public ParticleSystem bubbleParticleSystem;
 
+    /// <summary>
+    /// Initializes the component, ensuring all effects are set to the default "above water" state.
+    /// </summary>
     private void Start()
     {
         // Ensure all effects are initially in the "above water" state.

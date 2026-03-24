@@ -8,8 +8,12 @@ using UnityEngine;
 public class Micah : ShadowSyndicateVillain
 {
     [Header("Micah's Tech")]
+    /// <summary>The power of Micah's suppression field.</summary>
     public int suppressionFieldPower = 50;
 
+    /// <summary>
+    ' Initializes Micah's specific attributes.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();

@@ -13,16 +13,25 @@ public class AIController : MonoBehaviour
     private AIState currentState = AIState.Idle;
 
     [Header("AI Settings")]
+    /// <summary>The movement speed of the AI.</summary>
     public float moveSpeed = 3.0f;
+    /// <summary>The turning speed of the AI.</summary>
     public float turnSpeed = 5.0f;
+    /// <summary>The range at which the AI will start attacking.</summary>
     public float attackRange = 2.0f;
+    /// <summary>The range at which the AI will start chasing the player.</summary>
     public float chaseRange = 15.0f;
+    /// <summary>The distance at which the AI will check for obstacles.</summary>
     public float obstacleAvoidanceDistance = 3.0f;
+    /// <summary>The layers that contain obstacles for the AI.</summary>
     public LayerMask obstacleLayers;
 
     private AbilitySystem abilitySystem;
     private Vector3 velocity = Vector3.zero;
 
+    /// <summary>
+    /// Initializes the AI controller by getting necessary components and finding the player target.
+    /// </summary>
     void Awake()
     {
         self = GetComponent<Character>();

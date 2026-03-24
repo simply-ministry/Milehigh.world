@@ -16,6 +16,9 @@ public class TargetingSystem : MonoBehaviour
     private int currentTargetIndex = -1;
     private PlayerController playerController;
 
+    /// <summary>
+    /// Initializes the component by getting a reference to the PlayerController.
+    /// </summary>
     void Awake()
     {
         playerController = GetComponent<PlayerController>();

@@ -17,6 +17,9 @@ public class Interactor : MonoBehaviour
     private Camera playerCamera;
     private Interactable currentInteractable;
 
+    /// <summary>
+    /// Initializes the component by getting the main camera and ensuring the prompt UI is assigned.
+    /// </summary>
     void Awake()
     {
         playerCamera = Camera.main;
@@ -70,6 +73,10 @@ public class Interactor : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Sets the currently focused interactable object and displays its prompt.
+    /// </summary>
+    /// <param name="newInteractable">The new interactable object to focus on.</param>
     private void SetInteractable(Interactable newInteractable)
     {
         if (currentInteractable == newInteractable) return;
@@ -82,6 +89,9 @@ public class Interactor : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Clears the currently focused interactable object and hides the prompt.
+    /// </summary>
     private void ClearInteractable()
     {
         if (currentInteractable == null) return;

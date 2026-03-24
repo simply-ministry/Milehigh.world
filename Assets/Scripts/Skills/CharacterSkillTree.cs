@@ -17,6 +17,9 @@ public class CharacterSkillTree : MonoBehaviour
 
     private Character character;
 
+    /// <summary>
+    /// Initializes the component by getting a reference to the Character.
+    /// </summary>
     private void Awake()
     {
         character = GetComponent<Character>();
@@ -42,6 +45,7 @@ public class CharacterSkillTree : MonoBehaviour
         }
 
         // --- Requirement Checks ---
+        // NOTE: These checks assume the 'Character' class has 'level' and 'skillPoints' attributes.
         if (character.level < skillToUnlock.requiredLevel)
         {
             Debug.Log($"Failed to unlock '{skillToUnlock.skillName}'. Required level: {skillToUnlock.requiredLevel}, Character level: {character.level}");
@@ -71,6 +75,7 @@ public class CharacterSkillTree : MonoBehaviour
         unlockedSkills.Add(skillToUnlock);
 
         // 2. Grant new ability, if any
+        // NOTE: This assumes the 'Character' class has a list of 'abilities'.
         if (skillToUnlock.grantsAbility != null)
         {
             if (!character.abilities.Contains(skillToUnlock.grantsAbility))

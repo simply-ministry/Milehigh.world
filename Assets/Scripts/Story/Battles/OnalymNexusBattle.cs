@@ -70,6 +70,7 @@ public class OnalymNexusBattle : MonoBehaviour
     void Start()
     {
         warMachineRb = warMachine.GetComponent<Rigidbody>();
+        // NOTE: This assumes a 'Health' component exists.
         warMachineHealth = warMachine.GetComponent<Health>();
         if (!warMachineRb) Debug.LogError("War Machine needs a Rigidbody!");
         if (!warMachineHealth) Debug.LogError("War Machine needs a Health component!");
@@ -148,6 +149,7 @@ public class OnalymNexusBattle : MonoBehaviour
     /// <param name="target">The target GameObject.</param>
     void DealBeamDamageOverTime(GameObject target)
     {
+        // NOTE: This assumes a 'Health' component exists.
         Health targetHealth = target.GetComponent<Health>();
         if (targetHealth != null)
         {
@@ -194,6 +196,7 @@ public class OnalymNexusBattle : MonoBehaviour
     /// <param name="target">The target GameObject.</param>
     public void AeronTSIDKENUAttack(GameObject target)
     {
+        // NOTE: This assumes a 'Health' component exists.
         Health targetHealth = target.GetComponent<Health>();
         if (targetHealth != null)
         {
@@ -226,6 +229,7 @@ public class OnalymNexusBattle : MonoBehaviour
         Collider[] hitColliders = Physics.OverlapSphere(rockEruptionSpawnPoint.position, rockEruptionRadius);
         foreach (Collider hitCollider in hitColliders)
         {
+            // NOTE: This assumes a 'Health' component exists.
             Health targetHealth = hitCollider.GetComponent<Health>();
             if (targetHealth != null)
             {

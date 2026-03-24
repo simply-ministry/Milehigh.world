@@ -6,11 +6,17 @@ using UnityEngine;
 /// </summary>
 public class InteractableTeleporter : Interactable
 {
+    /// <summary>
+    /// Called when the script instance is being loaded. Sets the specific prompt message for the teleporter.
+    /// </summary>
     private void Start()
     {
         promptMessage = "[E] Use Teleporter";
     }
 
+    /// <summary>
+    /// Defines the interaction logic for the teleporter.
+    /// </summary>
     protected override void Interact()
     {
         if (AllianceTowerManager.Instance != null)

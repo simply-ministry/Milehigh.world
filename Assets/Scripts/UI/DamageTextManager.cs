@@ -16,6 +16,9 @@ public class DamageTextManager : MonoBehaviour
     [Tooltip("Vertical offset to apply to the spawn position.")]
     public float spawnOffset = 2.0f;
 
+    /// <summary>
+    /// Initializes the singleton instance.
+    /// </summary>
     void Awake()
     {
         // Singleton pattern
@@ -29,6 +32,9 @@ public class DamageTextManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Subscribes to the OnDamageTaken event for all characters in the scene.
+    /// </summary>
     void Start()
     {
         // Find all Character objects in the scene and subscribe to their OnDamageTaken event.

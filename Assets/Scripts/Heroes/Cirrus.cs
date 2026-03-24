@@ -8,8 +8,12 @@ using UnityEngine;
 public class Cirrus : ShadowSyndicateVillain
 {
     [Header("Dragon King's Wrath")]
+    /// <summary>The damage dealt by Cirrus's storm breath ability.</summary>
     public int stormBreathDamage = 150;
 
+    /// <summary>
+    /// Initializes Cirrus's specific attributes.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();

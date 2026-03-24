@@ -34,7 +34,7 @@ public class PlayerController : MonoBehaviour
     public Transform cameraTransform;
 
     [Header("Targeting")]
-    [Tooltip("The currently selected target for abilities.")]
+    /// <summary>The currently selected target for abilities.</summary>
     public Character CurrentTarget { get; private set; }
 
     // --- Component References ---
@@ -45,6 +45,7 @@ public class PlayerController : MonoBehaviour
     private TargetingSystem targetingSystem;
 
     /// <summary>
+    /// Initializes the component by getting references to required components.
     /// Caches required component references and finds the main camera.
     /// </summary>
     void Awake()
@@ -67,6 +68,7 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
+    /// Called every frame. Handles either combat or exploration input based on the game state.
     // Called every frame. Determines whether to handle combat or exploration input
     // based on the current combat state from the CombatManager.
     /// </summary>
@@ -105,6 +107,9 @@ public class PlayerController : MonoBehaviour
 
     private float lastStaminaUseTime;
 
+    /// <summary>
+    /// Handles camera-relative character movement and sprinting.
+    /// </summary>
     private void HandleMovement()
     {
         float horizontalInput = Input.GetAxis("Horizontal");
@@ -139,6 +144,9 @@ public class PlayerController : MonoBehaviour
         characterController.Move(moveVector * Time.deltaTime);
     }
 
+    /// <summary>
+    /// Handles the regeneration of stamina after a delay.
+    /// </summary>
     private void HandleStaminaRegen()
     {
         // Check if enough time has passed since the last stamina use to start regenerating.
@@ -225,6 +233,7 @@ public class PlayerController : MonoBehaviour
         // Request the CombatManager to execute the action.
         CombatManager.Instance.PlayerAction(character, CurrentTarget, abilitySystem.abilities[abilityIndex]);
     }
+}
 
     /// <summary>
     /// Public method to allow other systems (like the <see cref="TargetingSystem"/>) to set the player's target.

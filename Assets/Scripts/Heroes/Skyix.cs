@@ -8,8 +8,12 @@ using UnityEngine;
 public class Skyix : ShadowSyndicateVillain
 {
     [Header("AI-Specific Logic")]
-    public int processingPower = 1000; // Represents computational strength
+    /// <summary>Represents computational strength.</summary>
+    public int processingPower = 1000;
 
+    /// <summary>
+    /// Initializes Sky.ix's specific attributes.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();

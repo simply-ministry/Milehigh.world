@@ -18,6 +18,9 @@ public class FloatingDamageText : MonoBehaviour
     private float _timer;
     private Color _originalColor;
 
+    /// <summary>
+    /// Initializes the component by getting references and setting the initial timer.
+    /// </summary>
     void Awake()
     {
         _damageText = GetComponent<Text>();
@@ -34,6 +37,9 @@ public class FloatingDamageText : MonoBehaviour
         _damageText.text = Mathf.RoundToInt(damageAmount).ToString();
     }
 
+    /// <summary>
+    /// Called every frame. Handles the text's upward movement and fade-out animation.
+    /// </summary>
     void Update()
     {
         // Animate position

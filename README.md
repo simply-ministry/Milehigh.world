@@ -71,8 +71,16 @@ The project reinforces its digital, cyberpunk roots through a recurring binary m
 
 For a complete narrative and world-building reference, see the [Game Design Document](docs/GDD.md).
 
-## 📂 Repository Structure
+## 🏛️ Project Architecture
 
+This repository uses a hybrid architecture that combines a **Unity/C# frontend** for the main game with a **Python backend** for tooling, prototyping, and data management.
+
+-   **Unity/C# (The Game)**: The core of the project, located in the `Assets/` directory. This is where all real-time game logic, character controllers, combat systems, and UI are implemented.
+-   **Python (Tooling & Prototyping)**: A collection of scripts in the root directory used for tasks that support the main game, such as database management, asset validation, and rapid prototyping of game mechanics.
+
+This separation allows for a clean and efficient workflow, where game logic can be quickly tested in a lightweight Python environment before being implemented in C#.
+
+## 📂 Repository Structure
 The repository is organized to separate Unity project files from external tools and documentation.
 
 ```
@@ -105,7 +113,6 @@ The repository is organized to separate Unity project files from external tools 
 ├── database.py           # Manages the game's SQLite database.
 ├── game.py               # A Python-based prototype of the game's core mechanics.
 ├── rpg.py                # A more complex, data-driven RPG prototype.
-├── simple_rpg.py         # A simplified RPG for testing specific features.
 ├── test_*.py             # Pytest files for all Python scripts.
 └── usd_parser.py         # Extracts USD snippets from Markdown files.
 ```
@@ -129,6 +136,7 @@ This project uses a custom Python-based pipeline for validating **Universal Scen
 *   **Blender** (optional, for running scripts in `blender_scripts/`).
 *   **Git** for version control.
 
+### Installation & Setup
 *   `usd_parser.py`: Parses and extracts USD data snippets from design documents.
 *   `test_usd_validation.py`: Contains unit tests for the USD assets.
 
@@ -154,6 +162,17 @@ Thank you for helping make "Milehigh.World: Into the Void" a reality!
     cd milehigh.world
     ```
 2.  **Set up the Python environment:**
+    It is highly recommended to use a virtual environment to manage Python dependencies.
+    ```bash
+    # Create and activate a virtual environment
+    python -m venv venv
+    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+
+    # Install the required packages
+    pip install -r requirements.txt
+    ```
+3.  **Initialize the game database:**
+    The `database.py` script creates and populates a SQLite database with initial game data.
     It is recommended to use a virtual environment to keep the project's dependencies isolated.
     ```bash
     python -m venv venv
@@ -167,8 +186,7 @@ Thank you for helping make "Milehigh.World: Into the Void" a reality!
     ```
 4.  **Open the project in Unity:**
     *   Open Unity Hub.
-    *   Click "Add" or "Open."
-    *   Navigate to the cloned repository folder and select it.
+    *   Click "Open" and select the cloned repository folder.
     *   The project will open in the Unity Editor, ready for development.
 
 ## 🛠️ Python Scripts
@@ -176,6 +194,15 @@ Thank you for helping make "Milehigh.World: Into the Void" a reality!
 This project uses a number of Python scripts for various purposes. Here's a brief overview:
 
 *   **`database.py`**: Manages the game's SQLite database (`game_content.db`), which stores information about characters, items, quests, and more. Running this script directly will initialize the database with the required schema and some initial data.
+*   **`game.py` & `rpg.py`**: These files are Python-based prototypes of the game's core mechanics. They are used for testing and iterating on game logic before implementing it in C#.
+    *   `game.py`: A comprehensive prototype with a game loop, combat, dialogue, and a connection to `game_data.json`.
+    *   `rpg.py`: A more advanced, data-driven prototype that loads character and item data directly from the SQLite database.
+*   **`usd_parser.py`**: This script is used to parse and extract USD (Universal Scene Description) data snippets from design documents, which is useful for validating the game's assets.
+*   **`test_*.py`**: These files contain unit tests for the Python scripts, written using the `pytest` framework.
+
+### Running the Python Tests
+
+To ensure the Python scripts are functioning correctly, run the test suite from the root of the repository:
 *   **`game.py`**, **`rpg.py`**, **`simple_rpg.py`**: These files are Python-based prototypes of the game's core mechanics. They are used for testing and iterating on game logic before implementing it in C#.
     *   `simple_rpg.py`: A lightweight prototype for testing specific features like the level-up system. You can run it directly to see a demonstration of the level-up and ability learning mechanics:
         ```bash
@@ -197,8 +224,9 @@ This project uses a number of Python scripts for various purposes. Here's a brie
 To ensure the Python scripts are working correctly, you can run the test suite using `pytest`.
 
 ```bash
-pytest
+python -m pytest
 ```
+*Note: The `test_usd_validation.py` suite may be skipped if the required USD libraries are not installed. This is expected behavior.*
 
 ## C# Codebase Overview
 

@@ -6,11 +6,17 @@ using UnityEngine;
 /// </summary>
 public class InteractableLaunchpad : Interactable
 {
+    /// <summary>
+    /// Called when the script instance is being loaded. Sets the specific prompt message for the launchpad.
+    /// </summary>
     private void Start()
     {
         promptMessage = "[E] Use Launchpad";
     }
 
+    /// <summary>
+    /// Defines the interaction logic for the launchpad.
+    /// </summary>
     protected override void Interact()
     {
         if (AllianceTowerManager.Instance != null)
