@@ -269,6 +269,37 @@ def init_db(db_file: str = DB_FILE) -> None:
     conn.commit()
     conn.close()
 
+_ALLOWED_TABLES = {"Characters", "Items", "Weapons", "Armor"}
+_ALLOWED_FIELDS = {"name", "weapon_id", "armor_id"}
+
+def _query_single_row(table, field, value):
+    """Fetches a single row from the given table where field matches value."""
+    if table not in _ALLOWED_TABLES:
+        raise ValueError(f"Invalid table name: {table!r}")
+    if field not in _ALLOWED_FIELDS:
+        raise ValueError(f"Invalid field name: {field!r}")
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT * FROM {table} WHERE {field} = ?", (value,))
+    result = cursor.fetchone()
+    conn.close()
+    return result
+
+def get_character_data(name):
+    """Fetches a character's data from the database."""
+    return _query_single_row("Characters", "name", name)
+
+def get_item_data(name):
+    """Fetches an item's base data from the Items table."""
+    return _query_single_row("Items", "name", name)
+
+def get_weapon_data(item_id):
+    """Fetches a weapon's specific data from the Weapons table."""
+    return _query_single_row("Weapons", "weapon_id", item_id)
+
+def get_armor_data(item_id):
+    """Fetches armor's specific data from the Armor table."""
+    return _query_single_row("Armor", "armor_id", item_id)
 
 def set_class_loader(loader: Callable[[str, Dict[str, Any]], Any]) -> None:
     """Sets the global function used for dynamically loading classes.
