@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MILEHIGH.WORLD - Game Systems Infographic</title>
+    <!-- External libraries and fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <!-- Custom Styles -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -47,11 +49,13 @@
 
     <div class="container mx-auto p-4 md:p-8">
 
+        <!-- Header Section -->
         <header class="text-center mb-12">
             <h1 class="text-5xl md:text-7xl font-black text-cyan-400 tracking-tighter">MILEHIGH.WORLD</h1>
             <p class="text-xl md:text-2xl text-gray-300 mt-2">An Overview of Core Game Systems & The Void</p>
         </header>
 
+        <!-- Introduction Section -->
         <section id="introduction" class="mb-16">
             <div class="bg-gray-800 rounded-lg shadow-2xl p-6 md:p-8 border-l-4 border-cyan-400">
                 <h2 class="text-3xl font-bold text-cyan-400 mb-4">Welcome to the System</h2>
@@ -59,6 +63,7 @@
             </div>
         </section>
 
+        <!-- High-Level Overview Section -->
         <section id="overview" class="mb-16">
             <h2 class="text-4xl font-bold text-center mb-8 text-cyan-400">System Architecture at a Glance</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -85,7 +90,7 @@
             </div>
         </section>
 
-        <!-- Dynamic Character Systems Section -->
+        <!-- Dynamic Character Systems Section with Radar Chart -->
         <section id="character-systems" class="mb-16">
             <h2 class="text-4xl font-bold text-center mb-8 text-pink-400">Character Archetypes: A Statistical Overview</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-gray-800 rounded-lg shadow-2xl p-6 md:p-8">
@@ -196,7 +201,7 @@
             </div>
         </section>
 
-        <!-- Placeholder for future sections like Skill Tree, Core Loop, etc. -->
+        <!-- Placeholder for future sections -->
         <section id="future-sections" class="mb-16">
             <div class="bg-gray-800 rounded-lg shadow-2xl p-6 md:p-8 text-center">
                 <h2 class="text-3xl font-bold text-cyan-400 mb-4">More to Explore</h2>
@@ -206,6 +211,7 @@
 
     </div>
 
+    <!-- JavaScript for Chart.js Integration -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const chartCanvas = document.getElementById('characterRadarChart');

@@ -1,8 +1,22 @@
+"""A utility script to generate a sequence of placeholder images.
+
+This script uses the Pillow library (PIL) to create a series of simple,
+numbered PNG images, which can be used as a temporary sequence for testing
+the images_to_video.py script.
+"""
+
 import os
 from PIL import Image, ImageDraw, ImageFont
 
 def create_placeholder_sequence(num_frames, output_folder, size=(1920, 1080)):
-    """Generates a sequence of simple, numbered PNG images."""
+    """Generates a sequence of simple, numbered PNG images.
+
+    Args:
+        num_frames (int): The number of frames to generate.
+        output_folder (str): The path to the directory where the images will be saved.
+        size (tuple, optional): The dimensions (width, height) of the images.
+                                Defaults to (1920, 1080).
+    """
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
         print(f"Created directory: {output_folder}")

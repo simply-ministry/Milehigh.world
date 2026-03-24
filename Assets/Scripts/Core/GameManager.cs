@@ -8,6 +8,11 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public class GameManager : MonoBehaviour
 {
+    // --- Singleton Pattern ---
+    /// <summary>The singleton instance of the GameManager.</summary>
+    public static GameManager Instance { get; private set; }
+
+    /// <summary>Represents the different states the game can be in.</summary>
     /// <summary>
     /// Static instance of the GameManager, providing a global access point.
     /// </summary>
@@ -30,6 +35,7 @@ public class GameManager : MonoBehaviour
     private GameState currentState;
 
     /// <summary>
+    /// Initializes the singleton pattern and sets the initial game state.
     /// Called when the script instance is being loaded.
     /// Implements the singleton pattern and ensures essential managers are present.
     /// </summary>

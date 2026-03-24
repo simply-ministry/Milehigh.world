@@ -43,17 +43,18 @@ public class LinqDiscoveryScene : MonoBehaviour
     IEnumerator SceneSequence()
     {
         // Initial dialogue
+        // NOTE: This assumes a 'Say' method exists on the Character class to display dialogue.
         cirrus.Say("This city... It was a beacon. A center of knowledge... of power. What happened here, Micah?");
-        yield return new WaitForSeconds(dialoguePause);
+        yield return new WaitForSeconds(dialogouePause);
 
         micah.Say("Lîŋq fell to the Void, Cirrus. Its people sought to control its power, to unravel its secrets... They reached too far, and the darkness consumed them.");
-        yield return new WaitForSeconds(dialoguePause);
+        yield return new WaitForSeconds(dialogouePause);
 
         omegaOne.Say("Analysis: The energy signatures within these ruins are unstable. There are traces of both Void corruption and residual celestial power.");
-        yield return new WaitForSeconds(dialoguePause);
+        yield return new WaitForSeconds(dialogouePause);
 
         cirrus.Say("Then it's true. The Nexus... it wasn't just a gateway. It was a weapon.");
-        yield return new WaitForSeconds(dialoguePause);
+        yield return new WaitForSeconds(dialogouePause);
 
         // The discovery of the Nexus
         Debug.Log("*The ground trembles. A nearby tower collapses, revealing a hidden chamber.*");

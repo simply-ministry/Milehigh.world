@@ -1,3 +1,10 @@
+"""A Blender script to render a sequence of images into a video file.
+
+This script is designed to be run in Blender's headless (background) mode.
+It manually sets up the necessary context to use Blender's Video Sequence
+Editor (VSE) to import an image sequence and render it as an H.264 MP4 video.
+"""
+
 import bpy
 import os
 

@@ -1,5 +1,10 @@
 using UnityEngine;
 
+/// <summary>
+/// Manages player movement, including walking, sprinting, jumping, and gravity.
+/// It also includes a basic stamina system for sprinting.
+/// </summary>
+[RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
     // The CharacterController component is used for player movement and collision.
@@ -7,27 +12,40 @@ public class PlayerMovement : MonoBehaviour
     private CharacterController controller;
 
     // --- Movement Variables ---
+    /// <summary>The speed at which the player walks.</summary>
     public float walkSpeed = 5f;
+    /// <summary>The speed at which the player sprints.</summary>
     public float sprintSpeed = 8f;
     private float currentSpeed;
 
     // --- Gravity and Jumping ---
+    /// <summary>The force of gravity applied to the player.</summary>
     public float gravity = -9.81f;
+    /// <summary>The height the player can jump.</summary>
     public float jumpHeight = 2f;
     private Vector3 velocity;
 
     // --- Ground Check ---
+    /// <summary>A transform representing the point from which to check for the ground.</summary>
     public Transform groundCheck;
-    public float groundDistance = 0.4f; // Radius of the sphere for ground checking
-    public LayerMask groundMask; // Layer to detect as ground
+    /// <summary>The radius of the sphere for ground checking.</summary>
+    public float groundDistance = 0.4f;
+    /// <summary>The layer mask to detect as ground.</summary>
+    public LayerMask groundMask;
     private bool isGrounded;
 
     // --- Stamina System ---
+    /// <summary>The maximum amount of stamina the player has.</summary>
     public float maxStamina = 100f;
+    /// <summary>The rate at which stamina is drained while sprinting.</summary>
     public float staminaDrainRate = 20f;
+    /// <summary>The rate at which stamina regenerates.</summary>
     public float staminaRegenRate = 15f;
     private float currentStamina;
 
+    /// <summary>
+    /// Initializes the component by getting the CharacterController and setting default values.
+    /// </summary>
     void Start()
     {
         // Get the CharacterController component attached to this GameObject
@@ -36,6 +54,9 @@ public class PlayerMovement : MonoBehaviour
         currentSpeed = walkSpeed;
     }
 
+    /// <summary>
+    /// Called every frame. Handles player input for movement, jumping, and sprinting.
+    /// </summary>
     void Update()
     {
         // Check if the player is grounded using a sphere cast
@@ -71,6 +92,9 @@ public class PlayerMovement : MonoBehaviour
         controller.Move(velocity * Time.deltaTime);
     }
 
+    /// <summary>
+    /// Handles the logic for sprinting, including speed changes and stamina management.
+    /// </summary>
     private void HandleSprinting()
     {
         // Check for sprint key press and if the player is moving

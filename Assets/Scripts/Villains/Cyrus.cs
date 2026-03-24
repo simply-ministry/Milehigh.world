@@ -41,6 +41,9 @@ public class Cyrus : Character
 
     // --- Initialization ---
 
+    /// <summary>
+    /// Initializes Cyrus's specific attributes.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();
@@ -63,7 +66,7 @@ public class Cyrus : Character
     }
 
     /// <summary>
-    // An ability that allows Cyrus to manipulate dimensional energy to create unstable,
+    /// An ability that allows Cyrus to manipulate dimensional energy to create unstable,
     /// damaging rifts on the battlefield.
     /// </summary>
     public void DimensionalRift()

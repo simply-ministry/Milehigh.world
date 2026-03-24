@@ -2,9 +2,6 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// A singleton that manages all UI elements for the combat scene.
-/// </summary>
-/// <summary>
 /// A singleton that manages all UI elements for the combat scene,
 /// including character stat panels and action buttons.
 /// </summary>

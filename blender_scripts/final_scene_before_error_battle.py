@@ -1,3 +1,10 @@
+"""A Blender script to generate the animation for the final scene before the battle.
+
+This script uses the Blender Python API (bpy) to create a short animated
+sequence, setting up the positions, rotations, and subtle movements of the
+characters Skye and Error, as well as animating the camera and lighting.
+"""
+
 import bpy
 
 def final_scene_before_error_battle(skye_object_name="Skye", error_object_name="Error", start_frame=1, end_frame=100):

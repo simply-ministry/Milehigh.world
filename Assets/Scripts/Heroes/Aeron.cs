@@ -7,6 +7,9 @@ using UnityEngine;
 /// </summary>
 public class Aeron : NoveminaadHero
 {
+    /// <summary>
+    /// Initializes Aeron's specific attributes.
+    /// </summary>
     protected override void Awake()
     {
         base.Awake();
