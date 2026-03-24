@@ -1,27 +1,44 @@
 using UnityEngine;
 
+/// <summary>
+/// Generates a 2D terrain profile using Perlin noise and displays it with a LineRenderer.
+/// </summary>
 [RequireComponent(typeof(LineRenderer))]
 public class ProceduralTerrain2D : MonoBehaviour
 {
+    [Header("Terrain Settings")]
+    [Tooltip("The number of points to generate for the terrain's width.")]
     [SerializeField] private int width = 512;
+    [Tooltip("The maximum height of the terrain.")]
     [SerializeField] private int height = 256;
+    [Tooltip("The scale of the Perlin noise. Smaller values create smoother terrain.")]
     [SerializeField] private float scale = 0.05f;
+    [Tooltip("The seed for the Perlin noise, allowing for reproducible terrain.")]
     [SerializeField] private float seed = 0f;
 
     private LineRenderer lineRenderer;
 
+    /// <summary>
+    /// Initializes the component by getting the LineRenderer.
+    /// </summary>
     private void Awake()
     {
         lineRenderer = GetComponent<LineRenderer>();
         SetupLineRenderer();
     }
 
+    /// <summary>
+    /// Generates the terrain when the game starts.
+    /// </summary>
     void Start()
     {
         GenerateTerrain();
     }
 
-    // Allows for regeneration in the editor when values are changed.
+    /// <summary>
+    /// Called in the editor when a script is loaded or a value is changed in the Inspector.
+    /// This allows for real-time regeneration of the terrain in the editor.
+    /// </summary>
     private void OnValidate()
     {
         if (lineRenderer == null)
@@ -32,6 +49,9 @@ public class ProceduralTerrain2D : MonoBehaviour
         GenerateTerrain();
     }
 
+    /// <summary>
+    /// Sets up the initial properties of the LineRenderer.
+    /// </summary>
     private void SetupLineRenderer()
     {
         // A material is required for the line to be visible.
@@ -51,6 +71,10 @@ public class ProceduralTerrain2D : MonoBehaviour
         lineRenderer.useWorldSpace = false;
     }
 
+    /// <summary>
+    /// Generates the terrain points using Perlin noise and applies them to the LineRenderer.
+    /// Can be called from a context menu in the editor.
+    /// </summary>
     [ContextMenu("Generate Terrain")]
     public void GenerateTerrain()
     {
