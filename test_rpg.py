@@ -31,10 +31,10 @@ class TestRpgInteraction(unittest.TestCase):
         self.scene_manager.setup()
         self.game.log_message = MagicMock()
 
-    @patch('builtins.input', side_effect=['examine', ''])
     def tearDown(self):
         """Clean up the temporary database after each test."""
-        os.remove(self.DB_FILE)
+        if os.path.exists(self.DB_FILE):
+            os.remove(self.DB_FILE)
 
     @patch('builtins.input', return_value='examine')
     def test_examine_command_success(self, mock_input):
