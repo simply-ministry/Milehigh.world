@@ -178,10 +178,6 @@ class Item(GameObject):
         self.description = description
 
     def __str__(self):
-        """Returns a string representation of the item.
-
-        Returns:
-            str: The string representation.
         """Provides a user-friendly string representation of the item.
 
         Returns:
@@ -245,10 +241,6 @@ class Weapon(Item):
         self.weapon_type = weapon_type
 
     def __str__(self):
-        """Returns a string representation of the weapon.
-
-        Returns:
-            str: The string representation.
         """Provides a formatted string showing the weapon's stats.
 
         Returns:
@@ -274,10 +266,6 @@ class Armor(Item):
         self.defense = defense
 
     def __str__(self):
-        """Returns a string representation of the armor.
-
-        Returns:
-            str: The string representation.
         """Provides a formatted string showing the armor's stats.
 
         Returns:
@@ -1056,13 +1044,6 @@ class Kane(Enemy):
             self.xp_value = 500
 
 def main(argv):
-    """The main function to run the game.
-
-    Args:
-        argv (list): Command-line arguments passed to the script.
-
-    Returns:
-        SceneManager: The scene manager instance after the game loop finishes.
     """The main entry point for the game.
 
     This function initializes the database, sets up the game engine, and

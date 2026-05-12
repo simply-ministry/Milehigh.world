@@ -40,9 +40,17 @@ AssetDatabase.CreateAsset(characterData, assetPath);
 characterData.characterName = charInfo.name;
 characterData.title = charInfo.title;
 characterData.description = charInfo.description;
+characterData.health = charInfo.stats.health;
 characterData.strength = charInfo.stats.strength;
 characterData.dexterity = charInfo.stats.dexterity;
-// ... and so on for all other stats.
+characterData.defense = charInfo.stats.defense;
+characterData.vigor = charInfo.stats.vigor;
+characterData.heart = charInfo.stats.heart;
+characterData.resonance = charInfo.stats.resonance;
+characterData.integrity = charInfo.stats.integrity;
+characterData.vanguardMultiplier = charInfo.stats.vanguardMultiplier != 0 ? charInfo.stats.vanguardMultiplier : 1.0f;
+characterData.voidAffinity = charInfo.stats.voidAffinity;
+characterData.nexusAttunement = charInfo.stats.nexusAttunement;
 
 // Mark the asset as "dirty" to ensure changes are saved.
 EditorUtility.SetDirty(characterData);
@@ -73,9 +81,17 @@ public StatInfo stats;
 [System.Serializable]
 private class StatInfo
 {
-public int strength;
-public int dexterity;
-// ... etc
+    public float health;
+    public int strength;
+    public int dexterity;
+    public int defense;
+    public int vigor;
+    public int heart;
+    public float resonance;
+    public float integrity;
+    public float vanguardMultiplier;
+    public int voidAffinity;
+    public int nexusAttunement;
 }
 }
 
